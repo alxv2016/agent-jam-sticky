@@ -23,7 +23,7 @@ board are in the `build-run-test` skill ([.agents/skills/build-run-test/SKILL.md
 | `[INK]` | From InkBoy (`github.com/kuslota/InkBoy`), whose scan method our SSD1677 scans adapt |
 | `[FW]` | Proven by our firmware running on the board |
 | `[MEAS]` | Measured on the board on 2026-11-19 with firmware `agent_jam_sticky` 0.1.0 (commit `4d6da5c` and the working tree), ESP-IDF v6.1 and LVGL 9.5.0 unless a table's note names v6.1.1 and LVGL 9.6.0 for its animation column, on USB power at room temperature — the SHT40 inside 15–35 °C; the benchmark is `hw_test`'s, the median of 30 partial frames per preset |
-| `[SEEN]` | Seen on the glass by the person, on the same day and build as `[MEAS]` |
+| `[SEEN]` | Seen on the glass by the person, on the same day and build as `[MEAS]`, or on the date its line gives |
 | `[D]` | Derived from the cited values, not measured |
 | `[?]` | Unverified — tracked in Open items |
 
@@ -234,10 +234,10 @@ Where it lives: `components/lvgl_display/display.cpp`.
 | SSD1677 | Scan 4 x 10 | Scans of 4 frames, a budget of 10 | |
 
 - **A preset is chosen on the board** — the Display screen's Speed button, or `speed <n>` on the console `[FW]`.
-- **The hardware test's mascot page scans on a V1.0** — it sets Scan 3 x 10 while it is open, the moves run at about 9 frames
-  a second (§4.2), and it puts back the preset it found as it closes, so every other screen keeps the default. This is
-  the person's ask, 2026-11-24. The person chose 3 x 10 on the glass over 2 x 12, which "has too much ghosting" over the
-  mascot's dithered greys, and over 4 x 10 `[SEEN]` (`components/hw_test/mascot_page.cpp`).
+- **The hardware test's mascot page keeps the person's preset on a V1.0** — by default the kept waveform, so the moves
+  run at about 1.84 frames a second (§4.2). Every faster drive tried left the moves' ghost on the mascot's dithered
+  body (§6); the person chose the default over them on the glass, 2026-11-25 `[SEEN]`
+  (`components/hw_test/mascot_page.cpp`).
 - **Each driver refuses a value off its allow-list** — the SSD2677's frame rate `0x02`–`0x05` or `0x08`; the SSD1677's
   scans 1–8 frames and a budget of 2–15 `[FW]`.
 
@@ -346,6 +346,11 @@ growing and shrinking by 36 px a frame on a white track** `[MEAS]`.
   drawn full `[FW]`.
 - **The V2.0's black fades a few seconds after a refresh** → the idle standby's power-off (`0x02`), Seeed's step too
   — with standby off, black held on the glass `[SEEN]` → the SSD2677 stays powered between refreshes (§3.1) `[FW]`.
+- **The mascot's body keeps a lighter print of a pose under every drive faster than the OTP's partial** → its grey
+  is a dither of lone pixels. A short drive likely switches them less fully than the bar's solid black `[?]`. On a
+  V1.0 the print stays under scans up to 4 x 15. It stays under clumped dithers and a shaken pass at 3.3–4.4 fps. A
+  clean-up at each pause clears it only at rest. Solid greys clear it but lose the hands. All seen 2026-11-25
+  `[SEEN]` → the mascot page keeps the kept waveform, 1.84 fps (§3.5). None of those drives is in the firmware.
 - **The board's screenshot is clean but the glass is not** → `tests/bench/screenshot.py` sends the frame the firmware
   asked for, not the ink → judge the glass by eye or photograph `[FW]`.
 
@@ -357,7 +362,7 @@ growing and shrinking by 36 px a frame on a white track** `[MEAS]`.
 
 | Item | Status | Unblocked by |
 | --- | --- | --- |
-| Whether one short pulse a frame, with the polarity now known, clears as well as the scans — the single-pulse and kick-and-drive presets were tried with the polarity reversed | Open | A single-pulse preset at the corrected polarity, judged on a V1.0 board's glass |
+| Whether one short pulse a frame, with the polarity now known, clears as well as the scans — only a single-pulse preset at the reversed polarity has run; a kick-and-drive at the corrected polarity is §6's shaken pass | Open | A single-pulse preset at the corrected polarity, judged on a V1.0 board's glass |
 | Whether the SSD2677's glass needs `0x62`, `0xE7`, `0xE9` and `0xE0`'s bit 4 — none changes a refresh's time (§4.1) | Open | A build without each on a V2.0 board, the full and partial refreshes judged on the glass |
 | What each of the SSD2677's OTP temperature bands holds — `0x92` (ROTP) reads its 6144 bytes, the same twice over, in a layout no public document gives `[MEAS]` | Open | The module's spec from Seeed, to read the dump by |
 | The SSD2677's idle current with its supply left on between refreshes, against a standby — the battery cost of keeping black from fading (§3.1) | Deferred — until the application is complete (the person's choice) | The fuel gauge's current read on battery, idle on a V2.0 running the application, powered and in standby |

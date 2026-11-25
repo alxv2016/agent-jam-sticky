@@ -2,7 +2,7 @@
 // portrait glass, one move at a time — the deck's fourteen and its rest — played once or looped, each moment of a move
 // heard through the buzzer, so every move, its sounds and the ghosting a loop leaves can be judged on the glass. A move
 // runs as the deck's stage runs it (widgets::mascot_stage_run, AGENT_DECK 9.8), its numbers unchanged, and the glass
-// samples it at its own pace, about two frames a second on a V2.0 and nine on a V1.0, scanned (MASCOT §6); a full
+// samples it at its own pace, about two frames a second on either board, by the partial refresh (MASCOT §6); a full
 // refresh lands wherever the twentieth partial does, and the move goes on through it. The page opens on Rest, still, and
 // changes nothing until a press. Its stage, its loop and the mascot's sounds are DESIGN → Exceptions → The hardware-test
 // demo's.
@@ -12,7 +12,6 @@
 #include <array>
 #include <cinttypes>
 #include <cstdio>
-#include <cstring>
 
 #include "design_tokens.h"
 #include "devices.h"
@@ -35,11 +34,10 @@ using widgets::MascotMove;
 // One flipbook frame: the partial refresh's hold, which the mascot's moments share (`sound.moments-max`, MASCOT §6) —
 // what a pass's length is divided by to say about how many frames it takes before it has played.
 constexpr uint32_t kFrameMs = dt::kSoundMomentsMaxMs;
-// ON A V1.0 THE PAGE SCANS: while it is open the SSD1677 runs this preset of its own waveform — the moves at about 9 frames
-// a second, not the kept waveform's 1.84 — and the preset the person chose comes back as the page closes (the person's
-// ask, 2026-11-24; STICKY_EPAPER_WAVEFORMS §3.5). Its frame, measured: STICKY_EPAPER_WAVEFORMS §4.2.
-constexpr const char *kV1Preset = "Scan 3 x 10";
-constexpr uint32_t kV1FrameMs = 108;
+// On a V1.0 the page keeps the person's preset, by default Keep waveform, whose frame is longer: 541 ms, 1.84 frames a
+// second; under a scan preset the estimate runs long. The scans' 9 fps left the moves' ghost on the mascot's dithered body (the person's choice, 2026-11-25;
+// STICKY_EPAPER_WAVEFORMS §3.5, §4.2).
+constexpr uint32_t kV1FrameMs = 541;
 // The stage: the glass's width, 15 cells high, under the status bar and `spacing.md`; the mascot's root — 10 x 8 cells
 // (widgets/mascot.h) — stands centred on its bottom edge, so the 7 cells above it hold the flag and the confetti, which
 // reaches 359 px above the ground at the 24 px cell (mock 4).
@@ -101,29 +99,13 @@ public:
     {
         const lvgl_display::Stats st = lvgl_display::GetStats();
         full_base_ = st.full_count;
-        frame_ms_ = kFrameMs;
-        if (!st.ssd2677) {
-            const int before = lvgl_display::Tuning();
-            for (int i = 0; i < lvgl_display::TuningCount(); ++i) {
-                if (i != before && std::strcmp(lvgl_display::TuningName(i), kV1Preset) == 0 &&
-                    lvgl_display::SetTuning(i) == ESP_OK) {
-                    tuning_before_ = before;
-                }
-            }
-            if (std::strcmp(lvgl_display::TuningName(lvgl_display::Tuning()), kV1Preset) == 0) {
-                frame_ms_ = kV1FrameMs;
-            }
-        }
+        frame_ms_ = st.ssd2677 ? kFrameMs : kV1FrameMs;
         ShowRest();
     }
 
     void OnExit() override
     {
         Stop();
-        if (tuning_before_ >= 0) {
-            lvgl_display::SetTuning(tuning_before_);  // the person's preset back for every other screen
-            tuning_before_ = -1;
-        }
     }
 
 private:
@@ -495,7 +477,6 @@ private:
     uint32_t typing_since_ = 0;
     uint32_t full_base_ = 0;
     uint32_t frame_ms_ = kFrameMs;  // this glass's frame on this page: the estimate's divisor
-    int tuning_before_ = -1;        // the preset to put back on leaving, when the page changed it
     std::array<uint32_t, kMoves> played_ = {};
     std::array<uint32_t, kMoves> measured_ = {};  // the frames a pass took, last time it played
 };

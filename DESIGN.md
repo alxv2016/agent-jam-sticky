@@ -1641,10 +1641,10 @@ A value off these tokens is argued here — what, where and why — before a scr
     stop so UP and DOWN reach it. Each focused widget on the kit page comes into view at once, as on every screen that
     scrolls (the theme's `ui::ShowWhenFocused`). The list view and the text view on the kit page still turn pages, as they
     do everywhere; only the page that holds them scrolls.
-  - The mascot page plays Claude's mascot's moves as a flipbook at the glass's pace, about two frames a second on a V2.0
-    and nine on a V1.0, which the page scans at 3 x 10. The stage band is 360 px high (15 mascot cells of 24 px), the
-    mascot is centred and free to go off the glass's edge, and each move runs for the deck's stage's length. Its loop
-    rests 1.5 s between passes until Stop, with the mascot's moments sounding with its frames (Motion → Sound).
+  - The mascot page plays Claude's mascot's moves as a flipbook at the glass's pace, about two frames a second on
+    either board. The stage band is 360 px high (15 mascot cells of 24 px), the mascot is centred and free to go off the
+    glass's edge, and each move runs for the deck's stage's length. Its loop rests 1.5 s between passes until Stop, with
+    the mascot's moments sounding with its frames (Motion → Sound).
 - **Why:** each measures the glass, the touch, the buzzer or a sensor, so it is a fixture sized to the test, not to reading.
   - The benchmark exists to drive the glass as fast as it goes.
   - The page walk changes screen many times over for a ghosting run.

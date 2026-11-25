@@ -3,7 +3,7 @@
 // (design_tokens.h `kSpacingMascotCell`, `kColorMascot*`), the glass's portrait size (board_config.h's, asserted in
 // mascot.cpp, which the host tests build without it), and the moves' lengths — the
 // deck's own, the mascot's animation data like its frames, played at the deck's pace and seen at the glass's, about two
-// frames a second on a V2.0 and nine on a V1.0's scans (MASCOT §6; STICKY_UI_KIT_PORT §4 item 8). Not a token header: the moves' lengths are no design
+// frames a second on either board (MASCOT §6; STICKY_UI_KIT_PORT §4 item 8). Not a token header: the moves' lengths are no design
 // value of this glass; where the moves play, "Nothing animates" gives way to DESIGN → Exceptions → The hardware-test demo.
 
 #pragma once
