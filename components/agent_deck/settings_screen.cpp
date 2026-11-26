@@ -11,6 +11,7 @@
 #include "deck_model.h"
 #include "deck_rules.h"
 #include "deck_ui.h"
+#include "lvgl_display.h"
 #include "router/router.h"
 #include "ui.h"
 #include "widgets/widgets.h"
@@ -40,6 +41,7 @@ public:
         lv_obj_set_size(page_, kGlassW, kGlassH);
         lv_obj_set_pos(page_, 0, 0);
         ui::LetRingOut(page_);
+        widgets::ClaimPageSwipe(page_, OnSwipe, this);  // an up or down swipe anywhere turns the rows' page (DESIGN → Layout → Paging)
         clock_.Build(page_);
         Build();
     }
@@ -217,6 +219,24 @@ private:
         lv_obj_set_y(rows_, dt::kFocusRingReach - top);
         lv_obj_set_height(band_, bottom - top + 2 * dt::kFocusRingReach);
         widgets::UpdateScrollIndicator(indicator_, page, 2, band_h_, content_h_);
+    }
+
+    // A swipe up shows the second page, down the first; past either end nothing turns and `sound.at-end` says so, as a list's swipe
+    // does. A ring on a stop the new page hides moves to the page's first stop: Wi-Fi's toggle on the second, Sound's on the first.
+    static void OnSwipe(int32_t dir, void *user)
+    {
+        Settings *self = static_cast<Settings *>(user);
+        const int next = self->page_index_ + (dir > 0 ? 1 : -1);
+        if (self->hardware_ == nullptr || next < 0 || next > 1) {
+            lvgl_display::PlayCue(lvgl_display::Cue::kAtEnd);
+            return;
+        }
+        self->ShowPage(next);
+        lv_obj_t *focused = lv_group_get_focused(self->group_);
+        const bool hidden = next == 1 ? focused == self->first_stops_[0] || focused == self->first_stops_[1] : focused == self->hardware_;
+        if (hidden) {
+            lv_group_focus_obj(next == 1 ? self->stops_[2] : self->first_stops_[0]);
+        }
     }
 
     // Which page a stop stands on: Sound and Auto sleep only on the first, Hardware test only on the second; the rest on both.

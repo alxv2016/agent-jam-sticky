@@ -1,8 +1,8 @@
 // The select sheet's arithmetic, with no LVGL in it: how tall it stands for n rows, and how many rows a page may hold without
 // covering the field that opened it. tests/host checks it on the computer with no board (STICKY_DESIGN_TOKENS §12).
 //
-// From the sheet's outer top edge: the outline, white, the title's line box, white, the rows (n of them, `spacing.md` apart),
-// white, and the foot, the footer's height — every length a token.
+// From the sheet's top edge: white, the title's line box, white, the rows (n of them, `spacing.md` apart), white, and the
+// foot, the footer's height — every length a token. The sheet has no outline (DESIGN → Exceptions → The select sheet's edge).
 
 #pragma once
 
@@ -24,10 +24,10 @@ constexpr int32_t Band(int rows)
     return rows * dt::kSpacingTarget + (rows - 1) * dt::kSpacingMd;
 }
 
-// The sheet's height for n rows a page: 4 + 16 + 36 + 16 + band + 16 + 96 — 488 for four, 408 for three.
+// The sheet's height for n rows a page: 16 + 36 + 16 + band + 16 + 96 — 484 for four, 404 for three.
 constexpr int32_t Height(int rows)
 {
-    return dt::kSpacingStrokeStrong + dt::kSpacingMd + dt::kTypographyLabel.line_px + dt::kSpacingMd + Band(rows) +
+    return dt::kSpacingMd + dt::kTypographyLabel.line_px + dt::kSpacingMd + Band(rows) +
            dt::kSpacingMd + dt::kSpacingFooter;
 }
 

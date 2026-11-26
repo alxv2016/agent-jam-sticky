@@ -307,7 +307,7 @@ partial one (§2.2).
   its outer side. The reach, offset and keyline together, is 8 px, which the box's parents let out. `ui::LetRingOut` allows 10 px, the
   6 px editing ring's reach beside the 8 px of the ring and the offset here.
   The side is the surface's: down and to the right for a floating box (the dialog, `OffsetSide::kBottomRight`), up from the top
-  for a sheet that hangs off the glass's bottom and sides (`OffsetSide::kTop`). Each level draws its own pattern at the
+  for a sheet that hangs off the glass's foot (`OffsetSide::kTop`). Each level draws its own pattern at the
   panel's pixel grid, which every one-bit refresh keeps. `tests/host/elevation_lvgl_test.cpp` renders each level on LVGL and
   reads the band, the keyline over a black ground and the untouched box `[HOST]`. Each reads on both boards `[SEEN]`.
 
@@ -425,8 +425,8 @@ partial one (§2.2).
 - **DESIGN.md also keeps a full refresh for closing a full-glass overlay and for the frame left before sleep** (DESIGN →
   Motion → Nothing animates). The router sets one as a full-glass overlay closes, and the keyboard is the one
   (`router::CloseOverlay` calls `lvgl_display::RequestFull`). No screen has that last frame yet. A bottom sheet and a dialog
-  are part of the page and open and close on a partial, and the router asks no full refresh for them. The sheet's partial close leaves no
-  ghost where its inverted chosen row stood, on a V1.0 and a V2.0 `[SEEN]`.
+  are part of the page and open and close on a partial, and the router asks no full refresh for them. Whether the sheet's partial close
+  leaves no ghost where its `band` chosen row stands is unverified on both boards `[?]`.
 - **While the keyboard is open only the presses that type, and a page switch, count toward the twenty** (the person's decisions): the keyboard sets
   `lvgl_display::SetPartialCounting(PartialCounting::kTypingOnly)` as it opens and `kEvery` as it closes. It calls
   `lvgl_display::NoteTyping()` in each press that changes the text: a character, Space, Delete on a non-empty text, and
@@ -568,6 +568,7 @@ partial one (§2.2).
 | When a mascot moment's sound lands against the ink's change: the offset from a refresh's start to the ink moving, which a moment waits for (§13) | Open | A bench measurement on a V1.0 and a V2.0 |
 | The mascot's music — the typing, the spin, the success, the wave and the thinking — in time with its move under the moments (§13) | Open | Heard on the board |
 | The mascot's greys, provisional until the person sees the mascot on the glass (§13) | Open | The demo page seen on a V1.0 and a V2.0 |
+| The select sheet with no outline and its chosen row on `band` (§12): whether its partial close leaves a ghost where the dithered row stood, and whether its edge holds over a dithered field, card or chip | Open | The sheet opened and closed on a V1.0 and a V2.0 |
 | A reduced-motion setting for Claude's mascot — its branch the move's end pose alone, its moment with it (MASCOT §6) — since the moves run at the glass's pace and only the demo page plays them; the widget's `lv_anim_start` carries an `a11y-exception` until then | Open | The first screen other than the hardware test's demo page that shows the mascot moving |
 
 ## 9. The ring outside and the ported widgets
@@ -804,6 +805,18 @@ partial one (§2.2).
   - rollers (Count stops, Hour goes round, with the footer's Cancel while one is open);
   - a horizontal pager of chips (the carousel has its own Welcome screen);
   - the keyboard opened from two buttons, and status blocks.
+- **The kit page turns by whole-section pages** (`hw_test.cpp`: `KitPageColumn`, `KitUnits`, `PageKit`; DESIGN → Layout →
+  Paging). Its blocks stand in a column inside a band a ring's reach (10 px, the open ring) wider and taller all round. A
+  page is the column moved up to the page's top and the band cut at its bottom, so the content keeps its height and Back
+  its place. The units: a section whole when it fits the content's 628 px; else its groups, split at their names
+  (`KitName`); else its blocks, a block too tall split into the blocks inside it. The heading always joins what follows
+  it, the first block cut to the room the heading leaves. 28 pages. The walk turns to the page that holds the focused
+  control (`KitPageOf`: its highest ancestor that fits one page, so a list view's rows stay the view's). A swipe begun
+  anywhere turns one page (`widgets::ClaimPageSwipe`), `sound.at-end` past either end, a ring the new page hides moved
+  to its first control. A page with nothing to press gets a stop: an unseen box over its blocks with the ring round
+  them, `rounded.lg`, in the walk between its neighbours' controls (Status blocks and Stacked status blocks).
+  `tests/host/screen_audit_lvgl_test.cpp` measures each page as a view, and counts the column as the page, as it counts
+  a scrolling column `[HOST]`.
 
   `tests/` has no check of the widgets, only of the dither's words (§4) `[D]`. The host render of
   each beside the draft is the gate-2 picture.
@@ -849,7 +862,7 @@ partial one (§2.2).
   `touch-exception` marks that line). LVGL reads a drag after its own `LV_INDEV_DEF_SCROLL_LIMIT`, 10 px. Each move is
   logged with its time and the net travel so far, finger up positive, and the band is put back where the page keeps it at
   once, so nothing moves under the finger and the page lands in one refresh after the lift. LVGL's `LV_EVENT_GESTURE`
-  is not used: it does not fire while another object scrolls, and the kit page scrolls by pixel beneath its views.
+  is not used: it does not fire while another object scrolls, as the type scale page does.
 - **The decision is `PageTurn` in `components/widgets/src/internal/swipe_rules.h`**, a pure function tested on the computer
   by `tests/host/swipe_test.cpp` (`bash tests/host/run.sh`). The thresholds are in the token header and hold
   under a finger on a V1.0 and a V2.0 `[SEEN]`:
@@ -893,8 +906,8 @@ partial one (§2.2).
   its hit area or within `spacing.md` of them. A lift farther off is slide-off. The router cancels the press
   (`router::CancelOnSlideOff`, [APP_ARCHITECTURE §7](APP_ARCHITECTURE.md#7-screens-routes-and-focus)), the slider hears `LV_EVENT_PRESS_LOST` and keeps the value it had when the finger went
   down (saved on `LV_EVENT_PRESSED`). `tests/host/slide_off_lvgl_test.cpp` checks both `[HOST]`. The page
-  behind a view — the kit page, which scrolls by pixel beneath them — never takes a drag that starts on a view, and takes
-  any other.
+  behind a view — the kit page, which turns by whole sections — never takes a drag that starts on a view, and takes any
+  other.
 - **A slider's release is not a tap after a drag** — a touch that scrolled anything leaves the track's value alone
   (`lv_indev_get_scroll_obj`), so a vertical drag that began on a slider never sets it.
 
@@ -1013,29 +1026,32 @@ partial one (§2.2).
 - **The sheet is the dropdown's open hook**: `widgets::MakeDropdown` installs `OpenSelectSheet` as the field's opener, so OK or a tap
   on the field opens the sheet; `SetDropdownOpener` swaps in another. A choice is `ChooseDropdown`, which sends
   `LV_EVENT_VALUE_CHANGED` once and only for a change.
-- **Its height is a token sum** (`components/widgets/src/internal/sheet_rules.h`): 4 outline, 16, the title's 36 line box, 16, the
+- **Its height is a token sum** (`components/widgets/src/internal/sheet_rules.h`): 16, the title's 36 line box, 16, the
   rows' band (64 n + 16 (n − 1)), 16 and the foot's 96, which the table below gives per page. A list of
-  fewer options than a page draws only its rows. It is `spacing.content` + 2 × `spacing.edge` wide plus 4 px each side
-  and a corner radius taller than the glass below it. So only its top outline and its `rounded.2xl` corners show, and the offset
-  (elevation 2, §4.1) rises from the top.
+  fewer options than a page draws only its rows. It is the glass's width, 480, and a corner radius taller than its room, hung
+  past the glass's foot. So only its top edge and its `rounded.2xl` corners show. It has no outline: the offset (elevation 2,
+  §4.1) rising from its top edge stands it off the page (DESIGN → Exceptions → The select sheet's edge).
 
 | Rows | Height | Top at y |
 | --- | --- | --- |
-| Four | 488 px | 312 |
-| Three | 408 px | 392 |
-| Two | 328 px | 472 |
+| Four | 484 px | 316 |
+| Three | 404 px | 396 |
+| Two | 324 px | 476 |
 
 - **Four rows a page, or three when four would cover the field**: the field's bottom plus the ring's 8, 8 of white and the
-  offset's 6 must clear the sheet's top. So a field ending at y 290 or higher takes four, and one ending between 291 and 370
+  offset's 6 must clear the sheet's top. So a field ending at y 294 or higher takes four, and one ending between 295 and 374
   takes three. A lower one takes three too, never fewer, since two would turn the page too often. The title names the field. `RowsPerPage` is the rule,
   `tests/host/sheet_rules_test.cpp` checks it at both edges `[HOST]`.
 - **A row is `body` in 364 px, the chosen one `label`.** That is the row's 400 inside its padding, less the check's 28 and 8, so a line
   holds 20 characters. The words wrap onto a second line and a third, each on the role's line box: 40 for `body`, 36 for `label`.
   The words column takes the row's 64 px minimum and centres its lines. A row is 64 px for one line, 96 for two `body` lines and
   136 for three (§9's centring rule and test).
-  The chosen row is inverted with the check at its right end, white, 28 × 20, and no word (DESIGN → Exceptions).
+  The chosen row is `band`, the light dither (`ui::Fill`, a UI fill on every refresh), under black words, with the check at its
+  right end, black, 28 × 20, and no word (DESIGN → Exceptions).
   A page holds the whole rows that fit, so a three-line option can cost a page a row (§10.1). With two among seven, every page
   of the host test shows whole rows above the foot `[HOST]`.
+- **The foot holds Cancel alone, centred** — no words say which key does what (DESIGN → Accessibility).
+  `tests/host/overlay_lvgl_test.cpp` checks the sheet has no outline, the chosen row's fill and words, and no key words `[HOST]`.
 - **It is an overlay on the router's stack** (APP_ARCHITECTURE §7): opening calls `router::OpenOverlay` before a row is made, so
   the rows and Cancel are its own group's only stops, and focuses the chosen row. The field under it keeps the page's focus with
   its ring off. Closing calls `router::CloseOverlay`, which binds the page's group again and brings the field's ring back if it showed. It then
@@ -1091,8 +1107,8 @@ with the [`mascot-animation`](../.agents/skills/mascot-animation/SKILL.md) skill
 ## 14. The agent deck port's additions
 
 What the agent deck's screens needed of the kit, each opt-in: every existing widget's default look is unchanged, and the audit's frames
-of the hardware test (the kit page's first seventeen views, every ringed stop's frame) match the frames drawn before the
-additions, byte for byte `[D]`. The checks are `tests/host/deck_kit_lvgl_test.cpp` (281 checks on LVGL's real layout, fonts and renderer at 480 × 800),
+of the hardware test (the kit page's first seventeen glass-fulls, measured while it scrolled by pixel, and every ringed stop's
+frame) match the frames drawn before the additions, byte for byte `[D]`. The checks are `tests/host/deck_kit_lvgl_test.cpp` (281 checks on LVGL's real layout, fonts and renderer at 480 × 800),
 `tests/host/token_parity.py` for the tokens and the design check for §2; each addition has a specimen on the kit page, "Small chips" to
 "Quiet words" at its foot. The deck's screens are built from these calls alone; the harness that drafted them reached past the
 kit in places, and these are the places.
@@ -1178,6 +1194,19 @@ kit in places, and these are the places.
   its controls out. It joins no focus group: the screen's keys turn its pages. `tests/host/swipe_lvgl_test.cpp` drags a page of its own with
   a scripted finger — one turn each way along its axis, with the owner's pointer, the page unmoved, none across it — and
   `tests/host/deck_screens_lvgl_test.cpp` swipes the carousel sideways `[HOST]`.
+- **`widgets::ClaimPageSwipe(page, turn, user)`** — makes a screen's glass-wide page claim an up or down swipe begun anywhere on
+  it: its heading, its empty room, a control (whose press the swipe cancels) or a band that pages itself, which keeps its own
+  swipe. `turn(dir, user)` turns what the screen pages: `widgets::TurnListView` on the Wi-Fi page, the needs-you list and the
+  hardware test's home, Buttons and buzzer and About (`SwipeTurnsList` in `hw_test.cpp`), the settings' `ShowPage`,
+  `widgets::TurnTextView` on the request and the question's own turn, each with `sound.at-end` past either end (DESIGN → Layout
+  → Paging; the person, 2026-11-26). The page has room to go (a 1 px child twice its height) and never moves: the swipe puts it
+  back under the finger, and a scroll no finger holds — LVGL's scroll-on-focus bringing a control past the page's foot into
+  view — is put back at once, before a frame is drawn. A sideways drag chains to the screen behind. `tests/host/swipe_lvgl_test.cpp`
+  drags a page from a button, both ways, and focuses a control below it; `tests/host/deck_screens_lvgl_test.cpp` turns the Wi-Fi
+  page's facts from Back and its heading, the settings from their heading, a long request from Allow and its heading, a long
+  question from its heading, and hears the needs-you list's at-end cue from its heading; `tests/host/screen_audit_lvgl_test.cpp`
+  turns the hardware test's home, Buttons and buzzer and About from Back and back from the status bar, and fails the audit if a
+  list does not turn or Back is pressed `[HOST]`.
 
 ### 14.5 The holds, and what is not here
 

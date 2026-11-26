@@ -1,4 +1,4 @@
-// The screen audit: every hardware-test screen, home, the status line, the UI kit page (a view per glass-full as it scrolls) and the kit's
+// The screen audit: every hardware-test screen, home, the status line, the UI kit page (a view per whole-section page) and the kit's
 // overlays, built by the firmware's own code (components/hw_test/hw_test.cpp, included below) on LVGL's real renderer with the
 // real Bitcount fonts and widgets, 480 x 800, each pixel read as the glass reads it (`OneBitWhite`). It walks each view's object
 // tree and measures what a reviewer otherwise judges by eye — the ui-designer judge's measured proxies (plan: a proxy outside
@@ -206,6 +206,10 @@ void Flush(lv_display_t *display, const lv_area_t *a, uint8_t *)
 
 uint32_t s_ms = 0;
 uint32_t Ticks() { return s_ms; }
+
+// A finger for the swipe check: where it is and whether it is down.
+int32_t s_finger_x = 0, s_finger_y = 0;
+bool s_finger_down = false;
 
 void Settle()
 {
@@ -700,7 +704,9 @@ std::string Name(lv_obj_t *o)
 bool PageLevel(lv_obj_t *o)
 {
     lv_obj_t *p = lv_obj_get_parent(o);
-    return p == nullptr || lv_obj_get_parent(p) == nullptr || lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLLABLE);
+    // The kit's column turns by whole-section pages instead of scrolling: it is the page, as a scrolling column is.
+    return p == nullptr || lv_obj_get_parent(p) == nullptr || lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLLABLE) ||
+           (o == hw_test::s_kit.column && o != nullptr);
 }
 
 int GapBetween(Box above, Box below) { return below.y1 - above.y2 - 1; }
@@ -1325,8 +1331,9 @@ lv_obj_t *Scroller()
     std::vector<lv_obj_t *> all;
     Collect(lv_screen_active(), all);
     for (lv_obj_t *o : all) {
+        // A page that claims the screen's swipe (widgets::ClaimPageSwipe) has room to scroll and never does: its own pages turn.
         if (lv_obj_get_parent(o) == lv_screen_active() && lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLLABLE) &&
-            lv_obj_get_scroll_bottom(o) > 0 && !Hidden(o)) {
+            lv_obj_has_flag(o, LV_OBJ_FLAG_SCROLL_CHAIN_VER) && lv_obj_get_scroll_bottom(o) > 0 && !Hidden(o)) {
             return o;  // the screen's own column; a paged list view inside it turns pages, never scrolls by pixel
         }
     }
@@ -1338,7 +1345,16 @@ void Screen(const std::string &name, bool specimen = false)
 {
     Settle();
     lv_obj_t *scroller = Scroller();
-    if (scroller == nullptr) {
+    if (name == "kit" && hw_test::KitPageCount() > 0) {
+        // The kit turns by whole-section pages: a view a page, the first shown again after.
+        for (int page = 0; page < hw_test::KitPageCount(); ++page) {
+            hw_test::ShowKitPage(page);
+            Settle();
+            Measure(name + " p" + std::to_string(page + 1), specimen);
+        }
+        hw_test::ShowKitPage(0);
+        Settle();
+    } else if (scroller == nullptr) {
         Measure(name, specimen);
     } else {
         // A glass-full a view, each overlapping the last by the page's own padding; the ring move inside a view may scroll, so
@@ -1948,10 +1964,137 @@ bool StartLvgl()
     s_keys = lv_indev_create();
     lv_indev_set_type(s_keys, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(s_keys, [](lv_indev_t *, lv_indev_data_t *data) { data->state = LV_INDEV_STATE_RELEASED; });
+    lv_indev_t *finger = lv_indev_create();
+    lv_indev_set_type(finger, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(finger, [](lv_indev_t *, lv_indev_data_t *data) {
+        data->point.x = s_finger_x;
+        data->point.y = s_finger_y;
+        data->state = s_finger_down ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+    });
     s_group = lv_group_create();
     lv_group_set_default(s_group);
     lv_indev_set_group(s_keys, s_group);
     return true;
+}
+
+// The finger presses at (x, y0), moves to y1 a few px a read, and lifts.
+void Swipe(int32_t x, int32_t y0, int32_t y1)
+{
+    s_finger_x = x;
+    s_finger_y = y0;
+    s_finger_down = true;
+    Settle();
+    const int32_t steps = std::abs(y1 - y0) / 6 + 1;
+    for (int32_t i = 1; i <= steps; ++i) {
+        s_finger_y = y0 + (y1 - y0) * i / steps;
+        s_ms += 40;
+        lv_timer_handler();
+    }
+    s_finger_down = false;
+    Settle();
+    Settle();
+}
+
+lv_obj_t *FindWords(lv_obj_t *root, const char *words)
+{
+    if (lv_obj_check_type(root, &lv_label_class) && std::strcmp(lv_label_get_text(root), words) == 0) return root;
+    for (uint32_t i = 0; i < lv_obj_get_child_count(root); ++i) {
+        if (lv_obj_t *found = FindWords(lv_obj_get_child(root, static_cast<int32_t>(i)), words)) return found;
+    }
+    return nullptr;
+}
+
+// One list screen of the hardware test, on its first page: a swipe up begun on Back turns the list to its next page and does not
+// press Back, and one down begun on the status bar turns it back (DESIGN → Layout → Paging). `first_words` are a first-page row's
+// words, found nowhere else on the screen (Buttons and buzzer's Tick is a button too, so its second row, At end).
+lv_obj_t *FindLastWords(lv_obj_t *root, const char *words)
+{
+    for (int32_t i = static_cast<int32_t>(lv_obj_get_child_count(root)) - 1; i >= 0; --i) {
+        if (lv_obj_t *found = FindLastWords(lv_obj_get_child(root, i), words)) return found;
+    }
+    return lv_obj_check_type(root, &lv_label_class) && std::strcmp(lv_label_get_text(root), words) == 0 ? root : nullptr;
+}
+
+bool ListScreenSwipes(const char *what, const char *first_words)
+{
+    lv_obj_t *screen = lv_screen_active();
+    lv_obj_t *first = FindWords(screen, first_words);
+    lv_obj_t *back = FindLastWords(screen, "Back");  // the footer's, made last: the kit shows Back buttons of its own
+    if (first == nullptr || back == nullptr) {
+        std::printf("screen audit: FAIL %s: its first row or Back not found\n", what);
+        return false;
+    }
+    const size_t depth = router::Depth();
+    lv_area_t at;
+    lv_obj_get_coords(back, &at);
+    Swipe(100, (at.y1 + at.y2) / 2, (at.y1 + at.y2) / 2 - 2 * dt::kTouchSwipeDistance);
+    if (router::Depth() != depth) {  // the swipe pressed Back: the screen and its rows are gone
+        std::printf("screen audit: FAIL %s's swipe up from Back pressed Back\n", what);
+        return false;
+    }
+    const bool turned = !lv_obj_is_visible(first);
+    Swipe(kW / 2, dt::kSpacingMd, dt::kSpacingMd + 2 * dt::kTouchSwipeDistance);
+    const bool back_again = lv_obj_is_visible(first);
+    if (!turned || !back_again) {
+        std::printf("screen audit: FAIL %s's swipe — up from Back turned %s, down from the status bar turned back %s\n", what,
+                    turned ? "yes" : "no", back_again ? "yes" : "no");
+        return false;
+    }
+    return true;
+}
+
+// The kit, on its first page with the ring on its first control: a swipe up turns to page 2 and the ring goes to that page's first
+// control, never left on one the page hides; a page with nothing to press is a stop of its own, ringed round its blocks.
+bool KitSwipeMovesRing()
+{
+    lv_group_t *group = lv_group_get_default();
+    lv_obj_t *first = lv_group_get_obj_by_index(group, 0);
+    lv_group_focus_obj(first);
+    Settle();
+    const int before = hw_test::KitPageOf(first);
+    Swipe(kW / 2, 600, 600 - 2 * dt::kTouchSwipeDistance);
+    lv_obj_t *now = lv_group_get_focused(group);
+    const bool moved = before == 0 && hw_test::s_kit.page == 1 && now != first && hw_test::KitPageOf(now) == 1;
+    bool stops = true;
+    for (int p = 0; p < hw_test::KitPageCount(); ++p) {
+        bool has = false;
+        for (uint32_t i = 0; i < lv_group_get_obj_count(group); ++i) has = has || hw_test::KitPageOf(lv_group_get_obj_by_index(group, i)) == p;
+        stops = stops && has;
+    }
+    if (!moved || !stops) {
+        std::printf("screen audit: FAIL the kit — a swipe moved the ring to the new page's first control %s, every page a stop %s\n",
+                    moved ? "yes" : "no", stops ? "yes" : "no");
+    }
+    hw_test::ShowKitPage(0);
+    lv_group_focus_obj(first);
+    Settle();
+    return moved && stops;
+}
+
+// Every paged screen of the hardware test turns on a swipe begun anywhere on it, not only on its rows: the home (thirteen rows, six a
+// page), Buttons and buzzer (its sounds, four a page), About (its facts, six a page) and the kit (whole sections a page). Run on the home's first page, before the
+// audit pages it. A failure here fails the audit: it is a check of the firmware, not a measure.
+int CheckListSwipes()
+{
+    bool ok = ListScreenSwipes("the home", "Display");
+    for (const auto &[route, words] : {std::pair<const char *, const char *>{"hw.buttons", devices::sound::kSounds[1].name},
+                                       std::pair<const char *, const char *>{"hw.about", "Product"},
+                                       std::pair<const char *, const char *>{"hw.display.kit", "Buttons"}}) {
+        if (router::PushRoute(route) != ESP_OK) {
+            std::printf("screen audit: FAIL %s did not open\n", route);
+            ok = false;
+            continue;
+        }
+        Settle();
+        ok = ListScreenSwipes(route, words) && ok;
+        if (std::strcmp(route, "hw.display.kit") == 0) ok = KitSwipeMovesRing() && ok;
+        while (router::Depth() > 1) {
+            router::Pop();
+            Settle();
+        }
+    }
+    if (ok) std::printf("screen audit: a swipe begun anywhere turns the home, Buttons and buzzer, About and the kit, both ways\n");
+    return ok ? 0 : 1;
 }
 
 // The folders the audit writes, with last run's views taken away, as this run may not have them all.
@@ -2000,6 +2143,8 @@ int main()
         std::printf("screen audit: the hardware test's home did not build\n");
         return 1;
     }
+    Settle();
+    if (CheckListSwipes() != 0) return 1;  // on the home's first page, before the audit pages it
     Screen("home");
     AuditScreens();
     AuditStatusLine();

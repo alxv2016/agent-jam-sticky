@@ -232,7 +232,15 @@ void TestKeys()
     Check(lv_group_get_editing(lvgl_display::Group()) && widgets::RollerOpen(s_screen.hour), "OK opens it for editing");
     Check(lv_obj_has_state(s_screen.hour.root, LV_STATE_EDITED), "and the group's editing state is on it");
     Check(Shown(lv_obj_get_child(s_screen.hour.root, 0)), "open: the middle row's inverted band shows");
-    Check(Shown(s_screen.bar) && !Shown(s_screen.back), "open: the footer shows Cancel and the hint in Back's place");
+    Check(Shown(s_screen.bar) && !Shown(s_screen.back), "open: the footer shows Cancel in Back's place");
+    Check(lv_obj_get_child_count(s_screen.bar) == 1, "the bar holds Cancel alone: no words say which key does what");
+    {
+        lv_obj_update_layout(lv_screen_active());
+        lv_area_t bar, cancel;
+        lv_obj_get_coords(s_screen.bar, &bar);
+        lv_obj_get_coords(lv_obj_get_child(s_screen.bar, 0), &cancel);
+        Check(cancel.x1 - bar.x1 == bar.x2 - cancel.x2, "and Cancel stands centred in it");
+    }
     Up();
     Check(Rows(s_screen.hour) == "06,07,08", "UP steps to the value above: 8 becomes 7");
     Check(lv_obj_get_scroll_y(s_screen.hour.root) == 0, "UP does not also scroll the rows (LVGL's arrow scroll is off)");

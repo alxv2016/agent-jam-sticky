@@ -39,6 +39,7 @@ public:
         lv_obj_set_size(page_, kGlassW, kGlassH);
         lv_obj_set_pos(page_, 0, 0);
         ui::LetRingOut(page_);
+        widgets::ClaimPageSwipe(page_, OnSwipe, this);  // an up or down swipe anywhere turns the page's list (DESIGN → Layout → Paging)
         clock_.Build(page_);
         Build();
         lv_group_focus_obj(primary_);  // opens with no ring: the first press shows it
@@ -199,6 +200,7 @@ private:
     void Build()
     {
         built_ = Signature();
+        list_ = {};
         body_ = Bare(page_);
         lv_obj_set_ignore_layout(body_, true);
         lv_obj_set_size(body_, kGlassW, kGlassH);
@@ -245,6 +247,7 @@ private:
         MarginTop(net, dt::kSpacingLg);
         lv_obj_add_event_cb(net, OnNetwork, LV_EVENT_CLICKED, this);
         const widgets::ListView list = widgets::MakeListView(ListHost(col, dt::kSpacingMd), kRowsFacts, dt::kSpacingListRowHeight);
+        list_ = list;
         for (size_t i = 0; i < w.fact_count; ++i) {
             const widgets::DetailRow row = widgets::MakeDetailRow(list.root, w.facts[i].name, w.facts[i].value);
             widgets::SetDetailRowOneSizeDown(row);  // the labels in `caption-strong`, the values in `caption`
@@ -261,6 +264,7 @@ private:
         const model::Wifi &w = model::GetWifi();
         lv_obj_t *col = Heading("Networks", "Pick the Mac's network");
         const widgets::ListView list = widgets::MakeListView(ListHost(col, dt::kSpacingLg), kRowsChosen, dt::kSpacingListRowHeight);
+        list_ = list;
         lv_obj_t *first = nullptr;
         for (size_t i = 0; i < w.network_count; ++i) {
             const model::Network &n = w.networks[i];
@@ -289,6 +293,7 @@ private:
         lv_group_remove_all_objs(group_);  // the old page's controls go with it: the new page's join in their own order
         lv_obj_delete(old);
         body_ = nullptr;
+        list_ = {};
         Build();
         if (ring) {
             router::Ring(primary_);
@@ -347,6 +352,15 @@ private:
                                   OnForgetAnswer, nullptr};
         widgets::OpenDialog(cfg);
     }
+    // A swipe begun anywhere on the page turns its list, as one on the list's rows does; a stage with no list has nothing to turn.
+    static void OnSwipe(int32_t dir, void *user)
+    {
+        Wifi *self = static_cast<Wifi *>(user);
+        if (self->list_.root != nullptr) {
+            widgets::TurnListView(self->list_, dir);
+        }
+    }
+
     static void OnForgetAnswer(bool accepted, void *)
     {
         if (accepted) {
@@ -358,6 +372,7 @@ private:
     lv_obj_t *page_ = nullptr;
     lv_obj_t *body_ = nullptr;
     lv_obj_t *primary_ = nullptr;
+    widgets::ListView list_ = {};  // the stage's list, which a swipe anywhere turns; none on a stage without one
     WifiStage stage_ = WifiStage::kNotJoined;
     std::string built_;
     Clock clock_;

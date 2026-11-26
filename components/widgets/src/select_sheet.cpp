@@ -20,10 +20,9 @@ int SelectSheetRowsPerPage(int32_t field_bottom, int32_t glass_height)
 }
 
 namespace {
-// The sheet hangs off the glass: it is drawn wider than the glass and a corner radius taller, so only its top outline and its
-// rounded top corners show, and no side outline stands on the glass's edge.
-constexpr int32_t kHang = dt::kSpacingStrokeStrong;  // wider than the glass by this each side: the outline's width
-constexpr int32_t kHangBelow = dt::kRounded2xl;  // taller than the glass by a radius and more, so no bottom corner shows
+// The sheet hangs off the glass's foot: drawn a corner radius taller than its room, so only its rounded top corners show. It has
+// no outline; its offset rising from the top edge is what stands it off the page (DESIGN → Exceptions → The select sheet's edge).
+constexpr int32_t kHangBelow = dt::kRounded2xl;
 // An option's words: the row's inside, less the check's own width (widgets_mark_glyph_fact_check, 28 px) and the gap before it, so
 // a row holds 20 characters of `body` or `label` to a line (18 px a character) whether it is the chosen one or not.
 int32_t WordsWidth()
@@ -98,7 +97,8 @@ lv_obj_t *MakeRow(lv_obj_t *parent, const char *text, bool chosen)
     lv_obj_set_style_pad_ver(row, dt::kSpacingSm, 0);
     lv_obj_set_style_radius(row, dt::kRoundedLg, 0);
     lv_obj_set_style_bg_opa(row, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(row, ui::Level(chosen ? dt::kColorSurfaceChosen : dt::kColorBackground), 0);
+    // The chosen row is the light dither, `band`, under black words: a UI fill is its dither on every refresh.
+    lv_obj_set_style_bg_color(row, chosen ? ui::Fill(dt::kColorBand) : ui::Level(dt::kColorBackground), 0);
     // The option in `body`, the chosen one in `label`, wrapping to a second line and then a third, each line on the role's line
     // box. The words column is the one that stands the floor tall and centres its lines: a flex track is as tall as its tallest child, and the
     // row's own minimum would only pad under it.
@@ -112,15 +112,16 @@ lv_obj_t *MakeRow(lv_obj_t *parent, const char *text, bool chosen)
     const ui::Type role = chosen ? ui::Type::kLabel : ui::Type::kBody;  // the chosen option in bold, the rest in regular
     lv_obj_set_style_text_font(words, ui::Font(role), 0);
     lv_obj_set_style_text_line_space(words, ui::LineBox(role) - lv_font_get_line_height(ui::Font(role)), 0);
-    lv_obj_set_style_text_color(words, ui::Level(chosen ? dt::kColorTextOnFill : dt::kColorTextPrimary), 0);
+    lv_obj_set_style_text_color(words, ui::Level(dt::kColorTextPrimary), 0);
     lv_label_set_long_mode(words, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_width(words, WordsWidth());
     ui::FitLineBox(words, role);
     if (chosen) {
-        // The check alone marks the chosen option (DESIGN → Exceptions); the inversion marks it too, so it is never the only sign.
+        // The check alone marks the chosen option (DESIGN → Exceptions); the `band` fill and the bold words mark it too, so it is
+        // never the only sign.
         lv_obj_t *check = lv_image_create(row);
         lv_image_set_src(check, &widgets_mark_glyph_fact_check);
-        lv_obj_set_style_image_recolor(check, ui::Level(dt::kColorTextOnFill), 0);
+        lv_obj_set_style_image_recolor(check, ui::Level(dt::kColorTextPrimary), 0);
         lv_obj_set_style_image_recolor_opa(check, LV_OPA_COVER, 0);
         lv_obj_remove_flag(check, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_flag(check, LV_OBJ_FLAG_FLOATING);
@@ -148,39 +149,35 @@ lv_obj_t *MakeCatcher(lv_obj_t *screen)
     return catcher;
 }
 
-// The sheet's box, `height` tall from `top`: white, rounded, its strong outline hung past the glass's sides and foot.
+// The sheet's box, `height` tall from `top`: white, the glass's width, its top corners rounded, no outline, hung past the glass's
+// foot, with elevation 2's offset rising from its top edge.
 lv_obj_t *MakeBox(lv_obj_t *screen, int32_t top, int32_t height)
 {
     lv_obj_t *box = detail::Bare(screen);
     lv_obj_add_flag(box, LV_OBJ_FLAG_FLOATING);
     lv_obj_add_flag(box, LV_OBJ_FLAG_CLICKABLE);  // the sheet's own white is not "above" it
     lv_obj_remove_flag(box, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    lv_obj_set_pos(box, -kHang, top);
-    lv_obj_set_size(box, lv_obj_get_width(screen) + 2 * kHang, height + kHangBelow);
+    lv_obj_set_pos(box, 0, top);
+    lv_obj_set_size(box, lv_obj_get_width(screen), height + kHangBelow);
     lv_obj_set_style_radius(box, dt::kRounded2xl, 0);
     lv_obj_set_style_bg_opa(box, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(box, ui::Level(dt::kColorBackground), 0);
-    detail::Outline(box, dt::kSpacingStrokeStrong);
     ui::AddOffset(box, ui::Elevation::kAnchored, ui::OffsetSide::kTop);
     detail::LetRingOut(box);
     return box;
 }
 
-// The sheet's foot: Cancel, and the words that say how to pick.
+// The sheet's foot: Cancel, centred. No words say which key does what (DESIGN → Accessibility).
 void MakeFoot(lv_obj_t *column)
 {
     lv_obj_t *foot = detail::Bare(column);
     lv_obj_set_size(foot, lv_pct(100), dt::kSpacingFooter);
     lv_obj_set_flex_flow(foot, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(foot, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(foot, dt::kSpacingMd, 0);
+    lv_obj_set_flex_align(foot, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     detail::LetRingOut(foot);
     constexpr int32_t kHalf = (dt::kSpacingContent - dt::kSpacingMd) / 2;
     lv_obj_t *cancel = MakeButton(foot, "Cancel", ButtonVariant::kOutline, kHalf);
     lv_obj_add_event_cb(cancel, OnCancelClicked, LV_EVENT_CLICKED, nullptr);
-    lv_obj_t *hint = ui::NewLabel(foot, ui::Type::kCaption, "UP or DOWN picks.\nOK chooses.", true);
-    lv_obj_set_flex_grow(hint, 1);
-    lv_obj_set_width(hint, 1);
 }
 
 }  // namespace
@@ -218,9 +215,9 @@ void OpenSelectSheet(Dropdown *dropdown)
     s->box = MakeBox(screen, top, height);
     lv_obj_add_event_cb(s->box, OnBoxDelete, LV_EVENT_DELETE, s);
 
-    // Inside the outline: the title, the rows, the foot.
+    // The title, the rows, the foot.
     lv_obj_t *column = detail::Bare(s->box);
-    lv_obj_set_size(column, lv_obj_get_width(screen), height - dt::kSpacingStrokeStrong);
+    lv_obj_set_size(column, lv_obj_get_width(screen), height);
     lv_obj_set_pos(column, 0, 0);
     lv_obj_set_flex_flow(column, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_hor(column, dt::kSpacingEdge, 0);

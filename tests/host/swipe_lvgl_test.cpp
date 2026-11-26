@@ -496,6 +496,36 @@ void TestSwipePage()
     lv_obj_delete(band);
 }
 
+// A screen's page that claims its swipe (ClaimPageSwipe): a drag up or down begun on a control on it asks for a turn and
+// presses nothing, and the page itself never moves — not under the finger, nor when the walk focuses a control past its foot.
+void TestPageSwipe()
+{
+    int heard = 0;
+    s_page_turns = 0;
+    lv_obj_t *page = lv_obj_create(lv_screen_active());
+    lv_obj_remove_style_all(page);
+    lv_obj_set_size(page, 480, 800);
+    lv_obj_set_pos(page, 0, 0);
+    lv_obj_t *button = lv_button_create(page);
+    lv_obj_set_pos(button, 100, 300);
+    lv_obj_set_size(button, 200, 100);
+    int clicks = 0;
+    lv_obj_add_event_cb(button, [](lv_event_t *e) { ++*static_cast<int *>(lv_event_get_user_data(e)); }, LV_EVENT_CLICKED, &clicks);
+    lv_obj_t *past = lv_button_create(page);  // a control on a hidden page, below the glass
+    lv_obj_set_pos(past, 100, 900);
+    lv_obj_set_size(past, 200, 64);
+    widgets::ClaimPageSwipe(page, OnPageTurn, &heard);
+    Drag(380, 200, 4);
+    Check(s_page_turns == 1 && s_page_dir == 1 && heard == 1 && clicks == 0, "a page swipe: a drag up begun on a button asks for the next page and presses nothing");
+    Check(lv_obj_get_scroll_y(page) == 0, "and the page has not moved");
+    Drag(200, 380, 4);
+    Check(s_page_turns == 2 && s_page_dir == -1, "a drag down asks for the page before");
+    lv_group_focus_obj(past);
+    Tick();
+    Check(lv_obj_get_scroll_y(page) == 0, "focusing a control past the page's foot does not scroll the page: it puts itself back");
+    lv_obj_delete(page);
+}
+
 }  // namespace
 
 int main()
@@ -529,6 +559,7 @@ int main()
     TestHorizontalSwipe();
     TestVerticalDragChains();
     TestSwipePage();
+    TestPageSwipe();
 
     std::printf("swipe on LVGL: %d checks, %d failed\n", s_checks, s_failures);
     return s_failures == 0 ? 0 : 1;

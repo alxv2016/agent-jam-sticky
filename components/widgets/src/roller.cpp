@@ -413,16 +413,12 @@ lv_obj_t *MakeRollerFooter(lv_obj_t *footer)
     lv_obj_t *bar = detail::Bare(footer);
     lv_obj_set_size(bar, lv_pct(100), dt::kSpacingFooter);
     lv_obj_set_flex_flow(bar, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(bar, dt::kSpacingMd, 0);
+    lv_obj_set_flex_align(bar, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     detail::LetRingOut(bar);
     constexpr int32_t kHalf = (dt::kSpacingContent - dt::kSpacingMd) / 2;
     lv_obj_t *cancel = MakeButton(bar, "Cancel", ButtonVariant::kOutline, kHalf);
     lv_group_remove_obj(cancel);  // a touch stop: UP and DOWN are the open roller's, and holding OK is the buttons' Cancel
     lv_obj_add_event_cb(cancel, OnCancelClicked, LV_EVENT_CLICKED, bar);
-    lv_obj_t *hint = ui::NewLabel(bar, ui::Type::kCaption, "UP or DOWN steps.\nOK keeps.\nHold OK cancels.", true);
-    lv_obj_set_flex_grow(hint, 1);
-    lv_obj_set_width(hint, 1);
     lv_obj_add_flag(bar, LV_OBJ_FLAG_HIDDEN);
     return bar;
 }

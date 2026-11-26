@@ -40,6 +40,7 @@ public:
         lv_obj_set_size(page_, kGlassW, kGlassH);
         lv_obj_set_pos(page_, 0, 0);
         ui::LetRingOut(page_);
+        widgets::ClaimPageSwipe(page_, OnSwipe, this);  // an up or down swipe anywhere turns the list, as every paged screen's (DESIGN → Layout → Paging)
         clock_.Build(page_);
         Build();
         router::AttachEscape(OnEscape, this);  // holding OK is Dismiss
@@ -118,6 +119,7 @@ private:
         MarginTop(Quiet(body_, sessions, Fit::kWords, Type::kCaptionRegular), -dt::kSpacingXs);
 
         const widgets::ListView list = widgets::MakeListView(body_, kRowsPerPage, dt::kSpacingListRowHeight);
+        list_ = list;
         MarginTop(list.frame, dt::kSpacingLg);
         rows_ = {};
         avatars_ = {};
@@ -229,6 +231,7 @@ private:
                 lv_obj_delete(avatar_layer_);
             }
             body_ = dismiss_ = avatar_layer_ = nullptr;
+            list_ = {};
         }
         Build();
         CarryCycles(was_rows, was_avatars);
@@ -336,12 +339,20 @@ private:
     }
     static void OnDismiss(lv_event_t *) { Leave(); }
     static void OnEscape(void *) { Leave(); }
+    static void OnSwipe(int32_t dir, void *user)
+    {
+        Waiting *self = static_cast<Waiting *>(user);
+        if (self->list_.root != nullptr) {
+            widgets::TurnListView(self->list_, dir);
+        }
+    }
 
     static constexpr int32_t kRowsPerPage = 4;
 
     lv_group_t *group_ = nullptr;
     lv_obj_t *page_ = nullptr;
     lv_obj_t *body_ = nullptr;
+    widgets::ListView list_ = {};  // the rows, which a swipe anywhere turns: one page of four at most, so `sound.at-end` answers it
     lv_obj_t *dismiss_ = nullptr;
     lv_obj_t *avatar_layer_ = nullptr;  // the avatars, over everything on the page
     std::array<Row, model::kMaxRequests> rows_{};

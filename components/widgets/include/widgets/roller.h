@@ -13,8 +13,8 @@
 // TOUCH. A tap on a closed roller opens it. Open, a tap on the row above or below steps one, a tap on the middle row keeps, and
 // one vertical swipe steps one on the lift (the swipe the pages share, widgets/internal/swipe.h): by one value, never by pixel.
 //
-// THE FOOTER. While a roller is open the screen's footer shows Cancel and what the buttons do in words (MakeRollerFooter, bound
-// with SetRollerFooter): a touch stop that puts the value back; by the buttons that is holding OK, which the hint says.
+// THE FOOTER. While a roller is open the screen's footer shows Cancel (MakeRollerFooter, bound with SetRollerFooter): a touch
+// stop that puts the value back; by the buttons that is holding OK. No words say which key does what (DESIGN → Accessibility).
 
 #pragma once
 
@@ -56,10 +56,9 @@ void SetRoller(const Roller &roller, int index);       // closed: no event
 void SetRollerValue(const Roller &roller, int value);  // a number roller's value, no event
 bool RollerOpen(const Roller &roller);
 
-// The footer's bar for open rollers, made once in the screen's footer, after its other parts: Cancel (outline, half width) and
-// "UP or DOWN steps. OK keeps. Hold OK cancels." in `caption` `text-secondary`. It is hidden until a bound roller opens, when it
-// takes the footer's place and the footer's other parts are hidden; when the roller closes the parts are back. Cancel is a touch
-// stop, in no focus group.
+// The footer's bar for open rollers, made once in the screen's footer, after its other parts: Cancel (outline, half width),
+// centred. It is hidden until a bound roller opens, when it takes the footer's place and the footer's other parts are hidden;
+// when the roller closes the parts are back. Cancel is a touch stop, in no focus group.
 lv_obj_t *MakeRollerFooter(lv_obj_t *footer);
 // Binds `roller` to the footer's bar.
 void SetRollerFooter(const Roller &roller, lv_obj_t *bar);

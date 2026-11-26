@@ -1,7 +1,7 @@
 // The select sheet: a dropdown's options as a bottom sheet over the lower part of the page — full width, anchored to the glass's
-// bottom, its top corners `rounded.2xl`, a `spacing.stroke.strong` outline and an offset on its top edge — BYTE-90's sheet
-// ported (DESIGN → Components → The kit). A title names the field, the options are a list view of rows `spacing.md` apart, and the
-// foot, in the footer's place, holds Cancel and what the buttons do in words. It appears in the next frame, closes the same way,
+// bottom, its top corners `rounded.2xl`, no outline, and an offset on its top edge — BYTE-90's sheet ported (DESIGN →
+// Components → The kit; Exceptions → The select sheet's edge). A title names the field, the options are a list view of rows
+// `spacing.md` apart, and the foot, in the footer's place, holds Cancel. It appears in the next frame, closes the same way,
 // and the page above stays as it was.
 //
 // It is an overlay on the router's stack (router/router.h): its own focus group while it is open, holding OK as Cancel, and
@@ -16,7 +16,7 @@ namespace widgets {
 
 // Opens the sheet for `dropdown` on the active screen: the field's name for a title, a row for each option — the option in
 // `body` (the chosen one `label`), about 20 characters to a line, wrapping to a second line and growing the row when a third is needed, never cut
-// — the chosen one inverted with the check beside its words, and a foot with Cancel and "UP or DOWN picks. OK chooses." It takes
+// — the chosen one on the light dither, `band`, with the check beside its words, and a foot with Cancel, centred. It takes
 // focus on the chosen row, on its page. Rows a page: four, or three when four would cover the field that opened it. OK on a row
 // chooses it (ChooseDropdown, which reports a change once) and closes; Cancel, holding OK, or choosing nothing new closes with
 // nothing changed; focus goes back to the field. A touch above the sheet is eaten. One sheet at a time.

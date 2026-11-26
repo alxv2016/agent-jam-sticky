@@ -405,4 +405,9 @@ int ListViewPages(const ListView &view)
     return Pages(view.root);
 }
 
+void TurnListView(const ListView &view, int32_t dir)
+{
+    TurnPage(view.root, dir);
+}
+
 }  // namespace widgets

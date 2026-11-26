@@ -160,4 +160,9 @@ int TextViewPages(const TextView &view)
     return Of(view.root)->pages;
 }
 
+void TurnTextView(const TextView &view, int32_t dir)
+{
+    TurnPage(view.root, dir);
+}
+
 }  // namespace widgets

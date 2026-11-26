@@ -60,6 +60,7 @@ lv_group_t *s_group = nullptr;
 lv_indev_t *s_keys = nullptr;
 int s_full_requests = 0;
 int s_cues = 0;
+int s_at_ends = 0;  // the at-end cues alone
 int s_moments = 0;
 int s_music_starts = 0;
 int s_music_stops = 0;
@@ -88,7 +89,11 @@ void SetTouchReadHook(void (*)(lv_indev_t *, lv_indev_data_t *)) {}
 void SetPartialCounting(PartialCounting) {}
 void NoteTyping() {}
 void RequestFull() { ++s_full_requests; }
-void PlayCue(Cue) { ++s_cues; }
+void PlayCue(Cue cue)
+{
+    ++s_cues;
+    s_at_ends += cue == Cue::kAtEnd;
+}
 }  // namespace lvgl_display
 
 // power_leave's sequence is the board's and runs on the board: here it is the call the Power button makes, kept for the test to read.
@@ -912,6 +917,31 @@ void TestRequestDismissAndLong()
     Settle();
     Dump("request_long");
     Check(Text("Bash") == nullptr && Text("Edit") != nullptr, "the long request's tool");
+    // A swipe up begun on Allow turns the text a page and answers nothing; one down from the heading turns it back.
+    {
+        lv_obj_t *first = nullptr;
+        const std::string opening = long_body.substr(0, long_body.find('\n'));  // the body's first line
+        std::function<void(lv_obj_t *)> find = [&](lv_obj_t *o) {
+            if (first == nullptr && lv_obj_check_type(o, &lv_label_class) && std::string(lv_label_get_text(o)).rfind(opening, 0) == 0) {
+                first = o;
+            }
+            for (uint32_t i = 0; i < lv_obj_get_child_count(o) && first == nullptr; ++i) {
+                find(lv_obj_get_child(o, static_cast<int32_t>(i)));
+            }
+        };
+        find(lv_screen_active());
+        const int words_y = first != nullptr ? Y(first) : 0;
+        lv_obj_t *allow = lv_obj_get_parent(Text("Allow"));
+        const int at = Y(allow) + dt::kSpacingTarget / 2;
+        s_decided = {};
+        Swipe(300, at, 300, at - 2 * dt::kTouchSwipeDistance);
+        Check(first != nullptr && Y(first) < words_y && router::Depth() == 2 && s_decided.id == 0,
+              "request: a swipe up begun on Allow turns the text a page and answers nothing");
+        const int heading = L::kHeadingTop + dt::kSpacingMd;
+        Swipe(240, heading, 240, heading + 2 * dt::kTouchSwipeDistance);
+        Check(Y(first) == words_y, "a swipe down begun on the heading turns it back");
+        Check(lv_obj_get_scroll_y(lv_obj_get_child(lv_screen_active(), 0)) == 0, "and the page under the swipes never moved");
+    }
     Home();
 }
 
@@ -1164,6 +1194,11 @@ void TestQuestionLong(model::Question &q)
     Check(Area(roll).y1 != y_first, "the band turned a page: the first card is no longer where it was");
     CheckScrollLane();
     Dump("question_long_p2");
+    {
+        const int at = L::kHeadingTop + dt::kSpacingMd;  // on the question's heading, not its band
+        Swipe(240, at, 240, at + 2 * dt::kTouchSwipeDistance);
+        Check(Area(roll).y1 == y_first, "a swipe down begun on the heading turns the cards back to the first page");
+    }
     router::Escape();
     Settle();
     Home();
@@ -1810,6 +1845,84 @@ void TestWifi()
     TestWifiChoosing();
     TestWifiJoining();
     TestWifiOff();
+}
+
+// A swipe up or down begun anywhere on a paged screen turns its pages, not only one begun on its rows (the person, 2026-11-26).
+// The Wi-Fi page's facts run to a second page of one fact: a swipe up from Back turns to it and presses nothing, one down from the
+// heading turns back. The settings turn from their heading too, and a ring on a stop the new page hides moves to one it shows.
+void TestSwipeWifi()
+{
+    std::printf("a swipe anywhere on a paged screen\n");
+    SettingsState();
+    Home();
+    Settle();
+    lv_obj_send_event(home::Look().wifi, LV_EVENT_CLICKED, nullptr);
+    Settle();
+    lv_obj_t *ip = Text("192.168.1.42");
+    lv_obj_t *mac = Text("02:3F:2A:00:00:42");
+    const int ip_on_1 = Y(ip);
+    Check(ip != nullptr && mac != nullptr && !lv_obj_is_visible(mac), "Wi-Fi: the last fact waits alone on the second page");
+    lv_obj_t *back = Button("Back");
+    const int back_y = Y(back) + dt::kSpacingTarget / 2;
+    Swipe(120, back_y, 120, back_y - 2 * dt::kTouchSwipeDistance);
+    Check(router::Depth() == 2 && lv_obj_is_visible(mac) && Y(ip) != ip_on_1, "a swipe up begun on Back turns to it, and Back is not pressed");
+    lv_obj_t *page = lv_obj_get_child(lv_screen_active(), 0);
+    Check(lv_obj_get_scroll_y(page) == 0, "and the page under the swipe never moves");
+    const int heading_y = Y(Text("Wi-Fi")) + dt::kSpacingMd;
+    Swipe(240, heading_y, 240, heading_y + 2 * dt::kTouchSwipeDistance);
+    Check(Y(ip) == ip_on_1 && !lv_obj_is_visible(mac), "a swipe down begun on the heading turns back to the first page");
+    Home();
+}
+
+void TestSwipeSettings()
+{
+    SettingsState();
+    Home();
+    Settle();
+    lv_obj_send_event(home::Look().settings, LV_EVENT_CLICKED, nullptr);
+    Settle();
+    lv_obj_t *sound = lv_group_get_obj_by_index(s_group, 0);        // the walk: Sound's toggle, the slider, Wi-Fi's toggle, …
+    lv_obj_t *wifi_toggle = lv_group_get_obj_by_index(s_group, 2);
+    lv_obj_t *hardware = ControlOf(Text("Hardware test"));
+    router::Ring(sound);
+    Settle();
+    lv_obj_t *page = lv_obj_get_child(lv_screen_active(), 0);
+    const int settings_y = Y(Text("Settings")) + dt::kSpacingMd;
+    Swipe(240, settings_y + 2 * dt::kTouchSwipeDistance, 240, settings_y);
+    Check(lv_obj_is_visible(hardware) && !lv_obj_is_visible(Text("Sound")), "settings: a swipe up begun on the heading turns to the second page");
+    Check(Focused() == wifi_toggle, "the focus leaves Sound, which the page hides, for Wi-Fi's toggle, the new page's first stop");
+    Check(lv_obj_get_scroll_y(page) == 0, "and the page did not move with the focus the turn moved");
+    Swipe(240, settings_y, 240, settings_y + 2 * dt::kTouchSwipeDistance);
+    Check(!lv_obj_is_visible(hardware) && lv_obj_is_visible(Text("Sound")), "a swipe down turns back to the first");
+    Check(Focused() == wifi_toggle, "Wi-Fi's toggle stands on both pages, so the focus stays");
+    s_at_ends = 0;
+    Swipe(240, settings_y, 240, settings_y + 2 * dt::kTouchSwipeDistance);
+    Check(!lv_obj_is_visible(hardware) && s_at_ends == 1, "a swipe down on the first page turns nothing, and the at-end cue says so");
+    router::Ring(hardware);  // the walk to a stop on the hidden page: LVGL scrolls to it, and the page puts itself back
+    Settle();
+    Check(lv_obj_is_visible(hardware) && lv_obj_get_scroll_y(page) == 0, "the walk turns the page and the page itself never scrolls");
+    Swipe(240, settings_y, 240, settings_y + 2 * dt::kTouchSwipeDistance);
+    Check(!lv_obj_is_visible(hardware) && Focused() == sound && lv_obj_get_scroll_y(page) == 0,
+          "a swipe down from Hardware test, which the first page hides, turns back with the focus on Sound, the page unmoved");
+    Home();
+}
+
+void TestSwipeWaiting()
+{
+    // The needs-you list never pages, four at most: a swipe down begun on its heading turns nothing, and the at-end cue says so.
+    DeckState();
+    model::SetAgent(Agent(5, 0, "docs-site", model::AgentState::kNeedsYou, 2, "WebFetch", 14, 27000));
+    Ask(1002, 5, "WebFetch", "u");
+    Settle();
+    router::PushRoute(flow::kRouteWaiting);
+    Settle();
+    Check(Text("Needs you") != nullptr, "the needs-you list is open");
+    s_at_ends = 0;
+    const int list_y = Y(Text("Needs you")) + dt::kSpacingMd;
+    Swipe(240, list_y, 240, list_y + 2 * dt::kTouchSwipeDistance);
+    Check(s_at_ends == 1 && router::Depth() == 2 && Text("Needs you") != nullptr,
+          "the list: a swipe down begun on the heading answers with the at-end cue and leaves nothing");
+    Home();
 }
 
 void TestWifiMock()
@@ -2908,6 +3021,9 @@ int main()
     TestSettings();
     TestWifi();
     TestWifiMock();
+    TestSwipeWifi();
+    TestSwipeSettings();
+    TestSwipeWaiting();
     TestSteppedLines();
     TestStandbyPage();
     TestPower();

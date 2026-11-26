@@ -26,5 +26,8 @@ TextView MakeTextView(lv_obj_t *parent, int32_t lines, const char *text);
 void SetTextView(const TextView &view, const char *text);  // back to the first page
 int TextViewPage(const TextView &view);   // 0-based
 int TextViewPages(const TextView &view);
+// What a swipe on the view does, for a swipe begun elsewhere on its screen (ClaimPageSwipe): `dir` +1 turns to the next page,
+// -1 to the one before; at an end nothing turns and `sound.at-end` sounds.
+void TurnTextView(const TextView &view, int32_t dir);
 
 }  // namespace widgets

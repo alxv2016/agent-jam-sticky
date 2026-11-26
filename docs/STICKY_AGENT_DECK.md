@@ -62,6 +62,7 @@ The mascot's voice (`components/mascot_voice`) is shared with the hardware test'
 - **Nothing updates faster than `motion.self-update`** — the state chip counts its time on every 5 s; the clock follows the minute.
 - **A screen opens with no ring**, except where a control appears — the overview's count, Review — which rings as it appears (§4.2).
 - **Holding OK is Dismiss** on the request, the question and the list; the carousel holds nothing (DESIGN → Focus and input).
+- **A swipe up or down begun anywhere on a paged screen turns it** — the Wi-Fi page's lists, the settings, the request's text, the question's cards and the needs-you list (one page, so `sound.at-end` answers), from the heading, the empty room or a control, which the swipe does not press (`widgets::ClaimPageSwipe`; DESIGN → Layout → Paging; the person, 2026-11-26).
 - **A request ends on the agent that asked** (AGENT_DECK 4.7; §5).
 - **Made-up names only** — the mock day's agents and hosts are the deck's own examples.
 

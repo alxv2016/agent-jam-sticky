@@ -2,8 +2,8 @@
 // controller, touch, the buttons and buzzer, the sensors, the battery and power, the card, the microphone. It is a
 // bench tool for V1.0 and V2.0 boards, drawn from DESIGN.md's components; the mascot's page, every move of Claude's
 // mascot with its sounds, is mascot_page.cpp's. Its fixtures' sizes, its timers, the refresh benchmark's animation, the
-// page walk, and the type scale and UI kit pages that scroll by pixel are DESIGN.md's one registered exception
-// (DESIGN → Exceptions); the widgets on the kit page still turn pages.
+// page walk, and the type scale page that scrolls by pixel are DESIGN.md's one registered exception (DESIGN → Exceptions);
+// the UI kit page turns by whole-section pages, as every paged screen does (DESIGN → Layout → Paging).
 
 #include <algorithm>
 #include <array>
@@ -16,6 +16,7 @@
 #include <ctime>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "app_hooks.h"
 #include "board.h"
@@ -110,6 +111,16 @@ lv_obj_t *BeginScreen(lv_obj_t *screen, const char *title, bool news = false)
     lv_obj_set_style_pad_row(column, dt::kSpacingMd, 0);  // a ring reaches 8 px: stops sit 16 apart (DESIGN → Layout → Spacing)
     lv_obj_set_scrollable(column, false);
     return column;
+}
+
+// An up or down swipe begun anywhere on a screen of one list turns the list, not only one begun on its rows (DESIGN → Layout →
+// Paging). The screen keeps its own copy of the list's handles, freed with it.
+void SwipeTurnsList(lv_obj_t *screen, const widgets::ListView &list)
+{
+    widgets::ListView *held = new widgets::ListView(list);
+    lv_obj_add_event_cb(screen, [](lv_event_t *e) { delete static_cast<widgets::ListView *>(lv_event_get_user_data(e)); }, LV_EVENT_DELETE, held);
+    widgets::ClaimPageSwipe(
+        screen, [](int32_t dir, void *user) { widgets::TurnListView(*static_cast<widgets::ListView *>(user), dir); }, held);
 }
 
 // The footer: Back last in the focus order, after the screen's own controls, always at the bottom. Returns it, for a screen
@@ -449,10 +460,31 @@ void CreateTypeScale(lv_obj_t *screen, lv_group_t *, void *)
 
 // --- The UI kit ----------------------------------------------------------------------------------------------
 
-// The kit's page: every widget of DESIGN.md's kit, live, on one page that scrolls by pixel (DESIGN → Exceptions). The list
-// view and the text view on it turn pages, as they do everywhere: a swipe over one is that view's, never the page's.
-// A focused widget comes into view at once with its ring, by the theme's ui::ShowWhenFocused — never LVGL's animated
-// scroll, which the glass would draw frame by frame.
+// The kit's page: every widget of DESIGN.md's kit, live, a page of whole sections at a time (the paging below). The list view
+// and the text view on it turn pages of their own: a swipe begun on one is that view's, never the kit page's.
+
+// The kit's pages (DESIGN → Layout → Paging; the person, 2026-11-26): whole sections a page, cut after the last whole one so
+// the next never shows in what is left. A section taller than a page splits at its groups' names, the heading kept with its
+// first group; a group still taller goes block by block, the heading again with the first. UP and DOWN turn to the page that
+// holds the focused control; a swipe up or down begun anywhere turns one page, `sound.at-end` past either end.
+struct KitPages {
+    lv_obj_t *band = nullptr;    // clips the column to the page shown, a ring's reach round it
+    lv_obj_t *column = nullptr;  // the kit's blocks, moved up to the page's top
+    std::vector<int32_t> tops;   // each page's top and bottom in the column
+    std::vector<int32_t> ends;
+    int page = 0;
+    std::vector<lv_obj_t *> heads;  // the sections' headings and the groups' names, recorded as the kit is built
+    std::vector<lv_obj_t *> names;
+};
+KitPages s_kit;
+constexpr int32_t kKitReach = dt::kSpacingFocusOffset + dt::kSpacingStrokeEdit;  // an open control's ring, the farthest a ring reaches
+
+lv_obj_t *KitHeading(lv_obj_t *content, const char *text, widgets::HeadingX x = widgets::HeadingX::kEdge)
+{
+    lv_obj_t *heading = widgets::MakeSectionHeading(content, text, x);
+    s_kit.heads.push_back(heading);
+    return heading;
+}
 
 // A group's name, a `caption`: `group` under the control or the heading before it (the page's gap and the margin over it) and
 // `sm` over its own control, as a text input's name stands (DESIGN → Components → Text input; Layout → Spacing); so it stands
@@ -460,6 +492,7 @@ void CreateTypeScale(lv_obj_t *screen, lv_group_t *, void *)
 lv_obj_t *KitName(lv_obj_t *content, const char *name)
 {
     lv_obj_t *label = ui::NewLabel(content, Type::kCaption, name, true);
+    s_kit.names.push_back(label);
     lv_obj_set_style_margin_top(label, dt::kSpacingGroup - dt::kSpacingItem, 0);
     lv_obj_set_style_margin_bottom(label, dt::kSpacingSm - dt::kSpacingItem, 0);  // the page's gap less 8: `sm`
     return label;
@@ -650,7 +683,7 @@ void OnKitDialog(lv_event_t *)
 // the widgets and their focus stops come in the order the page shows them.
 void KitButtons(lv_obj_t *content)
 {
-    widgets::MakeSectionHeading(content, "Buttons");
+    KitHeading(content, "Buttons");
     lv_obj_t *stack = KitColumn(content);
     widgets::MakeButton(stack, "Record", widgets::ButtonVariant::kAction, dt::kSpacingButtonWidth);
     widgets::MakeButton(stack, "Later", widgets::ButtonVariant::kTonal, dt::kSpacingButtonWidth);
@@ -659,7 +692,7 @@ void KitButtons(lv_obj_t *content)
     lv_obj_add_state(widgets::MakeButton(stack, "Delete", widgets::ButtonVariant::kAction, dt::kSpacingButtonWidth),
                      LV_STATE_DISABLED);
     KitReason(content, "Nothing to delete");
-    widgets::MakeSectionHeading(content, "Compact buttons");
+    KitHeading(content, "Compact buttons");
     lv_obj_t *compact = ButtonRow(content);
     widgets::MakeButton(compact, "Save", widgets::ButtonVariant::kAction);
     widgets::MakeButton(compact, "Later", widgets::ButtonVariant::kTonal);
@@ -668,7 +701,7 @@ void KitButtons(lv_obj_t *content)
 
     // A glyph before the words: each in its button's ink, the half button's widest with one 7 characters; disabled, the
     // glyph is `text-disabled` with the words.
-    widgets::MakeSectionHeading(content, "Buttons with a glyph");
+    KitHeading(content, "Buttons with a glyph");
     lv_obj_t *glyphs = KitColumn(content);
     widgets::MakeButton(glyphs, "Record", widgets::ButtonVariant::kAction, dt::kSpacingButtonWidth, widgets::Glyph::kMic);
     widgets::MakeButton(glyphs, "Play", widgets::ButtonVariant::kTonal, dt::kSpacingButtonWidth, widgets::Glyph::kPlay);
@@ -686,7 +719,7 @@ void KitButtons(lv_obj_t *content)
 
     // The icon button (DESIGN → Exceptions): no word, so the footer's hint says the action; the four variants, then all
     // four disabled.
-    widgets::MakeSectionHeading(content, "Icon buttons");
+    KitHeading(content, "Icon buttons");
     lv_obj_t *icons = ButtonRow(content);
     widgets::MakeIconButton(icons, widgets::IconAction::kPlay, widgets::ButtonVariant::kAction, "Play");
     widgets::MakeIconButton(icons, widgets::IconAction::kPause, widgets::ButtonVariant::kTonal, "Pause");
@@ -703,26 +736,26 @@ void KitButtons(lv_obj_t *content)
 
 void KitSettingRows(lv_obj_t *content)
 {
-    widgets::MakeSectionHeading(content, "Toggle rows");  // ux-exception: the kit page names the component type
+    KitHeading(content, "Toggle rows");  // ux-exception: the kit page names the component type
     widgets::MakeToggleRow(content, "Wi-Fi", true);
     widgets::MakeToggleRow(content, "Grid", false);
     widgets::MakeToggleRow(content, "Wi-Fi sync", true);
     widgets::SetToggleRowEnabled(widgets::MakeToggleRow(content, "Background", false), false, "Turn Wi-Fi on first");
-    widgets::MakeSectionHeading(content, "Toggle icon rows");  // ux-exception: the kit page names the component type
+    KitHeading(content, "Toggle icon rows");  // ux-exception: the kit page names the component type
     widgets::MakeToggleIconRow(content, "Sound", true);
     widgets::MakeToggleIconRow(content, "Keys", false);
     widgets::SetToggleIconRowEnabled(widgets::MakeToggleIconRow(content, "Alerts", false), false, "Muted by the system");
 
     // A checkbox row is one setting among settings, a radio button row one choice of a short list: the toggle's look, the
     // control alone ringed and no state words (DESIGN → Components → The kit).
-    widgets::MakeSectionHeading(content, "Checkbox rows");
+    KitHeading(content, "Checkbox rows");
     widgets::MakeCheckboxRow(content, "Keep recordings", true);
     widgets::MakeCheckboxRow(content, "Send a summary", false);
     widgets::MakeCheckboxRow(content, "Tag it automatically", true);
     widgets::SetCheckboxRowEnabled(widgets::MakeCheckboxRow(content, "Share with the team", false), false, "Sign in first");
     widgets::SetCheckboxRowEnabled(widgets::MakeCheckboxRow(content, "Back up the notes", true), false,
                                    "Turn Wi-Fi on first");
-    widgets::MakeSectionHeading(content, "Radio button rows");
+    KitHeading(content, "Radio button rows");
     // A group's name stands `group` under its heading and over the group before it (the page's gap and the margin), its rows
     // an `item` apart.
     lv_obj_t *repeat_name = ui::NewLabel(content, Type::kCaption, "Repeat", true);
@@ -739,7 +772,7 @@ void KitSettingRows(lv_obj_t *content)
     widgets::MakeRadioButtonRow(send, "Email", false);
     widgets::MakeRadioButtonRow(send, "Text message", true);
     widgets::SetRadioButtonRowEnabled(widgets::MakeRadioButtonRow(send, "Push", false), false, "Turn notifications on first");
-    widgets::MakeSectionHeading(content, "Rows", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Rows", widgets::HeadingX::kRowWords);
     lv_obj_t *rows = KitColumn(content);
     widgets::MakeValueRow(rows, "Language", "English (United Kingdom)");
     lv_obj_add_state(widgets::MakeValueRow(rows, "Backup", "Off").root, LV_STATE_DISABLED);
@@ -750,7 +783,7 @@ void KitSettingRows(lv_obj_t *content)
 
 void KitChoices(lv_obj_t *content)
 {
-    widgets::MakeSectionHeading(content, "Chips");
+    KitHeading(content, "Chips");
     lv_obj_t *chips = ButtonRow(content);
     for (const char *kind : {"All", "Idea", "Note"}) {
         lv_obj_t *chip = widgets::MakeChip(chips, kind);
@@ -759,14 +792,14 @@ void KitChoices(lv_obj_t *content)
     lv_obj_add_state(widgets::MakeChip(chips, "To-do"), LV_STATE_DISABLED);  // a disabled chip: the dither, no edge
     lv_obj_add_state(lv_obj_get_child(chips, 0), LV_STATE_CHECKED);
     KitReason(content, "No to-dos yet");
-    widgets::MakeSectionHeading(content, "Segment");
+    KitHeading(content, "Segment");
     static const char *const kKinds[] = {"Ideas", "To-dos", "Notes"};
     widgets::MakeSegment(content, kKinds, 3, 1);  // the page's 16 px gap puts the next track 80 px on
     lv_obj_t *kinds_off = widgets::MakeSegment(content, kKinds, 3, 1);
     widgets::SetSegmentEnabled(kinds_off, false);
     KitReason(content, "Not while recording");
 
-    widgets::MakeSectionHeading(content, "Progress, steps and pages: Step turns each");
+    KitHeading(content, "Progress, steps and pages: Step turns each");
     s_kit_progress = {};
     s_kit_progress.bar = widgets::MakeProgressBar(content, dt::kSpacingContent, true);
     s_kit_progress.steps = widgets::MakeStepBar(content, dt::kSpacingContent, 5);
@@ -779,7 +812,7 @@ void KitChoices(lv_obj_t *content)
     s_kit_progress.tenths = 4;
     ShowKitProgress();
 
-    widgets::MakeSectionHeading(content, "Radio rows");
+    KitHeading(content, "Radio rows");
     lv_obj_t *sizes = KitColumn(content);
     for (const char *size : {"Small", "Medium", "Large"}) {
         widgets::MakeRadioRow(sizes, size);  // the rows that share a parent are one group: choosing one clears the others
@@ -787,7 +820,7 @@ void KitChoices(lv_obj_t *content)
     widgets::SetRadioChosen(lv_obj_get_child(sizes, 1), true);
     lv_obj_add_state(widgets::MakeRadioRow(sizes, "Huge"), LV_STATE_DISABLED);  // disabled: the dither, no edge, its words faint
     KitReason(content, "Too big for this screen");
-    widgets::MakeSectionHeading(content, "Choice cards");
+    KitHeading(content, "Choice cards");
     ui::NewLabel(content, Type::kBody, "What is it?");
     lv_obj_t *kinds_cards = KitColumn(content);
     struct Kind {
@@ -808,7 +841,7 @@ void KitChoices(lv_obj_t *content)
 
 void KitSlidersAndPages(lv_obj_t *content)
 {
-    widgets::MakeSectionHeading(content, "Sliders: OK opens, UP raises, DOWN lowers, OK closes");
+    KitHeading(content, "Sliders");
     KitName(content, "Brightness");
     widgets::MakeRangeSlider(content, 0, 100, 10, 60, "%");
     KitName(content, "Sound");
@@ -825,7 +858,7 @@ void KitSlidersAndPages(lv_obj_t *content)
 
     s_kit_paged = {};
     KitPaged &paged = s_kit_paged;
-    widgets::MakeSectionHeading(content, "List view: a swipe or DOWN turns a page", widgets::HeadingX::kRowWords);
+    KitHeading(content, "List view", widgets::HeadingX::kRowWords);
     paged.list_words = ui::NewLabel(content, Type::kCaption, "", true);
     paged.list = widgets::MakeListView(content, 4, dt::kSpacingTarget);
     char name[16];
@@ -836,7 +869,7 @@ void KitSlidersAndPages(lv_obj_t *content)
     widgets::UpdateListView(paged.list);
     lv_obj_add_event_cb(paged.list.root, ShowKitPages, LV_EVENT_VALUE_CHANGED, nullptr);
 
-    widgets::MakeSectionHeading(content, "Text view: OK, then UP and DOWN or a swipe");
+    KitHeading(content, "Text view");
     paged.text_words = ui::NewLabel(content, Type::kCaption, "", true);
     paged.text = widgets::MakeTextView(
         content, 6,
@@ -851,7 +884,7 @@ void KitSlidersAndPages(lv_obj_t *content)
 void KitNetworksAndMenus(lv_obj_t *content)
 {
     // Wi-Fi network rows: the network in use, then the networks in range as a list view three a page.
-    widgets::MakeSectionHeading(content, "Wi-Fi network rows", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Wi-Fi network rows", widgets::HeadingX::kRowWords);
     widgets::MakeNetworkRow(content, "HomeNet", true, 3, widgets::NetworkState::kConnected);
     widgets::MakeNetworkRow(content, "Office", true, 2, widgets::NetworkState::kConnecting);
     lv_obj_t *networks_words = ui::NewLabel(content, Type::kCaption, "Networks in range", true);
@@ -870,7 +903,7 @@ void KitNetworksAndMenus(lv_obj_t *content)
     widgets::UpdateListView(networks);
 
     // The failed-join dialog, static: the offset in the dark dither falls down and to the right (DESIGN → Elevation & Depth).
-    widgets::MakeSectionHeading(content, "Dialog");
+    KitHeading(content, "Dialog");
     widgets::MakeDialog(content, "Office", "Wrong password. Check it and try again.", "Retry", "Cancel");
     lv_obj_t *dialogs = ButtonRow(content);
     HalfButton(dialogs, "Delete", false, OnKitDialog);
@@ -878,7 +911,7 @@ void KitNetworksAndMenus(lv_obj_t *content)
 
     // Dropdowns: OK opens the select sheet over the lower part of the page. Three options, eight (one a long one, which
     // wraps), and a disabled field with its reason.
-    widgets::MakeSectionHeading(content, "Dropdowns: OK opens the sheet", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Dropdowns", widgets::HeadingX::kRowWords);
     static const char *const kRepeat[] = {"Never", "Every day", "Every week"};
     static const char *const kRemind[] = {"Never", "In an hour", "This afternoon", "This evening", "Tomorrow", "In 2 days",
                                           "Next week", "On the first Monday of next month, in the morning"};
@@ -897,8 +930,8 @@ struct KitRollers {
 KitRollers KitRollersAndPager(lv_obj_t *content)
 {
     // Rollers: Count stops at its ends, Hour goes round. OK opens one, UP and DOWN step, OK keeps, holding OK or the footer's Cancel
-    // puts the value back; while one is open the footer shows Cancel and the hint in Back's place.
-    widgets::MakeSectionHeading(content, "Rollers: OK opens, UP or DOWN steps, OK keeps");
+    // puts the value back; while one is open the footer shows Cancel in Back's place.
+    KitHeading(content, "Rollers");
     lv_obj_t *rollers = RollerRow(content);
     lv_obj_set_style_margin_top(rollers, dt::kSpacingXs, 0);
     const widgets::Roller kit_count = widgets::MakeNumberRoller(rollers, "Count", 1, 12, 1, 1, false, 1);
@@ -909,7 +942,7 @@ KitRollers KitRollersAndPager(lv_obj_t *content)
     lv_obj_set_style_align(roller_words, LV_ALIGN_BOTTOM_LEFT, 0);
 
     // The horizontal pager: whole chips a page, dots and their count under it; UP and DOWN walk, a swipe left or right turns.
-    widgets::MakeSectionHeading(content, "Horizontal pager: DOWN or a swipe turns a page");
+    KitHeading(content, "Horizontal pager");
     const widgets::HorizontalPager pager = widgets::MakeHorizontalPager(content);
     for (const char *kind : {"All", "Idea", "To-do", "Note", "Follow-up"}) {
         lv_obj_add_event_cb(widgets::MakeChip(pager.root, kind), OnKitChip, LV_EVENT_CLICKED, nullptr);
@@ -922,7 +955,7 @@ KitRollers KitRollersAndPager(lv_obj_t *content)
 void KitInputsAndStatus(lv_obj_t *content)
 {
     // The text input and the password input in every state: OK on the frame opens the keyboard, and the cross or the eye is the next stop.
-    widgets::MakeSectionHeading(content, "Text inputs: OK opens the keyboard");
+    KitHeading(content, "Text inputs");
     KitName(content, "Empty: the placeholder and, on focus, the caret");
     widgets::SetInputActivateHandler(widgets::MakeTextInput(content, "Add a name"), OnKitKeyboard, nullptr);
     KitName(content, "With text: the cross clears it");
@@ -944,13 +977,13 @@ void KitInputsAndStatus(lv_obj_t *content)
     KitReason(content, "Turn Wi-Fi on first");
 
     // The keyboard, its own screen: a password to join a network, and a plain name kept for the next opening.
-    widgets::MakeSectionHeading(content, "Keyboard: OK opens it");
+    KitHeading(content, "Keyboard");
     lv_obj_t *keyboards = ButtonRow(content);
     HalfButton(keyboards, "Password", false, OnKitKeyboard, reinterpret_cast<void *>(1));
     HalfButton(keyboards, "Name", false, OnKitKeyboard, nullptr);
     s_kit_result_label = ui::NewLabel(content, Type::kCaption, s_kit_result.c_str(), true);
 
-    widgets::MakeSectionHeading(content, "Status blocks", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Status blocks", widgets::HeadingX::kRowWords);
     lv_obj_t *statuses = KitColumn(content);
     lv_obj_set_style_pad_row(statuses, dt::kSpacingXl, 0);
     widgets::MakeStatusBlock(statuses, "Allowed", "Your answer reached the agent.", widgets::StatusMark::kCheck);
@@ -964,7 +997,7 @@ void KitInputsAndStatus(lv_obj_t *content)
 // stacked status block and the quiet words (DESIGN → Components → The kit; STICKY_DESIGN_TOKENS §14).
 void KitDeck(lv_obj_t *content)
 {
-    widgets::MakeSectionHeading(content, "Small chips");
+    KitHeading(content, "Small chips");
     lv_obj_t *chips = ButtonRow(content);
     widgets::MakeSmallChip(chips, "2 working");  // a reading: no ring, not in the walk
     lv_obj_add_event_cb(widgets::MakeSmallChip(chips, "1 needs you", true), OnKitChip, LV_EVENT_CLICKED, nullptr);
@@ -973,7 +1006,7 @@ void KitDeck(lv_obj_t *content)
 
     // The words of a whole control one size down: each row as the kit makes it, then its words at `caption`, a list row's title and a
     // choice card's name at `caption-strong` over their `caption` line, and a detail row's label at `caption-strong` over its value at `caption`.
-    widgets::MakeSectionHeading(content, "Words one size down", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Words one size down", widgets::HeadingX::kRowWords);
     lv_obj_t *small = KitColumn(content);
     widgets::SetWordsRole(widgets::MakeToggleRow(small, "Sound", true).root, Type::kCaption);
     widgets::SetWordsRole(widgets::MakeValueRow(small, "Battery", "Charged \xE2\x80\xA2 84%").root, Type::kCaption);
@@ -994,7 +1027,7 @@ void KitDeck(lv_obj_t *content)
     lv_obj_set_style_margin_top(fact, dt::kSpacingGroup - dt::kSpacingItem, 0);
 
     // The deck's foot: the link indicator, a glyph alone out of the walk in both its faces, and the icon buttons that open a page.
-    widgets::MakeSectionHeading(content, "Foot icons");
+    KitHeading(content, "Foot icons");
     lv_obj_t *foot = ButtonRow(content);
     lv_obj_set_flex_align(foot, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     widgets::MakeLinkIndicator(foot, true);
@@ -1003,7 +1036,7 @@ void KitDeck(lv_obj_t *content)
     widgets::MakeIconButton(foot, widgets::IconAction::kSettings, widgets::ButtonVariant::kTonal, "Open settings");
     widgets::MakeIconButton(foot, widgets::IconAction::kPower, widgets::ButtonVariant::kTonal, "Turn off");
 
-    widgets::MakeSectionHeading(content, "Rows in other words", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Rows in other words", widgets::HeadingX::kRowWords);
     lv_obj_t *others = KitColumn(content);
     // The needs-you list's row: names in `body`, 30 px regular, over their line in `caption-regular`, 20 px regular.
     widgets::MakeListRow(others, "Claude", "Needs your review", OnKitChip, nullptr, Type::kBody, widgets::ListRowFit::kDots, 0,
@@ -1011,27 +1044,273 @@ void KitDeck(lv_obj_t *content)
     widgets::MakeNetworkRow(others, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kOutlined);
     widgets::MakeNetworkRow(others, "Office", true, 1, widgets::NetworkState::kConnecting, widgets::NetworkLook::kOutlined);
 
-    widgets::MakeSectionHeading(content, "Stacked status blocks", widgets::HeadingX::kRowWords);
+    KitHeading(content, "Stacked status blocks", widgets::HeadingX::kRowWords);
     lv_obj_t *stacked = KitColumn(content);
     lv_obj_set_style_pad_row(stacked, dt::kSpacingXl, 0);
     widgets::MakeStackedStatusBlock(stacked, "Not connected", "Connect asks your Mac for its network.", widgets::StatusMark::kWifi);
     widgets::MakeStackedStatusBlock(stacked, "Answered", "in the terminal", widgets::StatusMark::kCheck);
 
     // The proposed quiet words beside `text-secondary`, for the person to judge on the glass (DESIGN → Open items → Quiet words).
-    widgets::MakeSectionHeading(content, "Quiet words");
+    KitHeading(content, "Quiet words");
     ui::NewLabel(content, Type::kCaption, "Resets in 1h 12m", true);
     ui::QuietWords(ui::NewLabel(content, Type::kCaption, "Resets in 4d 2h"));
 }
 
-void CreateKit(lv_obj_t *screen, lv_group_t *, void *)
+// The column's band: as wide as the content and a ring's reach wider and taller all round, so a ring at a page's edge is never
+// cut; it clips what lies past the page.
+lv_obj_t *KitPageColumn(lv_obj_t *content)
 {
-    lv_obj_t *content = BeginScreen(screen, "UI kit");
-    lv_obj_set_scrollable(content, true);
-    lv_obj_set_scroll_dir(content, LV_DIR_VER);
-    lv_obj_set_scrollbar_mode(content, LV_SCROLLBAR_MODE_OFF);
-    // touch-exception: on e-ink a throw or a bounce is a run of partial refreshes, an animation DESIGN.md forbids.
-    lv_obj_remove_flag(content, LV_OBJ_FLAG_SCROLL_MOMENTUM);  // touch-exception: no throw on the glass
-    lv_obj_remove_flag(content, LV_OBJ_FLAG_SCROLL_ELASTIC);   // touch-exception: no bounce on the glass
+    lv_obj_t *band = lv_obj_create(content);
+    lv_obj_remove_style_all(band);
+    lv_obj_set_scrollable(band, false);
+    lv_obj_remove_flag(band, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(band, LV_OBJ_FLAG_IGNORE_LAYOUT);
+    lv_obj_set_pos(band, -kKitReach, -kKitReach);
+    lv_obj_set_width(band, dt::kSpacingContent + 2 * kKitReach);
+    lv_obj_t *column = lv_obj_create(band);
+    lv_obj_remove_style_all(column);
+    lv_obj_set_scrollable(column, false);
+    lv_obj_remove_flag(column, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(column, dt::kSpacingContent, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(column, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(column, dt::kSpacingMd, 0);  // BeginScreen's gap: a ring reaches 8 px, stops sit 16 apart
+    ui::LetRingOut(column);
+    s_kit = {};
+    s_kit.band = band;
+    s_kit.column = column;
+    return column;
+}
+
+int32_t KitTop(lv_obj_t *block)
+{
+    lv_area_t at, column;
+    lv_obj_get_coords(block, &at);
+    lv_obj_get_coords(s_kit.column, &column);
+    return at.y1 - column.y1;
+}
+
+int32_t KitBottom(lv_obj_t *block)
+{
+    return KitTop(block) + lv_obj_get_height(block);
+}
+
+// Shows page `p`: the column moved up to its top, the band cut at its bottom.
+void ShowKitPage(int p)
+{
+    KitPages &k = s_kit;
+    if (k.column == nullptr || p < 0 || p >= static_cast<int>(k.tops.size())) {
+        return;
+    }
+    k.page = p;
+    lv_obj_set_pos(k.column, kKitReach, kKitReach - k.tops[static_cast<size_t>(p)]);
+    lv_obj_set_height(k.band, k.ends[static_cast<size_t>(p)] - k.tops[static_cast<size_t>(p)] + 2 * kKitReach);
+}
+
+int KitPageCount()
+{
+    return static_cast<int>(s_kit.tops.size());
+}
+
+// The page a control stands on: that of its highest ancestor in the column that fits on one page — a list view's frame, not its
+// rows, which the view turns itself; a status block, not the stack of four too tall for a page.
+int KitPageOf(lv_obj_t *obj)
+{
+    int found = -1;
+    for (lv_obj_t *o = obj; o != nullptr && o != s_kit.column; o = lv_obj_get_parent(o)) {
+        if (lv_obj_get_parent(o) == nullptr) {
+            return -1;  // not in the kit's column
+        }
+        const int32_t top = KitTop(o), bottom = KitBottom(o);
+        for (size_t p = 0; p < s_kit.tops.size(); ++p) {
+            if (top >= s_kit.tops[p] && bottom <= s_kit.ends[p]) {
+                found = static_cast<int>(p);
+            }
+        }
+    }
+    return found;
+}
+
+using KitSpan = std::pair<int32_t, int32_t>;
+
+// A block as units: whole when it fits the room, else the blocks inside it, each the same way.
+void KitBlockUnits(lv_obj_t *block, int32_t room, std::vector<KitSpan> &units)
+{
+    const uint32_t n = lv_obj_get_child_count(block);
+    if (lv_obj_get_height(block) <= room || n == 0) {
+        units.push_back({KitTop(block), KitBottom(block)});
+        return;
+    }
+    for (uint32_t i = 0; i < n; ++i) {
+        KitBlockUnits(lv_obj_get_child(block, static_cast<int32_t>(i)), room, units);
+    }
+}
+
+// The blocks a page is made of, in the column's order: a section whole, or its groups, or its blocks one by one, the heading
+// always on the page of what follows it.
+std::vector<KitSpan> KitUnits(int32_t room)
+{
+    lv_obj_t *column = s_kit.column;
+    const int32_t n = static_cast<int32_t>(lv_obj_get_child_count(column));
+    auto has = [](const std::vector<lv_obj_t *> &list, lv_obj_t *o) { return std::find(list.begin(), list.end(), o) != list.end(); };
+    auto span = [&](int32_t a, int32_t b) { return KitSpan{KitTop(lv_obj_get_child(column, a)), KitBottom(lv_obj_get_child(column, b - 1))}; };
+    auto fits = [&](const KitSpan &sp) { return sp.second - sp.first <= room; };
+    std::vector<int32_t> starts;  // each section's first block: a heading, or the column's first
+    for (int32_t i = 0; i < n; ++i) {
+        if (i == 0 || has(s_kit.heads, lv_obj_get_child(column, i))) {
+            starts.push_back(i);
+        }
+    }
+    starts.push_back(n);
+    std::vector<KitSpan> units;
+    for (size_t sec = 0; sec + 1 < starts.size(); ++sec) {
+        const int32_t from = starts[sec], to = starts[sec + 1];
+        if (fits(span(from, to))) {
+            units.push_back(span(from, to));
+            continue;
+        }
+        std::vector<int32_t> cuts{from};
+        for (int32_t i = from + 2; i < to; ++i) {
+            if (has(s_kit.names, lv_obj_get_child(column, i))) {
+                cuts.push_back(i);
+            }
+        }
+        cuts.push_back(to);
+        for (size_t c = 0; c + 1 < cuts.size(); ++c) {
+            if (fits(span(cuts[c], cuts[c + 1]))) {
+                units.push_back(span(cuts[c], cuts[c + 1]));
+                continue;
+            }
+            const size_t heading_at = units.size();
+            for (int32_t i = cuts[c]; i < cuts[c + 1]; ++i) {
+                // The block after the heading is cut to the room the heading leaves, so the two still fit a page together.
+                const bool after_heading = c == 0 && i == cuts[c] + 1;
+                const int32_t heading = after_heading ? KitBottom(lv_obj_get_child(column, cuts[c])) - KitTop(lv_obj_get_child(column, cuts[c])) +
+                                                            lv_obj_get_style_pad_row(column, LV_PART_MAIN)
+                                                      : 0;
+                KitBlockUnits(lv_obj_get_child(column, i), room - heading, units);
+            }
+            if (c == 0 && units.size() > heading_at + 1) {
+                // The heading joins what follows it: the next unit grows up to the heading's top.
+                units[heading_at + 1].first = units[heading_at].first;
+                units.erase(units.begin() + static_cast<std::ptrdiff_t>(heading_at));
+            }
+        }
+    }
+    return units;
+}
+
+// The walk turns to the page of the control it reaches.
+void OnKitFocused(lv_event_t *e)
+{
+    const int p = KitPageOf(lv_event_get_target_obj(e));
+    if (p >= 0 && p != s_kit.page) {
+        ShowKitPage(p);
+    }
+}
+
+// A swipe turns one page; a ring on a control the new page hides moves to the new page's first control, if it has one.
+void OnKitSwipe(int32_t dir, void *)
+{
+    const int next = s_kit.page + (dir > 0 ? 1 : -1);
+    if (next < 0 || next >= KitPageCount()) {
+        lvgl_display::PlayCue(lvgl_display::Cue::kAtEnd);
+        return;
+    }
+    ShowKitPage(next);
+    lv_group_t *group = lv_group_get_default();
+    lv_obj_t *focused = group != nullptr ? lv_group_get_focused(group) : nullptr;
+    if (focused == nullptr || KitPageOf(focused) == next || KitPageOf(focused) < 0) {
+        return;
+    }
+    for (uint32_t i = 0; i < lv_group_get_obj_count(group); ++i) {
+        lv_obj_t *o = lv_group_get_obj_by_index(group, i);
+        if (KitPageOf(o) == next) {
+            lv_group_focus_obj(o);
+            return;
+        }
+    }
+}
+
+void AddKitFocus(lv_obj_t *obj)
+{
+    if (lv_obj_get_group(obj) != nullptr) {
+        lv_obj_add_event_cb(obj, OnKitFocused, LV_EVENT_FOCUSED, nullptr);
+    }
+    for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) {
+        AddKitFocus(lv_obj_get_child(obj, static_cast<int32_t>(i)));
+    }
+}
+
+// A page with nothing to press is still a stop (DESIGN → Layout → Paging): an unseen box over the page's blocks, the ring
+// round them, `rounded.lg`, in the walk between the pages beside it. OK on it does nothing, and it takes no touch.
+void AddKitStops(lv_group_t *group)
+{
+    std::vector<lv_obj_t *> walk;
+    for (uint32_t i = 0; i < lv_group_get_obj_count(group); ++i) {
+        walk.push_back(lv_group_get_obj_by_index(group, i));
+    }
+    bool added = false;
+    for (int p = 0; p < KitPageCount(); ++p) {
+        size_t after = 0;  // the walk's place for it: after the last stop on an earlier page
+        bool has = false;
+        for (size_t i = 0; i < walk.size(); ++i) {
+            const int on = KitPageOf(walk[i]);
+            has = has || on == p;
+            if (on >= 0 && on < p) {
+                after = i + 1;
+            }
+        }
+        if (has) {
+            continue;
+        }
+        lv_obj_t *stop = lv_obj_create(s_kit.column);
+        lv_obj_remove_style_all(stop);
+        lv_obj_set_scrollable(stop, false);
+        lv_obj_remove_flag(stop, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_remove_flag(stop, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+        lv_obj_add_flag(stop, LV_OBJ_FLAG_IGNORE_LAYOUT);
+        lv_obj_set_pos(stop, 0, s_kit.tops[static_cast<size_t>(p)]);
+        lv_obj_set_size(stop, dt::kSpacingContent, s_kit.ends[static_cast<size_t>(p)] - s_kit.tops[static_cast<size_t>(p)]);
+        lv_obj_set_style_radius(stop, dt::kRoundedLg, 0);
+        ui::RingOutside(stop);
+        walk.insert(walk.begin() + static_cast<std::ptrdiff_t>(after), stop);
+        added = true;
+    }
+    if (added) {
+        lv_group_remove_all_objs(group);
+        for (lv_obj_t *o : walk) {
+            lv_group_add_obj(group, o);
+        }
+    }
+}
+
+// Cuts the built column into pages, hears the walk and the swipe, and shows the first page.
+void PageKit(lv_obj_t *screen, lv_obj_t *content, lv_group_t *group)
+{
+    lv_obj_update_layout(screen);
+    const int32_t room = lv_obj_get_content_height(content);
+    for (const auto &[top, bottom] : KitUnits(room)) {
+        if (s_kit.tops.empty() || bottom - s_kit.tops.back() > room) {
+            s_kit.tops.push_back(top);
+            s_kit.ends.push_back(bottom);
+        } else {
+            s_kit.ends.back() = bottom;
+        }
+    }
+    s_kit.heads.clear();
+    s_kit.names.clear();
+    if (group != nullptr) {
+        AddKitStops(group);
+    }
+    AddKitFocus(s_kit.column);
+    widgets::ClaimPageSwipe(screen, OnKitSwipe, nullptr);
+    lv_obj_add_event_cb(screen, [](lv_event_t *) { s_kit = {}; }, LV_EVENT_DELETE, nullptr);  // nothing points into a page gone
+    ShowKitPage(0);
+}
+
+void CreateKit(lv_obj_t *screen, lv_group_t *group, void *)
+{
+    lv_obj_t *content = KitPageColumn(BeginScreen(screen, "UI kit"));
 
     KitButtons(content);
     KitSettingRows(content);
@@ -1048,6 +1327,7 @@ void CreateKit(lv_obj_t *screen, lv_group_t *, void *)
     lv_obj_t *roller_bar = widgets::MakeRollerFooter(footer);
     widgets::SetRollerFooter(kit_rollers.count, roller_bar);
     widgets::SetRollerFooter(kit_rollers.hour, roller_bar);
+    PageKit(screen, lv_obj_get_parent(s_kit.band), group);
 }
 
 // --- Refresh benchmark: an animation ---------------------------------------------------------------------------
@@ -1321,6 +1601,7 @@ void CreateButtons(lv_obj_t *screen, lv_group_t *, void *)
     }
     widgets::UpdateListView(sounds);
     EndScreen(screen);
+    SwipeTurnsList(screen, sounds);
 }
 
 void EnterButtons(void *)
@@ -1770,6 +2051,7 @@ void CreateAbout(lv_obj_t *screen, lv_group_t *, void *)
     }
     widgets::UpdateListView(list);  // before the footer: the pages' stops come first in the walk, Back last
     EndScreen(screen);
+    SwipeTurnsList(screen, list);
 }
 
 // --- The serial console: a bench tool's commands --------------------------------------------------------------
@@ -2168,6 +2450,7 @@ void BuildHome(lv_obj_t *content)
         widgets::MakeListRow(list.root, entry.label, entry.supporting, OnEntry, const_cast<Entry *>(&entry));
     }
     widgets::UpdateListView(list);  // before the footer: the pages' stops come first in the walk, Back last
+    SwipeTurnsList(lv_obj_get_parent(content), list);
 }
 
 void CreateHome(lv_obj_t *screen, lv_group_t *, void *)

@@ -48,5 +48,9 @@ ListView MakeListView(lv_obj_t *parent, int32_t rows_per_page, int32_t row_heigh
 void UpdateListView(const ListView &view);
 int ListViewPage(const ListView &view);   // 0-based
 int ListViewPages(const ListView &view);
+// What a swipe on the list does, for a swipe begun elsewhere on its screen (ClaimPageSwipe): `dir` +1 turns to the next page,
+// -1 to the one before, the focus following to the new page's first stop if it was in the list; at an end nothing turns and
+// `sound.at-end` sounds.
+void TurnListView(const ListView &view, int32_t dir);
 
 }  // namespace widgets

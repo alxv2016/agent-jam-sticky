@@ -46,6 +46,7 @@ public:
         lv_obj_set_size(page_, kGlassW, kGlassH);
         lv_obj_set_pos(page_, 0, 0);
         ui::LetRingOut(page_);
+        widgets::ClaimPageSwipe(page_, OnPageSwipe, this);  // an up or down swipe anywhere turns the body's pages (DESIGN → Layout → Paging)
         clock_.Build(page_);
         if (item != nullptr) {
             BuildHeading(*item);
@@ -83,6 +84,9 @@ protected:
     // Dismiss: a request stays waiting, a question is left to the terminal; then where it leaves to.
     virtual void Dismiss() = 0;
     virtual void BuildBody(const model::Item &item) = 0;
+    // A swipe up (+1) or down (-1) begun anywhere on the page: the body turns its pages.
+    virtual void Turn(int32_t dir) = 0;
+    static void OnPageSwipe(int32_t dir, void *user) { static_cast<Answer *>(user)->Turn(dir); }
 
     // The deck's left column on top: the tool or header, then the agent and its place in the queue on one line, `spacing.md` apart, the count in black.
     void BuildHeading(const model::Item &item)
@@ -216,6 +220,13 @@ protected:
         Done(false, model::QueueCount() - 1);  // it waits on, for Review, the count or the list
     }
 
+    void Turn(int32_t dir) override
+    {
+        if (view_.root != nullptr) {
+            widgets::TurnTextView(view_, dir);
+        }
+    }
+
 private:
     void Give(bool allow)
     {
@@ -287,6 +298,13 @@ protected:
     {
         model::AnswerQuestion(id_, part(), 0);
         Done(false, model::QueueCount());
+    }
+
+    void Turn(int32_t dir) override
+    {
+        if (host_ != nullptr) {
+            OnSwipe(dir, this);  // as a swipe on the cards' band: a page of whole items, `sound.at-end` past either end
+        }
     }
 
 private:

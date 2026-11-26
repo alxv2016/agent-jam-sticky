@@ -27,4 +27,11 @@ using SwipePageTurn = void (*)(int32_t dir, void *user);
 lv_obj_t *MakeSwipePage(lv_obj_t *parent, int32_t width, int32_t height, SwipePageTurn turn, void *user,
                         SwipeAxis axis = SwipeAxis::kHorizontal);
 
+// Makes `page`, a screen's glass-wide page that is already built, claim an up or down swipe begun anywhere on it: on its words,
+// its empty room, a control (a tap is still the control's) or a band that pages itself, which keeps its own swipe. `turn` hears
+// +1 for a swipe up and -1 for a swipe down, and turns whatever the screen pages — a list, a text view, a question's cards
+// (DESIGN → Layout → Paging). The page itself never moves: a scroll that is no drag — LVGL bringing a focused control on a
+// hidden page into view — is put back at once, before the frame is drawn. A sideways drag chains to the screen behind.
+void ClaimPageSwipe(lv_obj_t *page, SwipePageTurn turn, void *user);
+
 }  // namespace widgets

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "design_tokens.h"
 #include "lvgl.h"
 #include "lvgl_display.h"
 #include "router/router.h"
@@ -166,6 +167,45 @@ void TestGroupHandedOverAndBack()
     Check(lv_group_get_focused(s_page.group) == s_page.dropdown->field && !Ringed(s_page.dropdown->field),
           "a field that had no ring when the sheet opened has none when it closes");
     Check(s_fulls == 0, "a sheet opens and closes on partials: no full refresh");
+    s_log.clear();
+}
+
+// Every label under `obj`, joined, so a test can ask whether some words are on it.
+std::string AllWords(lv_obj_t *obj)
+{
+    std::string words = lv_obj_check_type(obj, &lv_label_class) ? lv_label_get_text(obj) : "";
+    for (uint32_t i = 0; i < lv_obj_get_child_count(obj); ++i) {
+        words += " " + AllWords(lv_obj_get_child(obj, static_cast<int32_t>(i)));
+    }
+    return words;
+}
+
+// The sheet as the person approved it (2026-11-26): no outline, the chosen row on `band` under black words, Cancel alone.
+void TestSheetLook()
+{
+    lv_group_focus_obj(s_page.dropdown->field);
+    widgets::OpenSelectSheet(s_page.dropdown);
+    lv_obj_t *screen = lv_screen_active();
+    lv_obj_t *box = lv_obj_get_child(screen, -1);  // the sheet's box, made after its catcher
+    Check(lv_obj_get_style_border_width(box, LV_PART_MAIN) == 0, "the sheet has no outline");
+    Check(lv_obj_get_x(box) == 0 && lv_obj_get_width(box) == lv_obj_get_width(screen), "it is the glass's width, nothing hung off its sides");
+    lv_obj_t *chosen = lv_group_get_focused(s_bound);  // focus opens on the chosen row
+    Check(lv_color_eq(lv_obj_get_style_bg_color(chosen, LV_PART_MAIN), ui::Fill(design_tokens::kColorBand)), "the chosen row is the light dither, band");
+    lv_obj_t *words = lv_obj_get_child(lv_obj_get_child(chosen, 0), 0);
+    Check(lv_color_eq(lv_obj_get_style_text_color(words, LV_PART_MAIN), ui::Level(design_tokens::kColorTextPrimary)), "under black words");
+    const std::string all = AllWords(box);
+    Check(all.find("UP") == std::string::npos && all.find("OK") == std::string::npos, "no words say which key does what");
+    lv_obj_t *cancel = lv_group_get_obj_by_index(s_bound, lv_group_get_obj_count(s_bound) - 1);  // the rows, then Cancel
+    lv_obj_update_layout(screen);
+    lv_area_t at;
+    lv_obj_get_coords(cancel, &at);
+    Check(std::string(AllWords(cancel)).find("Cancel") != std::string::npos && at.x1 + at.x2 + 1 == lv_obj_get_width(screen),
+          "Cancel stands alone, centred on the glass");
+    lv_obj_t *check = lv_obj_get_child(chosen, -1);
+    Check(lv_obj_check_type(check, &lv_image_class) &&
+              lv_color_eq(lv_obj_get_style_image_recolor(check, LV_PART_MAIN), ui::Level(design_tokens::kColorTextPrimary)),
+          "the chosen row's check is black");
+    widgets::CloseSelectSheet();
     s_log.clear();
 }
 
@@ -335,6 +375,7 @@ int main()
     s_home = s_page;
     TestGroupHandedOverAndBack();
     TestDialogOverSheet();
+    TestSheetLook();
     TestKeyboardFull();
     TestEscapeChain();
     TestOverlayRules();

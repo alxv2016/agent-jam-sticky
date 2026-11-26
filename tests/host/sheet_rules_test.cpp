@@ -30,9 +30,9 @@ constexpr int32_t kGlass = 800;
 void TestHeights()
 {
     Check(Band(4) == 304 && Band(3) == 224 && Band(2) == 144, "four rows and three gaps are 304 px, three rows 224, two 144");
-    Check(Height(4) == 488 && Height(3) == 408 && Height(2) == 328, "the sheet is 488 px for four rows, 408 for three, 328 for two");
-    Check(Height(4) == 80 * 4 + 168 && Height(3) == 80 * 3 + 168, "a sheet is 80 px for each row and 168 for the rest");
-    Check(kGlass - Height(4) == 312 && kGlass - Height(3) == 392, "the sheet's top is at y 312 for four rows and 392 for three");
+    Check(Height(4) == 484 && Height(3) == 404 && Height(2) == 324, "the sheet is 484 px for four rows, 404 for three, 324 for two");
+    Check(Height(4) == 80 * 4 + 164 && Height(3) == 80 * 3 + 164, "a sheet is 80 px for each row and 164 for the rest");
+    Check(kGlass - Height(4) == 316 && kGlass - Height(3) == 396, "the sheet's top is at y 316 for four rows and 396 for three");
     Check(Clearance() == 22, "the ring, white and the offset above the sheet are 22 px");
 }
 
@@ -40,15 +40,15 @@ void TestRowsPerPage()
 {
     // The draft's page: Remind me ends at y 182, Repeat at 262, the disabled Alert at 342.
     Check(RowsPerPage(182, kGlass) == 4 && RowsPerPage(262, kGlass) == 4, "the first two fields leave room for four rows");
-    Check(RowsPerPage(290, kGlass) == 4, "a field ending at y 290 is the last to take four");
-    Check(RowsPerPage(291, kGlass) == 3, "a field ending at y 291 takes three");
-    Check(RowsPerPage(342, kGlass) == 3 && RowsPerPage(370, kGlass) == 3, "a field between 291 and 370 takes three");
-    Check(RowsPerPage(371, kGlass) == 3 && RowsPerPage(700, kGlass) == 3, "a field below 370 is covered even by three: never fewer");
-    Check(Clearance() + 290 <= kGlass - Height(4) && Clearance() + 291 > kGlass - Height(4), "290 is the edge of the clearance's arithmetic");
-    Check(Clearance() + 370 <= kGlass - Height(3) && Clearance() + 371 > kGlass - Height(3), "370 is the edge of three rows' clearance");
+    Check(RowsPerPage(294, kGlass) == 4, "a field ending at y 294 is the last to take four");
+    Check(RowsPerPage(295, kGlass) == 3, "a field ending at y 295 takes three");
+    Check(RowsPerPage(342, kGlass) == 3 && RowsPerPage(374, kGlass) == 3, "a field between 295 and 374 takes three");
+    Check(RowsPerPage(375, kGlass) == 3 && RowsPerPage(700, kGlass) == 3, "a field below 374 is covered even by three: never fewer");
+    Check(Clearance() + 294 <= kGlass - Height(4) && Clearance() + 295 > kGlass - Height(4), "294 is the edge of the clearance's arithmetic");
+    Check(Clearance() + 374 <= kGlass - Height(3) && Clearance() + 375 > kGlass - Height(3), "374 is the edge of three rows' clearance");
 }
 
-static_assert(Height(4) == 488 && RowsPerPage(290, 800) == 4 && RowsPerPage(291, 800) == 3, "the rules are constexpr");
+static_assert(Height(4) == 484 && RowsPerPage(294, 800) == 4 && RowsPerPage(295, 800) == 3, "the rules are constexpr");
 
 }  // namespace
 

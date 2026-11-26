@@ -760,7 +760,7 @@ components:
     backgroundColor: "{colors.background}"
     textColor: "{colors.text-secondary}"
     typography: "{typography.caption}"
-  roller-open:  # the middle row inverted, as `sheet-option-chosen`
+  roller-open:  # the middle row inverted: `surface-chosen`, as a segment's chosen item
     backgroundColor: "{colors.surface-chosen}"
     textColor: "{colors.text-on-fill}"
     rounded: "{rounded.md}"
@@ -836,7 +836,7 @@ components:
     rounded: "{rounded.lg}"
     height: "{spacing.target}"
     padding: "{spacing.md}"
-  sheet:  # the select list, elevation 2: full width, anchored to the glass's bottom, a strong outline and an offset up from its top edge
+  sheet:  # the select list, elevation 2: the glass's width, anchored to its bottom, no outline — an offset up from its top edge (Exceptions → The select sheet's edge)
     backgroundColor: "{colors.background}"
     textColor: "{colors.text-primary}"
     typography: "{typography.label}"
@@ -850,9 +850,10 @@ components:
     rounded: "{rounded.lg}"
     height: "{spacing.target}"
     padding: "{spacing.md}"
-  sheet-option-chosen:
-    backgroundColor: "{colors.surface-chosen}"
-    textColor: "{colors.text-on-fill}"
+  sheet-option-chosen:  # the light dither under black words, with the check
+    backgroundColor: "{colors.band}"
+    textColor: "{colors.text-primary}"
+    typography: "{typography.label}"
   horizontal-pager:  # a strip of chips that turns by page, with its page in words ("1 of 2") under it — a list view's, when its screen asks, is the same words
     backgroundColor: "{colors.band}"
     textColor: "{colors.text-primary}"
@@ -1082,7 +1083,8 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 - **The content** — one column inside `spacing.edge` margins, `spacing.content` wide, one primary item per screen.
 - **The footer** — `spacing.footer` along the bottom edge: the screen's action buttons, 96 px so a 64 px button has 16 over and under it and its ring leaves 8 px to the glass's edge. The action
   button sits in the footer's centre; the buttons sit `spacing.md` apart. A bottom sheet covers the footer, and its own foot,
-  Cancel, stands in the footer's place. A footer holds no legend of what UP, DOWN and OK do (Accessibility); until the Help screen ships, the roller's and the dropdown sheet's footers still carry one (Open items).
+  Cancel, stands in the footer's place. A footer holds no legend of what UP, DOWN and OK do (Accessibility), the roller's and the
+  dropdown sheet's included.
 
 ### Spacing
 
@@ -1111,6 +1113,15 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 
 - **Content turns by page, never scrolls by pixel** — UP and DOWN move focus, and focus leaving the glass turns the
   page; a swipe up or down turns one page, as the buttons do. A pixel scroll would refresh the glass on every step.
+- **A swipe up or down begun anywhere on a paged screen turns it** — on its heading, its empty room or a control, not only
+  on the rows, on every screen that pages up and down: the agent deck's Wi-Fi page, settings, request, question and
+  needs-you list, and the hardware test's home, Buttons and buzzer and About (the person, 2026-11-26: "make sure it's fix on
+  all pages"). A swipe that begins on a control presses nothing, and past either end `sound.at-end` answers it. The page
+  under the finger never moves. A view on the kit page — its list view, text view or pager — keeps a swipe begun on it.
+- **The hardware test's kit page turns by whole-section pages** — each page holds the sections that fit whole and is cut
+  after the last, so the next never shows in what is left. A section taller than a page splits at its groups' names, then
+  block by block, the heading always on the page of what follows it. A page with nothing to press is a stop with the ring
+  round its blocks (the person, 2026-11-26).
 - **A page shows only its own rows** — a row that grew with its words takes the room of more than one, and the next page's
   first row never shows in what is left. A list's band is cut to the page's last row and the focus ring's reach under it.
 - **Focus wraps across pages** — DOWN on the last row of the last page goes to the first row of the first page, a page
@@ -1128,12 +1139,13 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 
 - **Depth is a line and a hard offset, never a blur or a gradient** — a blur is greys a partial refresh throws away,
   and a gradient bands into four steps.
-- **A raised surface — a dialog, a bottom sheet — has a `spacing.stroke.strong` outline and an offset**: its own shape
+- **A raised surface — a dialog — has a `spacing.stroke.strong` outline and an offset**: its own shape
   `spacing.overlay-offset` away, in the dither of its elevation level (below), never solid black, ringed on its outer side by a
   `spacing.stroke.hairline` keyline in white. Over white the keyline is invisible; over a dithered ground — a disabled field, a
   card, a chip the sheet's edge crosses — it is what keeps the offset an edge. The outline, black on white, 21 : 1, is the
   surface's boundary whatever the offset does: the offset is decoration, exempt from contrast, and never the only sign of
   anything. A full-glass overlay — the keyboard — has no edge to lift off, so it draws neither.
+  The select sheet has the offset alone (Exceptions → The select sheet's edge).
 
 ### Elevation
 
@@ -1440,14 +1452,14 @@ serves, reached and used by the keys and by touch.
   outline, its words and glyph `text-disabled`, no cross, and its reason in `caption` `text-secondary` under it
   (States → Disabled). BYTE-90's leading icon is not ported.
 - **Dropdown, select list** — a dropdown is a value row (a setting's name left, the chosen option right in `text-secondary`)
-  with a select chevron `spacing.md` after the value; OK or a tap opens the select list, a bottom sheet. The sheet is full
-  width, anchored to the glass's bottom and hanging off its sides and bottom, so only its top edge shows. It has a
-  `spacing.stroke.strong` outline round the top edge and its `rounded.2xl` corners, and the offset rising from it in
-  `shadow-2`, elevation 2 (Elevation & Depth). From its top: the outline, `spacing.md`, the field's name in `label`, `spacing.md`, a list view of
-  rows `spacing.md` apart, `spacing.md`, and its foot, `spacing.footer` high, in the footer's place. It holds Cancel and, until the Help screen ships, a key legend (Open items). A row is an option in `body`, 20 characters to a line,
-  wrapping to a second line and growing — never cut — with 64 px as its floor. The chosen row is the inversion in `label` with the
-  check at its right end (DESIGN → Exceptions). A page holds four whole rows, or three when four would cover the field that
-  opened it. The test is the field's bottom, the ring, white and the offset above the sheet's top: a field ending at y 290
+  with a select chevron `spacing.md` after the value; OK or a tap opens the select list, a bottom sheet. The sheet is the
+  glass's width, anchored to its bottom and hanging off it, so only its top edge and its `rounded.2xl` corners show. It has
+  no outline: the offset rising from its top edge in `shadow-2`, elevation 2 (Elevation & Depth), stands it off the page
+  (Exceptions → The select sheet's edge). From its top: `spacing.md`, the field's name in `label`, `spacing.md`, a list view of
+  rows `spacing.md` apart, `spacing.md`, and its foot, `spacing.footer` high, in the footer's place. It holds Cancel, centred. A row is an option in `body`, 20 characters to a line,
+  wrapping to a second line and growing — never cut — with 64 px as its floor. The chosen row is `band`, the light dither,
+  under black words in `label`, with the check at its right end (DESIGN → Exceptions). A page holds four whole rows, or three when four would cover the field that
+  opened it. The test is the field's bottom, the ring, white and the offset above the sheet's top: a field ending at y 294
   or higher takes four, one lower takes three, never fewer. The sheet keeps its height, and the scroll indicator shows from the second page.
   It opens with focus on the chosen row, on its page. The page behind is out of the walk, and a touch above the sheet is
   eaten. OK on a row chooses it and closes, the field reporting one change. Cancel, holding OK, or the chosen row closes
@@ -1528,7 +1540,7 @@ serves, reached and used by the keys and by touch.
   reporting one change. Holding OK, or the Cancel the footer shows while it is open, puts the value back. A press that
   takes the focus elsewhere — a tap on another control — closes it keeping the value, as the range slider's edit does.
   Open, the ring is `spacing.stroke.edit` and the middle row is the chosen inversion — the value OK will keep. The
-  footer holds Cancel and, until the Help screen ships, a key legend (Open items). A roller its caller marks circular (hours, minutes, months)
+  footer holds Cancel, centred. A roller its caller marks circular (hours, minutes, months)
   wraps with the tick alone; any other stops at its ends with `sound.at-end`. A tap on a neighbour steps one, one vertical swipe
   steps one on the lift, and nothing follows a finger. Use it for one value in a list of up to about 60; under about eight named
   options use the select list, for a level the range slider.
@@ -1554,8 +1566,10 @@ serves, reached and used by the keys and by touch.
 - **Open for editing** — a control that takes UP and DOWN as its own, a range slider, a roller or a text view open for reading,
   draws its ring at `spacing.stroke.edit`, 6 px, still `spacing.focus-offset` outside it: the weight says the buttons
   now change the value or turn the page. The look says it, not words: the heavier ring, and a roller's
-  inverted middle row; its footer shows Cancel (and, until the Help screen ships, a roller's key legend; Open items).
-- **Chosen** — inverted: `surface-chosen` with `text-on-fill` on a segment's item and a home row. A chip is chosen by
+  inverted middle row; its footer shows Cancel.
+- **Chosen** — inverted: `surface-chosen` with `text-on-fill` on a segment's item and a home row. A select sheet's option
+  is chosen by `band`, the light dither, under its words in `label` and its check (the person, 2026-11-26); a roller's open
+  middle row keeps the inversion, the value under edit (the person's choice, the same day). A chip is chosen by
   a black edge, a card or radio row by the dot or check in its mark, and a checkbox or radio by its black fill and its
   white check or dot, never a grey alone.
 - **Disabled** — one step lighter than the ground, with no outline: the control keeps its size and its place, its face
@@ -1654,7 +1668,7 @@ serves, reached and used by the keys and by touch.
 - **The key conventions are taught once** — UP and DOWN move or step, OK presses, hold OK goes back, held keys repeat,
   the first press shows the ring and moves nothing. The rule is to teach them once, at first run in the Welcome
   carousel, and keep them on one Help screen, always in the same place (WCAG 3.2.6). No other screen restates them.
-  Welcome and Help do not exist yet (Open items → The key legends).
+  Welcome and Help do not exist yet (Open items → Welcome and Help).
 - **A hint stands only where an interaction is unusual for this product and not implied** — one short line, beside its
   control, never restating a convention above. Today's candidates: the Asleep, Off and timed turn-on words on the
   leaving screens, and the empty state's "Hold AI or press Record.", which name hardware keys the glass cannot show.
@@ -1692,9 +1706,9 @@ support, Not applicable, with a reason on every row. A closed device is rated by
 | 1.3.3 Sensory characteristics | Supports | Keys are named ("UP", "OK"), never by their position or shape |
 | 2.5.1, 2.5.2, 2.5.7, 2.5.8 Pointer inputs and target size | Supports | Every gesture has a key alternative; a touch target is at least `spacing.target` |
 | 3.3.1 Error identification | Partially supports | An error is said in words on the glass; there is no spoken form (EN 301 549 5.1.3.15) |
-| 3.2.6 Consistent help | Partially supports | Optional; one Help screen is planned and not built (Open items → The key legends) |
+| 3.2.6 Consistent help | Partially supports | Optional; one Help screen is planned and not built (Open items → Welcome and Help) |
 | 2.5.3 Label in name | Not applicable | There is no programmatic name; the visible label is the name |
-| 3.3.2 Labels or instructions | Partially supports | Every input has a label, and instructions stand only where input is unusual (Accessibility, above). Welcome and Help are not built, so the conventions are not taught yet, and some strings restate them (Open items → The key legends) |
+| 3.3.2 Labels or instructions | Partially supports | Every input has a label, and instructions stand only where input is unusual (Accessibility, above). Welcome and Help are not built, so the conventions are not taught yet (Open items → Welcome and Help) |
 | 4.1.2 Name, role, value | Not applicable | Closed software with no assistive technology (EN 301 549 11.4.1.2.2); state is drawn |
 | 4.1.3 Status messages | Not applicable | EN 301 549 11.4.1.3.2; the status line and its sounds are good design, not a claim |
 | WCAG 2.2.2 Pause, stop, hide: stepped lines | Supports | A stepped line (Exceptions → Stepped lines on the deck's screens) stops itself: after its three passes, about 51 s for a 62-character line, it stands at its start ending in dots, a line in a control and a reading alike, and moves again only when its words change, its page is turned to or shown again, or its control is focused or pressed. Nothing on a page stepped keeps moving for ever (the person's decision, 2026-11-26) |
@@ -1725,11 +1739,9 @@ A value off these tokens is argued here — what, where and why — before a scr
   - The refresh benchmark's bar, which animates as fast as the glass allows.
   - The page walk, which changes screen by itself from the console.
   - The type scale page, which draws every primitive rather than a role.
-  - The UI kit page, which shows every widget of the kit live on one long page.
-  - Both pages scroll by pixel (no animation, momentum or overscroll). The type scale page makes each sample a focus
-    stop so UP and DOWN reach it. Each focused widget on the kit page comes into view at once, as on every screen that
-    scrolls (the theme's `ui::ShowWhenFocused`). The list view and the text view on the kit page still turn pages, as they
-    do everywhere; only the page that holds them scrolls.
+  - The UI kit page, which shows every widget of the kit live, a page of whole sections at a time (Layout → Paging).
+  - The type scale page scrolls by pixel (no animation, momentum or overscroll), and makes each sample a focus stop so UP
+    and DOWN reach it, each coming into view at once (the theme's `ui::ShowWhenFocused`).
   - The mascot page plays Claude's mascot's moves as a flipbook at the glass's pace, about two frames a second on
     either board. The stage band is 360 px high (15 mascot cells of 24 px), the mascot is centred and free to go off the
     glass's edge, and each move runs for the deck's stage's length. Its loop rests 1.5 s between passes until Stop, with
@@ -1912,13 +1924,29 @@ A Wi-Fi network's signal is shown by its glyph alone, with no "Strong", "Fair", 
 - **Where it stops:** the signal glyph on a network row, and nowhere else; a signal that must be read in words, say on a screen
   of its own, says them.
 
+### The select sheet's edge
+
+The select sheet stands off the page by its offset alone, with no outline.
+
+- **What:** the sheet has no `spacing.stroke.strong` outline, against Elevation & Depth's "a raised surface has an outline
+  and an offset" and "the offset is never the only sign of anything". Its edge is elevation 2's offset, `shadow-2`, the light
+  dither, rising from its top edge.
+- **Why:** the person's decision, 2026-11-26, on the glass and on the draft: an outline round the top edge alone looked
+  wrong, and they chose "remove the black outline on the sheet" over an outline round the whole sheet. The sheet is anchored
+  to the glass's foot and is the only thing that opens there, a touch above it is eaten, and its title names the field
+  that opened it, so the sheet is read as one surface by its place and its title.
+- **Where it stops:** the select sheet. The dialog keeps its outline, and any new surface over the page takes one. Over the
+  white page the light-dither offset is the edge. Where a dithered element — a band, a chip, a card, a disabled field — stands
+  within 8 px above the sheet's top, only the 2 px white keyline carries it; whether that reads is for the glass
+  (STICKY_DESIGN_TOKENS §8).
+
 ### The select sheet's check alone
 
 The chosen option of a select sheet is marked by the check, without its word.
 
 - **What:** a glyph with no word beside it, against Components → Icons' "a meaningful icon always has its word beside it".
 - **Why:** an option may run to two lines and 20 characters a line, and the row has no room for a word as well. The chosen row
-  is also the inversion, so the check is never the only sign of the state.
+  is also `band`, the light dither, with its words in `label`, so the check is never the only sign of the state.
 - **Where it stops:** a select sheet's chosen row, and nowhere else.
 
 ## Open items
@@ -1929,11 +1957,10 @@ The chosen option of a select sheet is marked by the check, without its word.
 - **A setting for the keys' repeat** — holding UP or DOWN repeats after `motion.key-repeat-delay` every
   `motion.key-repeat-period`, with no setting to slow or stop it; EN 301 549 5.7 asks for one where a key repeats, so the
   conformance table rates it Does not support. Add the setting once a Settings screen exists.
-- **The key legends** — the code still draws a legend in the roller's and the dropdown sheet's footers
-  (`roller.h`, `select_sheet.h`), and the kit page's strings restate conventions: "Sliders: OK opens, UP raises, DOWN
-  lowers, OK closes" and "Keyboard: OK opens it" (`hw_test.cpp`). All go against the Accessibility rule that no screen
-  restates the key conventions; they go with the Help screen and the Welcome teaching, which are not built yet, and
-  until then 3.3.2 is rated Partially supports.
+- **Welcome and Help** — the key conventions are taught nowhere yet: the Welcome carousel and the Help screen are not built,
+  so 3.2.6 and 3.3.2 are rated Partially supports. No component or screen restates them meanwhile (Accessibility). The
+  hardware test's Buttons and buzzer screen names the keys because they are what it tests, and the leaving screens name the
+  keys that wake the board, a hint the glass cannot show otherwise.
 - **The frame left on the glass while the device sleeps** — the stickies, the lock screen or a blank glass — decided
   with the designs. The agent deck's frame while it is off, the chip `Off`, the mascot at rest and `Hold OK to turn on.`, is built as
   drafted and not yet seen by the person.
