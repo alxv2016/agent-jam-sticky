@@ -21,6 +21,9 @@ Glyph GlyphOfAction(IconAction action)
     case IconAction::kStop:      return Glyph::kStop;
     case IconAction::kEyeOpen:   return Glyph::kEyeOpen;
     case IconAction::kEyeSlashed: return Glyph::kEyeSlashed;
+    case IconAction::kWifi:      return Glyph::kWifi;
+    case IconAction::kSettings:  return Glyph::kSettings;
+    case IconAction::kPower:     return Glyph::kPower;
     }
     return Glyph::kNone;
 }

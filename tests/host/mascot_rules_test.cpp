@@ -1,13 +1,15 @@
 // Host tests of the mascot page's passes (components/hw_test/mascot_rules.h), on the computer with no board: a pass
 // counts the glass's frames from 1; a looping move is asked to rest once its run has passed, a once-only move never asked
 // again; the pass ends once, on the frame that draws rest; a loop begins its next pass only after kLoopRestMs, and a
-// once play never does; "n of N" never shows n past N; the readout's words (STICKY_UI_KIT_PORT §4 item 8).
+// once play never does; "n of N" never shows n past N; the readout's words; and the music the mascot is heard playing and what a
+// change of it does, mascot_voice's rules (components/mascot_voice/include/mascot_voice_rules.h) (STICKY_DESIGN_TOKENS §13).
 // Build and run: bash tests/host/run.sh
 
 #include <cstdio>
 #include <cstring>
 
 #include "../../components/hw_test/mascot_rules.h"
+#include "mascot_voice_rules.h"
 
 using namespace hw_test::mascot_rules;
 

@@ -60,6 +60,7 @@ inline constexpr uint8_t kColorThumbOn = kColorWhite;          // #FFFFFF
 inline constexpr uint8_t kColorKnob = kColorWhite;             // #FFFFFF
 inline constexpr uint8_t kColorTextDisabled = kColorScaleSparseSixteenth;      // #F8F8F8
 inline constexpr uint8_t kColorTextDisabledPage = kColorScaleSparseEighth;     // #F0F0F0
+inline constexpr uint8_t kColorTextQuiet = kColorScalePrimary1;                // #555555 — the dark dither as words: the deck's small supporting lines, an argued exception under the text floor
 
 // --- Type: Bitcount Single at one bit a pixel (STICKY_DESIGN_TOKENS §3) -----------------------------------------------
 
@@ -75,7 +76,8 @@ struct TypeRole {
 // (STICKY_DESIGN_TOKENS §3; tests/host/line_floor_lvgl_test.cpp holds the floor).
 inline constexpr TypeRole kTypographyScale20Semibold = {20, 24, 600};
 inline constexpr TypeRole kTypographyScale20Bold = {20, 24, 700};
-inline constexpr TypeRole kTypographyScale30Regular = {30, 36, 400};  // the only regular weight
+inline constexpr TypeRole kTypographyScale20Regular = {20, 24, 400};  // the second regular weight
+inline constexpr TypeRole kTypographyScale30Regular = {30, 36, 400};  // the first regular weight
 inline constexpr TypeRole kTypographyScale30Semibold = {30, 36, 600};
 inline constexpr TypeRole kTypographyScale30Bold = {30, 36, 700};
 inline constexpr TypeRole kTypographyScale40Semibold = {40, 48, 600};
@@ -104,6 +106,12 @@ inline constexpr TypeRole kTypographyLabel = kTypographyScale30Bold;
 inline constexpr TypeRole kTypographyCaption = kTypographyScale20Semibold;
 // Caption on a loose line, 1.5 em: a text view's lines, the deck's airy 24 on 16 (DESIGN → Typography → Scale and roles).
 inline constexpr TypeRole kTypographyCaptionLoose = {20, 30, 600};
+// The agent deck's three: `title`, 30 px semibold, its screens' names and headings and a small chip's words; `caption-strong`, 20 px
+// bold, a choice card's name, a detail row's label and a network row's name one size under `label`; `caption-regular`, 20 px regular,
+// the needs-you list's facts line (DESIGN → Typography → Scale and roles).
+inline constexpr TypeRole kTypographyTitle = kTypographyScale30Semibold;
+inline constexpr TypeRole kTypographyCaptionStrong = kTypographyScale20Bold;
+inline constexpr TypeRole kTypographyCaptionRegular = kTypographyScale20Regular;
 
 // --- Radius -------------------------------------------------------------------------------------------------------
 
@@ -145,6 +153,7 @@ inline constexpr int16_t kSpacingToggleWidth = 96;
 inline constexpr int16_t kSpacingToggleThumbWidth = 52;
 inline constexpr int16_t kSpacingSliderHeight = 52;
 inline constexpr int16_t kSpacingButtonWidth = 212;
+inline constexpr int16_t kSpacingButtonBack = 160;  // Back in words, the outline button alone at a footer's left
 inline constexpr int16_t kSpacingCardInset = 20;
 inline constexpr int16_t kSpacingCheckSize = 44;
 inline constexpr int16_t kSpacingCheckDot = 16;
@@ -162,7 +171,9 @@ inline constexpr int16_t kSpacingScrollX = 467;
 inline constexpr int16_t kSpacingStatusMark = 85;
 inline constexpr int16_t kSpacingStatusMarkSlot = 73;  // the widest compiled mark: every block's words stand at one x
 inline constexpr int16_t kSpacingKeyGap = 12;
+inline constexpr int16_t kSpacingChipSmall = 36;  // the small chip drawn; its hit area is padded to kSpacingTarget
 inline constexpr int16_t kSpacingMascotCell = 24;  // the mascot's cell: two of its pixels, 12 px each, three whole dither tiles
+inline constexpr int16_t kSpacingMarqueeStep = 48;  // how far a stepped line moves each step (DESIGN → Exceptions → Stepped lines on the deck's screens)
 // The role tokens: the gaps between texts and between whole components, each one step of the scale (DESIGN → Layout → Spacing).
 inline constexpr int16_t kSpacingPairSm = kSpacingSm;   // a row's label over its one line
 inline constexpr int16_t kSpacingPairMd = kSpacingMd;   // a title over a wrapped description; a headline over body
@@ -202,12 +213,22 @@ inline constexpr uint32_t kMotionWaitIndicatorDelayMs = 1000;
 inline constexpr uint32_t kMotionSelfUpdateDelayMs = 5000;
 inline constexpr uint32_t kMotionClockTickDelayMs = 60000;
 inline constexpr uint32_t kMotionPasswordRevealDelayMs = 1500;  // a password's last typed character shows this long, then a bullet
+// The agent deck's three timed leaves (DESIGN → Exceptions → Timed leaves): the startup screen's stay, and "Answered" and "Timed out".
+inline constexpr uint32_t kMotionStartupHoldDelayMs = 2000;
+inline constexpr uint32_t kMotionAnsweredHoldDelayMs = 2300;
+inline constexpr uint32_t kMotionTimedOutHoldDelayMs = 1800;
 inline constexpr uint32_t kMotionKeyRepeatDelayMs = 600;   // a held UP or DOWN steps again once held this long
 inline constexpr uint32_t kMotionKeyRepeatPeriodMs = 500;  // then this often while held, each step's frame landed first
+inline constexpr uint32_t kMotionMarqueeRestDelayMs = 4000;  // a stepped line rests this long with its start in view before its passes, each time it begins
+inline constexpr uint32_t kMotionMarqueeStepDelayMs = 1000;  // then moves kSpacingMarqueeStep this often, every line on one clock
 
 // --- Refresh and feedback (STICKY_DESIGN_TOKENS §5) ------------------------------------------------------------------
 
 inline constexpr int kRefreshPartialLimit = 20;
+// A stepped line's counts, which are neither a size nor a time (DESIGN → Exceptions → Stepped lines on the deck's screens): the passes it
+// makes before it rests, and the spaces between the end of its words and their start coming round.
+inline constexpr int kMarqueePasses = 3;
+inline constexpr int kMarqueeGapSpaces = 3;
 inline constexpr uint32_t kFeedbackTickMs = 100;
 inline constexpr uint32_t kWaitIndicatorDelayMs = kMotionWaitIndicatorDelayMs;
 inline constexpr uint32_t kSelfUpdateMinMs = kMotionSelfUpdateDelayMs;
@@ -308,7 +329,8 @@ static_assert(kTouchFlickMovement <= kTouchFlickDistance, "a flick's last moveme
 namespace detail {
 // Every primitive above, kept by hand: a new one joins this list, or the grid check below does not see it.
 inline constexpr TypeRole kScale[] = {
-    kTypographyScale20Semibold,  kTypographyScale20Bold,     kTypographyScale30Regular, kTypographyScale30Semibold,
+    kTypographyScale20Semibold,  kTypographyScale20Bold,     kTypographyScale20Regular, kTypographyScale30Regular,
+    kTypographyScale30Semibold,
     kTypographyScale30Bold,      kTypographyScale40Semibold, kTypographyScale40Bold,    kTypographyScale50Semibold,
     kTypographyScale50Bold,      kTypographyScale60Semibold, kTypographyScale60Bold,    kTypographyScale70Semibold,
     kTypographyScale70Bold,      kTypographyScale80Semibold, kTypographyScale80Bold,    kTypographyScale100Semibold,

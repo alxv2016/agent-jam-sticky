@@ -3,8 +3,9 @@
 // (design_tokens.h `kSpacingMascotCell`, `kColorMascot*`), the glass's portrait size (board_config.h's, asserted in
 // mascot.cpp, which the host tests build without it), and the moves' lengths — the
 // deck's own, the mascot's animation data like its frames, played at the deck's pace and seen at the glass's, about two
-// frames a second on either board (MASCOT §6; STICKY_UI_KIT_PORT §4 item 8). Not a token header: the moves' lengths are no design
-// value of this glass; where the moves play, "Nothing animates" gives way to DESIGN → Exceptions → The hardware-test demo.
+// frames a second on either board (MASCOT §6; STICKY_DESIGN_TOKENS §13). Not a token header: the moves' lengths are no
+// design value of this glass; where the moves play, "Nothing animates" gives way to DESIGN → Exceptions → The
+// hardware-test demo.
 
 #pragma once
 
@@ -36,7 +37,8 @@ inline constexpr bool kMascotTripsHomeward = false;
 inline constexpr int32_t kScreenWidth = dt::kSpacingContent + 2 * dt::kSpacingEdge;  // 480
 inline constexpr int32_t kScreenHeight = 800;
 // Centred across the portrait glass, no column (the person's ask, 2026-11-24), a move free to go off its edge; its
-// height the page's — where the hardware test's mascot page stands it (mascot.h kMascotPage*, STICKY_UI_KIT_PORT §4 item 8).
+// height the page's — where the hardware test's mascot page stands it (mascot.h kMascotPage*,
+// STICKY_DESIGN_TOKENS §13).
 inline constexpr int32_t kMascotCentreX = kMascotPageCentreX;
 inline constexpr int32_t kMascotCentreY = kMascotPageCentreY;
 static_assert(kMascotCentreX == kScreenWidth / 2, "centred across the portrait glass; a move may go off it (mascot.h)");
@@ -53,9 +55,9 @@ inline constexpr uint32_t kMascotSweatMs = 2540;
 inline constexpr uint32_t kMascotFaceplantMs = 4452;
 inline constexpr uint32_t kMascotFinishMs = 5602;
 inline constexpr uint32_t kMascotCelebrateMs = 2143;
-inline constexpr uint32_t kMascotIdleMs = 5000;
+inline constexpr uint32_t kMascotIdleMs = kMascotIdleCycleMs;  // mascot.h: a page that plays one cycle reads it there
 inline constexpr uint32_t kMascotWalkMs = 11300;     // the deck's 13,700, its route fewer of this cell's steps
-inline constexpr uint32_t kMascotLookMs = 5600;
+inline constexpr uint32_t kMascotLookMs = kMascotLookCycleMs;
 inline constexpr uint32_t kMascotSkipMs = 7370;      // the deck's 9,270, likewise
 inline constexpr uint32_t kMascotSkipTripMs = 10660;  // the deck's 12,560, likewise
 inline constexpr uint32_t kMascotSpinMs = 1800;

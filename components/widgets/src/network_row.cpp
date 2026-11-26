@@ -9,10 +9,13 @@ namespace widgets {
 namespace dt = design_tokens;
 
 namespace {
+// The outlined look is the row's own, kept on the row itself so a later SetNetworkRow draws it again.
+constexpr lv_obj_flag_t kOutlinedLook = LV_OBJ_FLAG_USER_3;
+
 constexpr int32_t kSignalGlyphWidth = 40;
 constexpr int32_t kSignalGlyphHeight = 30;
 // The name's and the facts' room: the row's 400 inside its padding, less the signal glyph, which stands alone, and a gap: 344 px,
-// 28 characters of `caption` at 12 px a character.
+// 28 characters of `caption` at 12 px a character — where a longer name stops at the dots or steps along (NetworkName).
 constexpr int32_t kWords = dt::kSpacingContent - 2 * dt::kSpacingMd - kSignalGlyphWidth - dt::kSpacingMd;
 
 lv_obj_t *Mark(lv_obj_t *parent, const lv_image_dsc_t *glyph, lv_color_t colour)
@@ -25,11 +28,11 @@ lv_obj_t *Mark(lv_obj_t *parent, const lv_image_dsc_t *glyph, lv_color_t colour)
     return image;
 }
 
-// A `caption` word, `text-secondary` at rest and `text-on-fill` on the inverted row. Its colour is its own: the row's states
-// do not reach a label that has one.
-lv_obj_t *Word(lv_obj_t *parent, const char *text, bool inverted)
+// A `caption` fact, `text-secondary` at rest, `text-on-fill` on the inverted row and `text-primary` on the outlined one. Its
+// colour is its own: the row's states do not reach a label that has one.
+lv_obj_t *Word(lv_obj_t *parent, const char *text, bool inverted, bool outlined)
 {
-    lv_obj_t *word = detail::Line(parent, ui::Type::kCaption, text, !inverted);
+    lv_obj_t *word = detail::Line(parent, ui::Type::kCaption, text, !inverted && !outlined);
     if (inverted) {
         lv_obj_set_style_text_color(word, ui::Level(dt::kColorTextOnFill), 0);
     }
@@ -38,13 +41,13 @@ lv_obj_t *Word(lv_obj_t *parent, const char *text, bool inverted)
 
 // One fact: an optional glyph, then its word, `spacing.sm` apart. A second fact stands `spacing.lg` after the first one's word
 // (the draft's 8 px gap between facts, with the 8 px either side of it).
-void Fact(lv_obj_t *facts, const lv_image_dsc_t *glyph, const char *text, bool inverted, bool second = false)
+void Fact(lv_obj_t *facts, const lv_image_dsc_t *glyph, const char *text, bool inverted, bool outlined, bool second = false)
 {
     lv_obj_t *first = nullptr;
     if (glyph != nullptr) {
         first = Mark(facts, glyph, ui::Level(inverted ? dt::kColorTextOnFill : dt::kColorTextPrimary));
     }
-    lv_obj_t *word = Word(facts, text, inverted);
+    lv_obj_t *word = Word(facts, text, inverted, outlined);
     if (second) {
         lv_obj_set_style_margin_left(first != nullptr ? first : word, dt::kSpacingMd, 0);
     }
@@ -58,46 +61,12 @@ const lv_image_dsc_t *SignalLit(int signal)
                          : nullptr;
 }
 
-// Everything under the name: the facts line and the signal glyph, drawn for the state.
-void Fill(lv_obj_t *row, bool locked, int signal, NetworkState state)
+// The signal glyph, alone, at the row's right end whatever the name's length and centred on the row's height: no word under it (DESIGN →
+// Exceptions → The signal glyph without a word). The unlit bars are the strongest glyph in the light dither on the white row, the outlined
+// one's ground too (on the black row the dark dither: as faint, mirrored), the lit bars over them on the same canvas, black (white on
+// black); the count of lit bars and the faint rest are the reading.
+void SignalGlyph(lv_obj_t *row, int signal, bool inverted)
 {
-    const bool inverted = state != NetworkState::kRest;
-    // The name is the row's first child, kept; the rest is made again.
-    while (lv_obj_get_child_count(row) > 1) {
-        lv_obj_delete(lv_obj_get_child(row, 1));
-    }
-    SetListRowChosen(row, inverted);
-
-    lv_obj_t *facts = detail::Bare(row);
-    lv_obj_set_size(facts, kWords, ui::LineBox(ui::Type::kCaption));
-    lv_obj_set_flex_flow(facts, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(facts, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(facts, dt::kSpacingSm, 0);
-    switch (state) {
-    case NetworkState::kConnected:
-        Fact(facts, &widgets_mark_glyph_fact_check, "Connected", inverted);
-        if (locked) {
-            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, true);
-        } else {
-            Fact(facts, nullptr, "Open", inverted, true);
-        }
-        break;
-    case NetworkState::kConnecting:
-        Fact(facts, nullptr, "Connecting…", inverted);
-        break;
-    case NetworkState::kRest:
-        if (locked) {
-            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted);
-        } else {
-            Fact(facts, nullptr, "Open", inverted);
-        }
-        break;
-    }
-
-    // The signal glyph, alone, at the row's right end whatever the name's length and centred on the row's height: no word under it (DESIGN →
-    // Exceptions → The signal glyph without a word). The unlit bars are the strongest glyph in the light dither (on the black row the
-    // dark dither: as faint, mirrored), the lit bars over them on the same canvas, black (white on black); the count of lit bars and the
-    // faint rest are the reading.
     lv_obj_t *canvas = detail::Bare(row);
     lv_obj_add_flag(canvas, LV_OBJ_FLAG_FLOATING);
     lv_obj_set_size(canvas, kSignalGlyphWidth, kSignalGlyphHeight);
@@ -112,16 +81,78 @@ void Fill(lv_obj_t *row, bool locked, int signal, NetworkState state)
         lv_obj_set_pos(bars, 0, 0);
     }
 }
+
+// The outlined look: the row stays white and takes a `spacing.stroke.default` black edge, drawn inside the row, so its padding gives up the
+// edge's width and the words stand where they stand at rest. Off, the row has no edge and its own padding.
+void Outline(lv_obj_t *row, bool on)
+{
+    const int32_t edge = on ? dt::kSpacingStrokeDefault : 0;
+    lv_obj_set_style_border_width(row, edge, 0);
+    lv_obj_set_style_border_color(row, ui::Level(dt::kColorOutline), 0);
+    lv_obj_set_style_pad_hor(row, dt::kSpacingMd - edge, 0);
+    lv_obj_set_style_pad_ver(row, dt::kSpacingSm - edge, 0);
+}
+
+// Everything under the name: the facts line and the signal glyph, drawn for the state.
+void Fill(lv_obj_t *row, bool locked, int signal, NetworkState state)
+{
+    const bool chosen = state != NetworkState::kRest;
+    const bool outlined = chosen && lv_obj_has_flag(row, kOutlinedLook);
+    const bool inverted = chosen && !outlined;
+    // The name is the row's first child, kept; the rest is made again.
+    while (lv_obj_get_child_count(row) > 1) {
+        lv_obj_delete(lv_obj_get_child(row, 1));
+    }
+    SetListRowChosen(row, inverted);
+    // The outlined look is the white row in an edge of its own and every word black; the inversion and the rest take the row's styles.
+    Outline(row, outlined);
+
+    lv_obj_t *facts = detail::Bare(row);
+    lv_obj_set_size(facts, kWords, ui::LineBox(ui::Type::kCaption));
+    lv_obj_set_flex_flow(facts, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(facts, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(facts, dt::kSpacingSm, 0);
+    switch (state) {
+    case NetworkState::kConnected:
+        Fact(facts, &widgets_mark_glyph_fact_check, "Connected", inverted, outlined);
+        if (locked) {
+            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, outlined, true);
+        } else {
+            Fact(facts, nullptr, "Open", inverted, outlined, true);
+        }
+        break;
+    case NetworkState::kConnecting:
+        Fact(facts, nullptr, "Connecting…", inverted, outlined);
+        break;
+    case NetworkState::kRest:
+        if (locked) {
+            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, outlined);
+        } else {
+            Fact(facts, nullptr, "Open", inverted, outlined);
+        }
+        break;
+    }
+    SignalGlyph(row, signal, inverted);
+}
 }  // namespace
 
-lv_obj_t *MakeNetworkRow(lv_obj_t *parent, const char *name, bool locked, int signal, NetworkState state)
+lv_obj_t *MakeNetworkRow(lv_obj_t *parent, const char *name, bool locked, int signal, NetworkState state, NetworkLook look,
+                         NetworkName name_fit, uint32_t key)
 {
-    // The home row's shell: 80 px, `rounded.lg`, its ring outside, the chosen inversion.
-    lv_obj_t *row = MakeListRow(parent, name, nullptr, nullptr, nullptr);
+    // The home row's shell: 80 px, `rounded.lg`, its ring outside, the chosen inversion. The name is `caption-strong` over its facts in
+    // `caption`; a stepped name is a stepped line in the same role, which takes its colour from the row as the dotted label does.
+    const bool stepped = name_fit == NetworkName::kStepped;
+    lv_obj_t *row = MakeListRow(parent, name, nullptr, nullptr, nullptr, stepped ? ui::Type::kCaptionStrong : ui::Type::kLabel,
+                                stepped ? ListRowFit::kStepped : ListRowFit::kDots, key);
     lv_obj_t *title = lv_obj_get_child(row, 0);
-    lv_obj_set_style_text_font(title, ui::Font(ui::Type::kCaption), 0);
-    ui::FitLineBox(title, ui::Type::kCaption);
+    if (!stepped) {
+        lv_obj_set_style_text_font(title, ui::Font(ui::Type::kCaptionStrong), 0);
+        ui::FitLineBox(title, ui::Type::kCaptionStrong);
+    }
     lv_obj_set_width(title, kWords);
+    if (look == NetworkLook::kOutlined) {
+        lv_obj_add_flag(row, kOutlinedLook);
+    }
     Fill(row, locked, signal, state);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
     detail::JoinGroup(row);

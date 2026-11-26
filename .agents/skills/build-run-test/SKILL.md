@@ -90,11 +90,12 @@ from the agent deck's bridge for its run — never stop the bridge. The `bench-r
 ```sh
 python tests/bench/flash.py                         # the build in build/, as idf.py flash writes it; no yes needed
 python tests/bench/boot_check.py --log <SP>/boot.log  # resets, reads 12 s: exit 0 clean, 1 a fault, 2 no boot
-python tests/bench/console_word.py help             # the firmware's console: bench, anim, pages [n], stop, speed [n], key up|down|ok|hold [n], shot
+python tests/bench/console_word.py help             # the firmware's console: bench, anim, hw, pages [n], stop, speed [n], key up|down|ok|hold [n], shot
 #   key: a press lasts 80 ms and never repeats; key hold closes an open edit (restoring it), then the top overlay (dialog,
 #   sheet, keyboard), else goes back
 #   one screen (a Display sub-screen returns to Display);
-#   bench and anim replace every screen above Home; with no ring on the glass (a screen just opened, or after a touch)
+#   hw opens the hardware test's home (its list of screens) over Home, which is the agent deck's carousel; bench and anim
+#   replace every screen above Home; with no ring on the glass (a screen just opened, or after a touch)
 #   the first key up|down|ok only shows the ring — count one extra press per fresh screen (APP_ARCHITECTURE §7)
 python tests/bench/console_word.py --listen 8 key down 3   # presses a button through the real input path, to reach a screen
 python tests/bench/console_word.py --listen 120 bench  # the refresh benchmark: one `animation` line a preset
@@ -115,7 +116,7 @@ no finding or decision recorded between ([`verify-change`](../verify-change/SKIL
 `tests/bench/screenshot.py` takes the frame the firmware sent to the glass, 480 x 800 portrait, black and white — not
 the ink: ghosting, contrast and pixels left part-way are seen only on the glass, by the person or a photo. A grey frame
 is not sent. To hold a state for a shot or a photo: `console_word.py anim` runs the benchmark's bar without end on the
-current speed, `stop` freezes it. For a ghosting run, `console_word.py --listen 255 "pages 40"` opens each home row but
+current speed, `stop` freezes it. For a ghosting run, `console_word.py --listen 255 "pages 40"` opens each hardware-test screen (the rows of `hw.home`) but
 the benchmark and goes back, 3 s on each — 40 rows by default, one walk at a time; `stop` ends it — while the person
 watches the glass before each full refresh.
 

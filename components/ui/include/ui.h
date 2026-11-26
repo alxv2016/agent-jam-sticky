@@ -17,11 +17,13 @@ esp_err_t Start();
 
 // --- Fonts and styles from DESIGN.md -------------------------------------------------------------------------------
 
-enum class Type : uint8_t { kHero, kDisplay, kHeadline, kBody, kLabel, kCaption, kCaptionLoose };
+// kTitle (30 px semibold), kCaptionStrong (20 px bold) and kCaptionRegular (20 px regular) are the agent deck's three roles (DESIGN →
+// Typography → Scale and roles).
+enum class Type : uint8_t { kHero, kDisplay, kHeadline, kBody, kLabel, kCaption, kCaptionLoose, kTitle, kCaptionStrong, kCaptionRegular };
 const lv_font_t *Font(Type role);
 int16_t LineBox(Type role);
 
-// Bitcount Single at one bit a pixel, compiled by fonts/bitcount/make_fonts.sh at weights 600 and 700, and 30 px at 400: 20 to
+// Bitcount Single at one bit a pixel, compiled by fonts/bitcount/make_fonts.sh at weights 600 and 700, and 20 and 30 px at 400: 20 to
 // 80 px in steps of 10 with ASCII and · ° × – — ’ • …, and 100, 120 and 160 px with figures only; nullptr for any other
 // size or weight. The roles take theirs through Font (STICKY_DESIGN_TOKENS §3).
 const lv_font_t *Bitcount(int16_t size_px, int16_t weight);
@@ -43,6 +45,11 @@ lv_obj_t *NewLabel(lv_obj_t *parent, Type role, const char *text, bool secondary
 // FitLineBox (line_box.h) with the role's line height token as the line box (STICKY_DESIGN_TOKENS §3, §9).
 void FitLineBox(lv_obj_t *label, Type role);
 lv_obj_t *NewDivider(lv_obj_t *parent);
+// Supporting words drawn in the dark dither on every refresh — the agent deck's reset lines, a sub-agent's tokens, "4 sessions":
+// `label`'s words in `text-quiet` (Fill), one bit a pixel, where `text-secondary` is black on a partial refresh. An argued exception
+// under the text floor — the dither averages 3.50 : 1 on white — for a small supporting line only (DESIGN → Exceptions → Quiet words;
+// STICKY_DESIGN_TOKENS §2.3). Takes the label's own colour only.
+void QuietWords(lv_obj_t *label);
 // The one focus ring, for every control: outside the object, spacing.focus-offset clear of its edge and following its
 // corners, black — for a control with spacing.md of room round it, whose containers let it out
 // (DESIGN → Components → States; STICKY_DESIGN_TOKENS §9). The buttons' focus is LV_STATE_FOCUS_KEY.

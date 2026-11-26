@@ -19,6 +19,9 @@ const lv_image_dsc_t *GlyphImage(Glyph glyph)
     case Glyph::kRefresh:  return &widgets_mark_glyph_refresh;
     case Glyph::kEyeOpen:     return &widgets_mark_glyph_eye_on;
     case Glyph::kEyeSlashed:  return &widgets_mark_glyph_eye_off;
+    case Glyph::kWifi:        return &widgets_mark_glyph_wifi;
+    case Glyph::kSettings:    return &widgets_mark_glyph_settings;
+    case Glyph::kPower:       return &widgets_mark_glyph_power;
     case Glyph::kNone:     break;
     }
     return nullptr;

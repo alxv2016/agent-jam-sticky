@@ -33,4 +33,33 @@ lv_obj_t *MakeChip(lv_obj_t *parent, const char *text)
     return chip;
 }
 
+lv_obj_t *MakeSmallChip(lv_obj_t *parent, const char *text, bool control)
+{
+    lv_obj_t *chip = nullptr;
+    if (control) {
+        chip = lv_button_create(parent);
+        lv_obj_remove_style_all(chip);  // touch-exception: no pressed state (DESIGN → Motion → Press)
+        lv_obj_set_scrollable(chip, false);
+    } else {
+        chip = detail::Bare(parent);  // a reading: it takes no press
+    }
+    lv_obj_set_size(chip, LV_SIZE_CONTENT, dt::kSpacingChipSmall);
+    lv_obj_set_style_radius(chip, dt::kRoundedLg, 0);
+    lv_obj_set_style_pad_hor(chip, dt::kSpacingMd, 0);
+    lv_obj_set_style_bg_opa(chip, LV_OPA_COVER, 0);
+    lv_obj_set_style_bg_color(chip, ui::Fill(dt::kColorBand), 0);
+    lv_obj_set_style_text_color(chip, ui::Level(dt::kColorTextPrimary), 0);
+    lv_obj_t *label = ui::NewLabel(chip, ui::Type::kTitle, text);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_CLIP);  // one line, as wide as its words
+    lv_obj_set_width(label, LV_SIZE_CONTENT);
+    ui::FitLineBox(label, ui::Type::kTitle);
+    lv_obj_center(label);
+    if (control) {
+        lv_obj_set_ext_click_area(chip, (dt::kSpacingTarget - dt::kSpacingChipSmall) / 2);  // the hit area is a full target
+        detail::DitherWhenDisabled(chip);
+        detail::Focusable(chip);
+    }
+    return chip;
+}
+
 }  // namespace widgets

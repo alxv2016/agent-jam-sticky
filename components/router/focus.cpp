@@ -39,10 +39,20 @@ bool OnGlass(lv_obj_t *obj)
     return obj != nullptr && !HiddenInTree(obj) && lv_obj_is_visible(obj);
 }
 
+// A stop whose first press acts at once (SetFirstPressActs): LVGL's object flag the router keeps for it.
+constexpr lv_obj_flag_t kFirstPressActs = LV_OBJ_FLAG_USER_4;
+
 bool RingShowing(lv_group_t *group)
 {
     lv_obj_t *focused = lv_group_get_focused(group);
     return focused != nullptr && lv_obj_has_state(focused, LV_STATE_FOCUS_KEY) && OnGlass(focused);
+}
+
+// The focused stop takes its first press itself: no ring to show first.
+bool FirstPressActs(lv_group_t *group)
+{
+    lv_obj_t *focused = lv_group_get_focused(group);
+    return focused != nullptr && lv_obj_has_flag(focused, kFirstPressActs) && OnGlass(focused);
 }
 
 // No ring showing: the focused control takes it when it is on the glass; otherwise the first control in view, in the walk's
@@ -121,7 +131,7 @@ void KeyReadHook(lv_indev_t *, lv_indev_data_t *data)
         NoteKeyInput(true);
         lv_obj_update_layout(lv_screen_active());  // a screen just pushed is laid out before what is in view is read
         lv_group_t *group = lvgl_display::Group();
-        if (group != nullptr && !lv_group_get_editing(group) && !RingShowing(group)) {
+        if (group != nullptr && !lv_group_get_editing(group) && !RingShowing(group) && !FirstPressActs(group)) {
             RingFromNone(group);
             s_key_consumed = true;
         }
@@ -173,6 +183,18 @@ void ClearRing()
     }
     if (lv_obj_t *focused = lv_group_get_focused(group); focused != nullptr) {
         lv_obj_remove_state(focused, LV_STATE_FOCUS_KEY);
+    }
+}
+
+void SetFirstPressActs(lv_obj_t *obj, bool acts)
+{
+    if (obj == nullptr) {
+        return;
+    }
+    if (acts) {
+        lv_obj_add_flag(obj, kFirstPressActs);
+    } else {
+        lv_obj_remove_flag(obj, kFirstPressActs);
     }
 }
 

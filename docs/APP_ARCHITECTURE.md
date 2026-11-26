@@ -16,6 +16,7 @@ in `main/` and `components/`; this doc says why it is shaped so.
 | 5 | [Dependencies and versions](#5-dependencies-and-versions) | ESP-IDF, the managed components, the lock file |
 | 6 | [Decisions](#6-decisions) | Why the shell is a component, why a feature is one line |
 | 7 | [Screens, routes and focus](#7-screens-routes-and-focus) | The screen stack, a screen's lifecycle, routes, who may call the router |
+| 8 | [The technology stack](#8-the-technology-stack) | Each language, framework, library and tool, the part that uses it, why it was chosen and what it is not used for |
 
 ---
 
@@ -28,21 +29,23 @@ down at the board — never at a feature.**
 | --- | --- | --- |
 | `main/` | `app_main`: the event loop, NVS, then `app_shell::Install()`, each feature's `Install()`, `app_shell::Run()` | `app_shell`, the features listed in `app_features.def` |
 | `main/app_features.def` | One `FEATURE(<component>)` line per feature — its whole wiring | — |
-| `components/app_shell` | Startup order, what stops the boot, the devices and the glass, the home screen as the router's root | `app_hooks`, `board`, `devices`, `lvgl_display`, `router`, `ui` |
-| `components/app_hooks` | The registry: boot steps by phase and what features add to home; sealed before the first read | Nothing of the app's |
+| `components/app_shell` | Startup order, what stops the boot, the devices and the glass, the home screen as the router's root — its own, or a feature's that claimed it | `app_hooks`, `board`, `devices`, `lvgl_display`, `router`, `ui` |
+| `components/app_hooks` | The registry: boot steps by phase, what features add to home, and a feature's claim of the whole home screen (`ClaimHome`, §7); sealed before the first read | Nothing of the app's |
 | `components/board_config` | Every pin and size, from STICKY_HARDWARE_SPECS | Nothing of the app's |
 | `components/board` | The bring-up: the power latch, the buses, the panel on either controller, charging, sleep and power-off, in the spec's order | `board_config`, `epaper`, `ssd1677`, `ssd2677` |
 | `components/epaper` | The glass as both controllers present it: the `Panel` interface and the SPI bus they share | ESP-IDF's drivers |
 | `components/ssd1677`, `components/ssd2677` | Each display controller's driver, in Seeed's command sequences — the refreshes are [STICKY_EPAPER_WAVEFORMS](STICKY_EPAPER_WAVEFORMS.md) | `epaper` |
-| `components/devices` | The SHT40, IMU, fuel gauge, RTC (read with `ReadClock`, set with `SetClock`), buzzer, microphone and card, read as Seeed's demos do; the buzzer's note player, a task of its own that alone drives the LEDC channel, playing DESIGN.md's six sound words by `sound::Word` (`sounds.h`) or a table in `sound_rules.h`'s format (STICKY_HARDWARE_SPECS §4.2), and the mascot's moments by `sound::Moment`, held by `QueueMoment` and played in turn by `PlayMoments` as a frame goes to the glass (STICKY_DESIGN_TOKENS §5); and the mascot's music under them, kept in time with its move (`PlayMusic`, `StopMusic`) | `board`, `board_config`, `bq27220`, `pcf8563`, `design_tokens` — the sounds' note type is the tokens' |
-| `components/lvgl_display` | LVGL on the glass: the display, its refresh policy and the SSD1677's scans, touch and the buttons; the press's tick, a widget's sound cue (`PlayCue`) and the frame hook (`SetFrameHook`, run as each rendered frame goes to the glass — the mascot's moments), each through a function the shell sets, so no widget reaches the buzzer | `board`, `board_config`, `design_tokens`, `epaper`, `gt911`, LVGL |
+| `components/devices` | The SHT40, IMU, fuel gauge, RTC (read with `ReadClock`, set with `SetClock`), buzzer, microphone and card, read as Seeed's demos do; the buzzer's note player, a task of its own that alone drives the LEDC channel, playing DESIGN.md's six sound words by `sound::Word` (`sounds.h`) or a table in `sound_rules.h`'s format (STICKY_HARDWARE_SPECS §4.2), and the mascot's moments by `sound::Moment`, held by `QueueMoment` and played in turn by `PlayMoments` as a frame goes to the glass (STICKY_DESIGN_TOKENS §5); and the mascot's music under them, kept in time with its move (`PlayMusic`, `StopMusic`); the product's sound setting, `SetMuted`, silencing all of it but the hardware test's `Tone` | `board`, `board_config`, `bq27220`, `pcf8563`, `design_tokens` — the sounds' note type is the tokens' |
+| `components/lvgl_display` | LVGL on the glass: the display, its refresh policy and the SSD1677's scans, touch and the buttons; the press's tick, a widget's sound cue (`PlayCue`) and the frame hook (`SetFrameHook`, run as each rendered frame goes to the glass — the mascot's moments), each through a function the shell sets, so no widget reaches the buzzer; and where the LVGL task's large tables live (`in_psram.h`, §2) | `board`, `board_config`, `design_tokens`, `epaper`, `gt911`, LVGL |
 | `components/ui` | DESIGN.md's look in LVGL — the theme: the fonts, the styles, the focus ring, and the regions and text: the status bar, labels and dividers | `lvgl_display`, `design_tokens`, LVGL |
-| `components/widgets` | DESIGN.md's kit as LVGL objects, one header and source per widget under `include/widgets/` and `src/`, built from `ui`'s theme as [the agent deck's](STICKY_DESIGN_TOKENS.md#9-the-ring-outside-and-the-ported-widgets) widgets are from its theme, with the deck's three status marks, and the choice card's check, at one bit under `marks/`, and the deck's Claude's mascot (`mascot.h`, STICKY_UI_KIT_PORT §4 item 8), which tells its moments to a function its page sets: `MakeX(parent, …)` for a styled widget, `X MakeX(…)` with `SetX` / `UpdateX` for a composite; the select sheet, the dialog and the keyboard open as overlays on the router's stack (§7) | `ui`, `design_tokens`, `lvgl_display`, `router`, `board_config` (the mascot's glass size, asserted), LVGL |
+| `components/widgets` | DESIGN.md's kit as LVGL objects, one header and source per widget under `include/widgets/` and `src/`, built from `ui`'s theme as [the agent deck's](STICKY_DESIGN_TOKENS.md#9-the-ring-outside-and-the-ported-widgets) widgets are from its theme, with the deck's three status marks, its Wi-Fi status mark, its Wi-Fi, settings and link glyphs and the choice card's check, at one bit under `marks/`, and the deck port's opt-in additions (STICKY_DESIGN_TOKENS §14), and the deck's Claude's mascot (`mascot.h`, STICKY_DESIGN_TOKENS §13), which tells its moments to a function its page sets: `MakeX(parent, …)` for a styled widget, `X MakeX(…)` with `SetX` / `UpdateX` for a composite; the select sheet, the dialog and the keyboard open as overlays on the router's stack (§7) | `ui`, `design_tokens`, `lvgl_display`, `router`, `board_config` (the mascot's glass size, asserted), LVGL |
 | `components/router` | The screen stack, the overlay stack and the routes: each screen's root and each screen's and overlay's focus group, a screen's lifecycle, Push, Pop and GoTo by object or by id, with no transitions (§7) | `lvgl_display`, `design_tokens`, LVGL, ESP-IDF's `esp_common`, `heap` and `log` |
 | `components/design_tokens` | DESIGN.md's tokens as one header (STICKY_DESIGN_TOKENS §6) | — |
+| `components/mascot_voice` | How a page lets Claude's mascot be heard: its moments told to the buzzer as each frame is drawn and its music kept in time with its move (`mascot_voice.h`), and the rules for the music with no LVGL (`mascot_voice_rules.h`); shared by the hardware test's mascot page and the agent deck's screens so neither includes the other's header | `devices`, `widgets`, LVGL |
+| `components/power_leave` | How the board leaves: the sequence that silences the buzzer, sets or clears the RTC wake, replaces the screens above home with a frame the caller gives, draws it in full, puts the panel to sleep and then powers off or deep-sleeps (`power_leave.h`; STICKY_HARDWARE_SPECS §5.3), run from a timer and not inside a click; shared by the hardware test's Sleep, Power off and Off, 60 s buttons and the agent deck's Power button, each with its own frame, so neither includes the other's header | `board`, `devices`, `lvgl_display`, `router`, LVGL |
 | `components/chiptune` | The agent deck's 8-bit sounds and its synth (`chiptune.h`), ported unchanged but for the namespace: the deck's notes, which the hardware test's `sound ab` plays on the buzzer's note player beside the mascot's tokens (STICKY_HARDWARE_SPECS §4.2) | Nothing of the app's |
 | `components/gt911`, `bq27220`, `pcf8563`, `debug_logging` | Seeed's drivers for the touch controller, the fuel gauge and the clock, as Seeed ships them under their MIT licence (`LICENSE` beside each) | ESP-IDF's drivers |
-| `components/<feature>` | One feature: its `Install()` and what it registers — `hw_test`, the bench screens, each a route on the router's stack | `app_hooks`, `board`, `board_config`, shared components — `router` among them |
+| `components/<feature>` | One feature: its `Install()` and what it registers — `hw_test`, the bench screens, each a route on the router's stack, its own home `hw.home`; `agent_deck`, which claims home and registers the deck's routes ([STICKY_AGENT_DECK](STICKY_AGENT_DECK.md)) | `app_hooks`, `board`, `board_config`, shared components — `router`, `mascot_voice` and `power_leave` among them |
 
 `MINIMAL_BUILD` is on: a component is built only when something requires it, so a feature that is not listed is not
 built.
@@ -59,6 +62,10 @@ E1–E5.**
 2. **Bring hardware up in `board`**, in the spec's order, and return the first error so the shell stops the boot.
 3. **Take every pin and size from `board_config.h`**, and change the spec before the header.
 4. **Start a feature's tasks and services in a `kReady` boot step**, when the board and the shell are up.
+5. **Keep a large mutable static in PSRAM** — a table of records or slots of a few hundred bytes or more is a reference bound to
+   `lvgl_display::InPsram<T>()` (`in_psram.h`), made once and value-initialised before `app_main`. Internal DIRAM is the scarce
+   memory, and the code-reviewer's proxy caps its growth at 1 KiB a change. Never what an ISR or the buzzer's critical sections
+   touch: PSRAM is out of reach while the flash cache is off.
 
 ### Never
 
@@ -78,9 +85,10 @@ E1–E5.**
 3. `board::InitDisplay()` with the SHT40's temperature for the SSD2677's waveform — `lvgl_display` reads it again
    about once a minute while the glass is idle, through the source the shell gives it; the board reads the controller's
    ID and creates the `ssd1677` or `ssd2677` driver. Then `lvgl_display::Start()` — LVGL's task, the display, touch
-   and the buttons — then, under the same LVGL lock, `router::Init()` and home as the router's root: the shell's status
-   bar, then each feature's `OnHomeBuilt` builder, drawn as a full refresh (§7). A display that does not come up stops
-   the boot.
+   and the buttons — then, under the same LVGL lock, `router::Init()` and home as the router's root. Home is the shell's
+   status bar, then each feature's `OnHomeBuilt` builder. When a feature claimed home with
+   `ClaimHome`, home is that feature's screen alone, with no status bar of the shell's. Home is drawn as a full refresh (§7).
+   A display that does not come up stops the boot.
 4. The `kReady` steps — features start their services and tasks.
 5. The `kLate` steps — the core logs the firmware's name, version and ESP-IDF version.
 
@@ -90,7 +98,8 @@ E1–E5.**
 `esp-idf-setup` skill holds the steps.**
 
 - **`components/hw_test` is the shape to copy**: a `CMakeLists.txt` that requires only what the feature uses, and a
-  `<name>.cpp` whose `<name>::Install()` registers with `app_hooks` — here, rows on home through `OnHomeBuilt`.
+  `<name>.cpp` whose `<name>::Install()` registers with `app_hooks` — here, its routes in a `kBoardUp` step, its home `hw.home` among them.
+  A feature that is the app — `agent_deck` — claims home instead (§7).
 - **A screen is a route on the router's stack** (§7), built into the root the router makes — styled by `ui::StyleScreen`
   — from `ui`'s `NewStatusBar` and the kit's `widgets` controls, the list row `widgets::MakeListRow` among them. Its
   values come from `design_tokens.h`, never a literal
@@ -131,10 +140,14 @@ E1–E5.**
 ## 7. Screens, routes and focus
 
 **A screen is a `router::Screen` on one stack: the router makes its root and its focus group, drives its lifecycle, and loads
-it with no transition — on e-paper the refresh is the motion (DESIGN → Motion).** Home is the root; a feature pushes its
+it with no transition — on e-paper the refresh is the motion (DESIGN → Motion).** Home is the root (below); a feature pushes its
 screens by route id, and Back and holding OK pop. Over the top screen stand its overlays — a select sheet, a dialog, the
 keyboard — each with its own focus group. A screen that can get news reserves a band under its title, which the router draws
 the status line into. `components/router` holds it: `router.h`, `screen.h`, `route.h` and `status_rules.h`.
+
+### Home
+
+**Home is the app's first screen and the stack's bottom, and a feature may own all of it.** Without one, the shell draws its status bar, `Agent Jam Sticky`, and each feature's `OnHomeBuilt` builder adds to it. A feature that is the product's face calls `app_hooks::ClaimHome` from its `Install()` with its screen's four calls: `create`, `enter`, `exit` and `covered`. They are plain functions, so `app_hooks` names no router type (E2). The shell makes the root from them (`screen_home::Make`): it styles the root as the glass and places nothing of its own, so the feature draws every region, status bar or none. One claim; a second is logged and ignored. The agent deck claims it (`components/agent_deck`, [STICKY_AGENT_DECK](STICKY_AGENT_DECK.md)). The hardware test's list of screens is its own route `hw.home` under the status bar `Hardware test`, and the console's `hw` word opens it over home. Home is built once and never popped, so a feature that changes what its home shows (the deck's startup screen, then its carousel) changes it in place. The deck's settings open the hardware test by its route id, `hw.home`, found with `router::FindRoute` and never by a header, so the two features stay apart (E4); the stack then runs home, settings, `hw.home` and one test screen, the router's four.
 
 ### The lifecycle
 
@@ -272,3 +285,26 @@ The kit; DESIGN → Layout → Regions).
   type (E2).
 - **Every call holds the LVGL lock** — from an LVGL event or timer, which hold it, or between `lvgl_display::Lock()` and
   `Unlock()` on another task, as the bench console's page walk does. The router takes no lock of its own.
+
+---
+
+## 8. The technology stack
+
+**C++ on ESP-IDF 6 with LVGL 9 runs on the board; the host tests build the same UI code with the computer's own
+compiler; Python runs the kit and the bench, never the device.** The table names each piece by major version; the
+exact one is in the manifest or the tool's pin, never restated here (DOCUMENTATION_GUIDELINES §4.4). Dependency rules and
+how a version changes are §5.
+
+| Part | Technology | Version | Why | Not used for |
+| --- | --- | --- | --- | --- |
+| The firmware's own code (`main/`, `components/`) | C++, the standard ESP-IDF's compiler defaults to | `gnu++26` on GCC 15 (ESP-IDF 6's toolchain) | `constexpr` tokens and tables checked at compile time, classes for screens and widgets, the standard library's containers | Exceptions and RTTI — both off in `sdkconfig`, so a throw is a fault and code returns `esp_err_t` |
+| Vendored drivers, generated fonts and marks, LVGL itself | C | `gnu23` | What Seeed's drivers, `lv_font_conv` and LVGL are written in | New firmware code, which is C++ |
+| The SDK: build, FreeRTOS, drivers, the component manager | ESP-IDF | 6.1 series (`main/idf_component.yml`) | Espressif's own SDK for the ESP32-S3; its build composes the components | Anything a managed component or our own driver does better — the display has its own drivers (§5) |
+| The screens | LVGL | 9 (`main/idf_component.yml`) | Widgets, layout, groups and the input model the router builds on | Driving the glass: `lvgl_display` owns the panel, touch and buttons; and motion, which only the mascot and stepped lines play (DESIGN → Motion) |
+| LVGL's task, tick and lock | `espressif/esp_lvgl_port` | 2 (`main/idf_component.yml`) | The standard way to run LVGL under FreeRTOS | Display, touch and buttons — it has no e-paper path |
+| Touch, fuel gauge, clock | Seeed's `gt911`, `bq27220`, `pcf8563` | Seeed's commit (§5) | The vendor's tested drivers for the board's parts | Edits: they are kept as Seeed ships them |
+| The e-paper panel | Our `epaper`, `ssd1677`, `ssd2677` | — | Seeed's sequences, with our own plumbing and the scans (STICKY_EPAPER_WAVEFORMS) | — |
+| Host tests (`tests/host/`) | C++ with the computer's compiler, LVGL built for the host | C++20 (`tests/host/run.sh`) | The UI and its rules run in seconds with no board | The board's toolchain, timing or glass: a host render is the frame asked for, not the ink |
+| Fonts | Bitcount Single, compiled one bit a pixel by `lv_font_conv` | `lv_font_conv` 1.5 (`components/ui/fonts/bitcount/make_fonts.sh`) | The design's typeface at each role's size, in the glass's one bit | Run-time font loading: every size is compiled in |
+| The kit, bench and generators | Python | 3.9 or newer, standard library only | Scripts every developer machine already runs: checks, the flash and boot scripts, the marks' and logo's generators | Anything on the device |
+

@@ -41,6 +41,8 @@ HEADER_ONLY = {
     "kTouchFlickWindowMs": "as kTouchSwipeDistance",
     "kRefreshPartialLimit": "the refresh policy, STICKY_DESIGN_TOKENS §5: the firmware's, not a design value",
     "kFeedbackTickMs": "as kRefreshPartialLimit",
+    "kMarqueePasses": "a stepped line's count of passes, STICKY_DESIGN_TOKENS §5: a count, no size or time to give DESIGN.md a token",
+    "kMarqueeGapSpaces": "the spaces between a stepped line's end and its start coming round, as kMarqueePasses",
 }
 # The refresh policy's names for three motion delays (STICKY_DESIGN_TOKENS §5): no token of their own, so each must hold
 # the value of the token symbol it names.

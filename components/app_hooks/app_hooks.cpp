@@ -18,6 +18,8 @@ std::array<BootStep, kMaxBootSteps> boot_steps{};
 size_t boot_count = 0;
 std::array<void (*)(lv_obj_t *), kMaxHomeBuilders> home_builders{};
 size_t home_count = 0;
+HomeScreen claimed_home{};
+bool home_claimed = false;
 bool sealed = false;
 
 // Whether a registration may still land: after Seal() the shell has read the tables.
@@ -56,6 +58,19 @@ void OnHomeBuilt(void (*build)(lv_obj_t *home))
     home_builders[home_count++] = build;
 }
 
+void ClaimHome(const HomeScreen &screen)
+{
+    if (screen.create == nullptr || !Open("a home claim")) {
+        return;
+    }
+    if (home_claimed) {
+        ESP_LOGE(kTag, "home is claimed already: a second claim is ignored");
+        return;
+    }
+    claimed_home = screen;
+    home_claimed = true;
+}
+
 void Seal()
 {
     sealed = true;
@@ -75,6 +90,11 @@ void BuildHome(lv_obj_t *home)
     for (size_t i = 0; i < home_count; ++i) {
         home_builders[i](home);
     }
+}
+
+const HomeScreen *ClaimedHome()
+{
+    return home_claimed ? &claimed_home : nullptr;
 }
 
 }  // namespace app_hooks

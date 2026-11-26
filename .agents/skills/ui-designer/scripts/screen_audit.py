@@ -60,8 +60,8 @@ HW_TEST = "components/hw_test/hw_test.cpp"
 # Each screen the audit names (its kScreens and its views) → the functions in hw_test.cpp it is built from — the route's
 # factory, which names its create, enter and leave callbacks — and any file that is wholly its own.
 SCREENS = {
-    "home": {"roots": ("BuildHome",), "files": ("components/app_shell/screen_home.cpp",
-                                                "components/app_shell/screen_home.h")},
+    "home": {"roots": ("BuildHome", "HomeRoute"), "files": ("components/app_shell/screen_home.cpp",
+                                                           "components/app_shell/screen_home.h")},
     "display": {"roots": ("DisplayScreen",)}, "four greys": {"roots": ("GraysScreen",)},
     "type scale": {"roots": ("TypeScaleScreen",)}, "kit": {"roots": ("KitScreen",)},
     "benchmark": {"roots": ("BenchmarkScreen",)}, "touch": {"roots": ("TouchScreen",)},

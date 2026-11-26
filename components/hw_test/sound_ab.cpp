@@ -1,4 +1,4 @@
-// The buzzer's A/B (STICKY_UI_KIT_PORT §4 item 8): one of the agent deck's own sounds (chiptune.h) two ways on the note
+// The buzzer's A/B (STICKY_DESIGN_TOKENS §13): one of the agent deck's own sounds (chiptune.h) two ways on the note
 // player, for the person's ear — 1, shifted up by whole octaves into the buzzer's band; 2, at the deck's own pitches, as
 // the mascot's sounds are (a moment's own token, sounds.h kMoments, for a moment). The console's `sound ab`; nothing on
 // the glass. The deck's synth streamed through the buzzer was a third way, heard and taken out: it hissed.

@@ -60,7 +60,7 @@ CODE_PATHS = ("main/", "components/", "tests/", "CMakeLists.txt", "sdkconfig.def
 #   Mobile:  ("ios/*/Views/", "android/app/src/main/res/", "lib/widgets/", "lib/screens/")
 #   ESP-IDF with LVGL: ("components/app_shell/screen_*", "components/ui_*/", "components/<feature>/*_screen.cpp")
 UI_PATHS = ("components/app_shell/screen_*", "components/ui/", "components/widgets/", "components/lvgl_display/",
-            "components/hw_test/")
+            "components/hw_test/", "components/agent_deck/", "components/mascot_voice/", "components/power_leave/")
 
 # The design brief at the repo root: the product's principles and every design token by role, with its value per
 # theme (DESIGN.md is the template's demo). The ui-designer and design-system skills read it first; the design check
@@ -309,7 +309,8 @@ CHECKS = {
     # built and run with the computer's own compiler, no board and no ESP-IDF — the build-run-test skill.
     "host": {"run": ["bash", "tests/host/run.sh"],
              "when": ("components/lvgl_display/", "components/ui/", "components/widgets/", "components/design_tokens/",
-                      "DESIGN.md", "tests/host/"), "counts": True},
+                      "components/agent_deck/", "components/mascot_voice/", "components/power_leave/", "components/app_hooks/",
+                      "components/app_shell/", "components/router/", "DESIGN.md", "tests/host/"), "counts": True},
 }
 
 # The project's own judges, beyond the kit's (doc-reviewer, code-reviewer, ui-designer): agent name → the paths
@@ -319,8 +320,8 @@ JUDGES = {}
 
 # Claude's mascot on this glass: what the portable mascot-animation skill and the mascot-animator read of the host
 # (the skill's SKILL.md → The host's side; its scripts/host_config.py). A path left None is not built yet: the demo
-# page's backdrop comes with the page (docs/STICKY_UI_KIT_PORT.md §4 item 8). A draft of a role not yet in the token
-# header points MASCOT_THEME_H at a header holding it.
+# page's backdrop comes with the page (the page: docs/STICKY_DESIGN_TOKENS.md §13). A draft of a role not yet in the
+# token header points MASCOT_THEME_H at a header holding it.
 MASCOT = {
     "glass": "flipbook",   # e-paper: a move is its key poses, each held one partial refresh (MASCOT §6)
     "frame_ms": 460,       # one partial refresh's frame, V2.0 at the waveform's rate (STICKY_EPAPER_WAVEFORMS §4.1)

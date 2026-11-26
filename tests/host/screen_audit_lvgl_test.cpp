@@ -33,7 +33,7 @@
 // reason stands 500 px above it, linked and not — and stops if a font box, an ink gap, a ring or a reason reads wrong.
 // Otherwise it reports and never fails: it exits non-zero only when it cannot run or the fixture misreads. The wrapper
 // builds it alone.
-// host-sources: components/ui/ui.cpp components/ui/line_box.cpp components/ui/fonts/bitcount/*.c components/widgets/marks/marks.c components/widgets/src/*.cpp components/widgets/src/internal/*.cpp components/router/router.cpp components/router/overlays.cpp components/router/focus.cpp components/router/touch.cpp components/router/routes.cpp components/router/screen.cpp components/router/status.cpp components/app_hooks/app_hooks.cpp components/app_shell/screen_home.cpp components/hw_test/mascot_page.cpp components/hw_test/sound_ab.cpp components/chiptune/chiptune.cpp
+// host-sources: components/ui/ui.cpp components/ui/line_box.cpp components/ui/fonts/bitcount/*.c components/widgets/marks/marks.c components/widgets/src/*.cpp components/widgets/src/internal/*.cpp components/router/router.cpp components/router/overlays.cpp components/router/focus.cpp components/router/touch.cpp components/router/routes.cpp components/router/screen.cpp components/router/status.cpp components/app_hooks/app_hooks.cpp components/app_shell/screen_home.cpp components/hw_test/mascot_page.cpp components/hw_test/sound_ab.cpp components/mascot_voice/mascot_voice.cpp components/chiptune/chiptune.cpp components/power_leave/power_leave.cpp
 // Build and run: bash tests/host/run.sh screen_audit
 
 #include <algorithm>
@@ -67,7 +67,7 @@ esp_err_t EnterDeepSleep(bool keep_panel_powered);
 esp_err_t PowerOff();
 }  // namespace board
 
-// The firmware's hardware test, as it is: its screens, its routes and home's rows.
+// The firmware's hardware test, as it is: its screens, its routes and its home's rows (`hw.home`).
 #include "../../components/hw_test/hw_test.cpp"
 #include "../../components/app_shell/screen_home.h"
 
@@ -403,7 +403,10 @@ std::string RoleOf(Face f)
                                {dt::kTypographyHeadline.size_px, dt::kTypographyHeadline.weight, "headline"},
                                {dt::kTypographyBody.size_px, dt::kTypographyBody.weight, "body"},
                                {dt::kTypographyLabel.size_px, dt::kTypographyLabel.weight, "label"},
-                               {dt::kTypographyCaption.size_px, dt::kTypographyCaption.weight, "caption"}};
+                               {dt::kTypographyCaption.size_px, dt::kTypographyCaption.weight, "caption"},
+                               {dt::kTypographyTitle.size_px, dt::kTypographyTitle.weight, "title"},
+                               {dt::kTypographyCaptionStrong.size_px, dt::kTypographyCaptionStrong.weight, "caption-strong"},
+                               {dt::kTypographyCaptionRegular.size_px, dt::kTypographyCaptionRegular.weight, "caption-regular"}};
     for (const R &r : kRoles) {
         if (r.size == f.size && r.weight == f.weight) {
             return r.name;
@@ -1987,12 +1990,14 @@ int main()
     if (CheckFixture() != 0 || CheckRingFixture() != 0 || CheckDisabledFixture() != 0) return 1;
     PrepareOutput();
 
-    // Home and the routes, as app_shell builds them.
+    // The hardware test's home, `hw.home`, as the root, and its routes: the app's own home is the agent deck's, which tests/host/
+    // deck_screens_lvgl_test.cpp checks, so the audit's "home" is the list of the test screens it has always measured.
     hw_test::Install();
     app_hooks::Seal();
     app_hooks::RunBoot(app_hooks::Phase::kBoardUp);
-    if (router::SetRoot(router::MakeScreen(screen_home::Build)) != ESP_OK) {
-        std::printf("screen audit: home did not build\n");
+    const router::Route *hardware_home = router::FindRoute("hw.home");
+    if (hardware_home == nullptr || router::SetRoot(hardware_home->make(nullptr)) != ESP_OK) {
+        std::printf("screen audit: the hardware test's home did not build\n");
         return 1;
     }
     Screen("home");

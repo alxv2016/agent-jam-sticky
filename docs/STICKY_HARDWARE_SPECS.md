@@ -295,7 +295,7 @@ else.**
   the sigma-delta modulator with a timer setting each sample's density, at 15 625 Hz on a 1 MHz carrier and again at
   31 250 Hz on 2 MHz. This is the person's ear on a V2.0, 2026-11-24 `[P]`, and the stream is out of the build. The deck's notes play on the
   note player: the console's `sound ab <name> [1|2|all]` plays one shifted up into the band (1) and at the deck's own
-  pitches (2), as the mascot's sounds are (STICKY_UI_KIT_PORT §4 item 8).
+  pitches (2), as the mascot's sounds are (STICKY_DESIGN_TOKENS §13).
 - **The FUET-5018's band, measured on a V1.0: loud near 4 to 4.5 kHz and again near 7 kHz** — measured on 2026-11-22 over
   513eef4 and the sound round, with the console's `sound band`. The board's own microphone is powered once, settled
   500 ms, then read without a break. The room is read with the buzzer off, then a held 50 % square at each pitch:

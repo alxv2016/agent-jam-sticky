@@ -1,4 +1,4 @@
-// The hardware test: a row on home for each part of the board, and a screen that exercises it — the glass on either
+// The hardware test: a row on its own home screen (`hw.home`) for each part of the board, and a screen that exercises it — the glass on either
 // controller, touch, the buttons and buzzer, the sensors, the battery and power, the card, the microphone. It is a
 // bench tool for V1.0 and V2.0 boards, drawn from DESIGN.md's components; the mascot's page, every move of Claude's
 // mascot with its sounds, is mascot_page.cpp's. Its fixtures' sizes, its timers, the refresh benchmark's animation, the
@@ -21,6 +21,7 @@
 #include "board.h"
 #include "clock_rules.h"
 #include "mascot_page.h"
+#include "power_leave.h"
 #include "sound_ab.h"
 #include "design_tokens.h"
 #include "devices.h"
@@ -51,7 +52,7 @@ namespace clock_rules = hw_test::clock_rules;
 using ui::Type;
 constexpr const char *kTag = "hw_test";
 
-// Each test screen is a route on the router's stack: home's rows push one, Display pushes its sub-screens over itself, and Back
+// Each test screen is a route on the router's stack: the hardware test's home (`hw.home`) rows push one, Display pushes its sub-screens over itself, and Back
 // and holding OK pop, focus back on the control that opened the screen (APP_ARCHITECTURE §7). Only the top screen runs a timer.
 lv_timer_t *s_timer = nullptr;  // the top screen's self-update, if it has one
 bool s_bench_running = false;   // a benchmark run is cycling the presets: leaving it puts the default back
@@ -122,7 +123,7 @@ lv_obj_t *EndScreen(lv_obj_t *screen)
     lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(footer, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_scrollable(footer, false);
-    lv_obj_t *back = widgets::MakeButton(footer, "Back", widgets::ButtonVariant::kOutline, 160);
+    lv_obj_t *back = widgets::MakeButton(footer, "Back", widgets::ButtonVariant::kOutline, dt::kSpacingButtonBack);
     lv_obj_add_event_cb(back, OnBack, LV_EVENT_CLICKED, nullptr);
     return footer;
 }
@@ -391,6 +392,7 @@ constexpr Primitive kTypeScale[] = {
 constexpr Primitive kTypeRoles[] = {
     {"hero", dt::kTypographyHero},   {"display", dt::kTypographyDisplay}, {"headline", dt::kTypographyHeadline},
     {"body", dt::kTypographyBody},   {"label", dt::kTypographyLabel},     {"caption", dt::kTypographyCaption},
+    {"title", dt::kTypographyTitle}, {"caption-strong", dt::kTypographyCaptionStrong}, {"caption-regular", dt::kTypographyCaptionRegular},
 };
 
 // One primitive's specimen on the page: a sample in it, then its name, size, line, weight and the roles that use it.
@@ -957,6 +959,70 @@ void KitInputsAndStatus(lv_obj_t *content)
     widgets::MakeStatusBlock(statuses, "No follow-ups yet", "Hold AI or press Record.");
 }
 
+// What the agent deck's screens needed of the kit, each opt-in beside the controls it changes: the small chip, a control's words one
+// size down, the foot's icon buttons and the link indicator, a list row's body title, the outlined network row, the
+// stacked status block and the quiet words (DESIGN → Components → The kit; STICKY_DESIGN_TOKENS §14).
+void KitDeck(lv_obj_t *content)
+{
+    widgets::MakeSectionHeading(content, "Small chips");
+    lv_obj_t *chips = ButtonRow(content);
+    widgets::MakeSmallChip(chips, "2 working");  // a reading: no ring, not in the walk
+    lv_obj_add_event_cb(widgets::MakeSmallChip(chips, "1 needs you", true), OnKitChip, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_state(widgets::MakeSmallChip(chips, "Review", true), LV_STATE_DISABLED);
+    KitReason(content, "Nothing to review");
+
+    // The words of a whole control one size down: each row as the kit makes it, then its words at `caption`, a list row's title and a
+    // choice card's name at `caption-strong` over their `caption` line, and a detail row's label at `caption-strong` over its value at `caption`.
+    widgets::MakeSectionHeading(content, "Words one size down", widgets::HeadingX::kRowWords);
+    lv_obj_t *small = KitColumn(content);
+    widgets::SetWordsRole(widgets::MakeToggleRow(small, "Sound", true).root, Type::kCaption);
+    widgets::SetWordsRole(widgets::MakeValueRow(small, "Battery", "Charged \xE2\x80\xA2 84%").root, Type::kCaption);
+    static const char *const kZones[] = {"Pacific", "Mountain", "Central"};
+    widgets::SetWordsRole(widgets::MakeDropdown(small, "Time zone", kZones, 3, 0)->frame, Type::kCaption);
+    widgets::SetWordsRole(widgets::MakeListRow(small, "Studio", "Joined", OnKitChip, nullptr), Type::kCaptionStrong);
+    lv_obj_t *radios = KitColumn(content);  // a radio row and a one-choice card that share a parent are one group
+    lv_obj_t *radio = widgets::MakeRadioRow(radios, "Pacific");
+    widgets::SetWordsRole(radio, Type::kCaption);
+    widgets::SetRadioChosen(radio, true);
+    lv_obj_t *cards = KitColumn(content);
+    lv_obj_t *card = widgets::MakeChoiceCard(cards, "Allow once", false, "Only this request");
+    widgets::SetWordsRole(card, Type::kCaptionStrong);
+    widgets::SetChoiceChosen(card, true);
+    widgets::DetailRow host = widgets::MakeDetailRow(content, "Host", "agentdeck-3f2a.local");
+    widgets::SetDetailRowOneSizeDown(host);
+    lv_obj_t *fact = host.root;
+    lv_obj_set_style_margin_top(fact, dt::kSpacingGroup - dt::kSpacingItem, 0);
+
+    // The deck's foot: the link indicator, a glyph alone out of the walk in both its faces, and the icon buttons that open a page.
+    widgets::MakeSectionHeading(content, "Foot icons");
+    lv_obj_t *foot = ButtonRow(content);
+    lv_obj_set_flex_align(foot, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    widgets::MakeLinkIndicator(foot, true);
+    widgets::MakeLinkIndicator(foot, false);
+    widgets::MakeIconButton(foot, widgets::IconAction::kWifi, widgets::ButtonVariant::kTonal, "Open Wi-Fi");
+    widgets::MakeIconButton(foot, widgets::IconAction::kSettings, widgets::ButtonVariant::kTonal, "Open settings");
+    widgets::MakeIconButton(foot, widgets::IconAction::kPower, widgets::ButtonVariant::kTonal, "Turn off");
+
+    widgets::MakeSectionHeading(content, "Rows in other words", widgets::HeadingX::kRowWords);
+    lv_obj_t *others = KitColumn(content);
+    // The needs-you list's row: names in `body`, 30 px regular, over their line in `caption-regular`, 20 px regular.
+    widgets::MakeListRow(others, "Claude", "Needs your review", OnKitChip, nullptr, Type::kBody, widgets::ListRowFit::kDots, 0,
+                         Type::kCaptionRegular);
+    widgets::MakeNetworkRow(others, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kOutlined);
+    widgets::MakeNetworkRow(others, "Office", true, 1, widgets::NetworkState::kConnecting, widgets::NetworkLook::kOutlined);
+
+    widgets::MakeSectionHeading(content, "Stacked status blocks", widgets::HeadingX::kRowWords);
+    lv_obj_t *stacked = KitColumn(content);
+    lv_obj_set_style_pad_row(stacked, dt::kSpacingXl, 0);
+    widgets::MakeStackedStatusBlock(stacked, "Not connected", "Connect asks your Mac for its network.", widgets::StatusMark::kWifi);
+    widgets::MakeStackedStatusBlock(stacked, "Answered", "in the terminal", widgets::StatusMark::kCheck);
+
+    // The proposed quiet words beside `text-secondary`, for the person to judge on the glass (DESIGN → Open items → Quiet words).
+    widgets::MakeSectionHeading(content, "Quiet words");
+    ui::NewLabel(content, Type::kCaption, "Resets in 1h 12m", true);
+    ui::QuietWords(ui::NewLabel(content, Type::kCaption, "Resets in 4d 2h"));
+}
+
 void CreateKit(lv_obj_t *screen, lv_group_t *, void *)
 {
     lv_obj_t *content = BeginScreen(screen, "UI kit");
@@ -974,6 +1040,7 @@ void CreateKit(lv_obj_t *screen, lv_group_t *, void *)
     KitNetworksAndMenus(content);
     const KitRollers kit_rollers = KitRollersAndPager(content);
     KitInputsAndStatus(content);
+    KitDeck(content);
 
     lv_obj_t *row = ButtonRow(content);
     HalfButton(row, "Display", false, OnBack);
@@ -1449,16 +1516,15 @@ void OnCharge(lv_event_t *)
     FillPower();
 }
 
-// How the board leaves: deep sleep, power off, or power off with the RTC set to turn it on again.
-enum class LeaveBy : uintptr_t { kSleep, kPowerOff, kPowerOffTimed };
-constexpr uint8_t kRtcWakeS = 60;  // DESIGN → Exceptions: a hardware-test timer; the Off, 60 s button and the
-                                   // Battery page's caption spell it out too, so change all three together
+// How the board leaves — power_leave's sequence, shared with the agent deck's Power button — and the frame it leaves on: the screen the
+// glass keeps in place of every screen above home, its title and how it comes back.
+using power_leave::How;
+constexpr uint8_t kRtcWakeS = power_leave::kRtcWakeS;  // DESIGN → Exceptions: a hardware-test timer; the Off, 60 s button and the
+                                                      // Battery page's caption spell it out too, so change all three together
 
-// The screen the board leaves on, in place of every screen above home: its title and how it comes back.
-void CreateLeave(lv_obj_t *screen, lv_group_t *, void *user)
+void CreateLeave(lv_obj_t *screen, How how)
 {
-    const auto how = static_cast<LeaveBy>(reinterpret_cast<uintptr_t>(user));
-    const bool power_off = how != LeaveBy::kSleep;
+    const bool power_off = how != How::kSleep;
     ui::StyleScreen(screen);
     lv_obj_set_flex_align(screen, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_hor(screen, dt::kSpacingEdge, 0);
@@ -1468,76 +1534,26 @@ void CreateLeave(lv_obj_t *screen, lv_group_t *, void *user)
     char timed[64];
     std::snprintf(timed, sizeof timed, "Turns on in %u s. Hold OK to turn on now.", unsigned{kRtcWakeS});
     lv_obj_t *hint = ui::NewLabel(screen, Type::kBody,
-                                  how == LeaveBy::kPowerOffTimed ? timed
-                                  : power_off                    ? "Hold OK to turn on."
-                                                                 : "Press OK, UP or DOWN to wake.");
+                                  how == How::kPowerOffTimed ? timed
+                                  : power_off                ? "Hold OK to turn on."
+                                                             : "Press OK, UP or DOWN to wake.");
     lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
 }
 
-// The frame left on the glass when the board leaves: drawn in full, then the panel sleeps (DESIGN → Motion).
-constexpr uint32_t kSilenceSettleMs = 10;  // many of the buzzer task's 1 ms steps, so its duty 0 is out before sleep
-
-void Leave(LeaveBy how)
-{
-    // A sound still playing would leave the buzzer's pad high under the hold deep sleep puts on it, the coil drawing all
-    // night (STICKY_HARDWARE_SPECS §5.3); this one is cut here and the last press's tick once more below.
-    devices::Silence();
-    const bool power_off = how != LeaveBy::kSleep;
-    // An RTC interrupt left low would power the board straight back on (STICKY_HARDWARE_SPECS §5.3); set it first, so
-    // the glass promises only what is set. On USB the board restarts, and the start clears the countdown.
-    if (how == LeaveBy::kPowerOffTimed && (board::UsbPresent() || devices::SetRtcWake(kRtcWakeS) != ESP_OK)) {
-        how = LeaveBy::kPowerOff;
-    }
-    if (how != LeaveBy::kPowerOffTimed && devices::ClearRtcWake() != ESP_OK) {
-        ESP_LOGE(kTag, "RTC interrupts not cleared: the board may turn on again");
-    }
-    // The Battery screen's OnExit stops its timer; the screens above home are let go, the board never comes back to them.
-    if (router::GoTo(router::MakeScreen(CreateLeave, nullptr, nullptr, nullptr,
-                                        reinterpret_cast<void *>(static_cast<uintptr_t>(how)))) != ESP_OK) {
-        ESP_LOGE(kTag, "no memory for the leaving screen: the glass keeps the last one");
-    }
-    lvgl_display::RequestFull();
-    lvgl_display::Redraw();
-    const bool panel_asleep = lvgl_display::SleepPanel() == ESP_OK;
-    if (!panel_asleep) {
-        ESP_LOGE(kTag, "the panel did not sleep: its power stays on");
-    }
-    devices::Silence();  // a press during the full refresh ticked; the buzzer task wakes within a step to stop it
-    vTaskDelay(pdMS_TO_TICKS(kSilenceSettleMs));
-    if (power_off) {
-        board::PowerOff();  // returns only on battery when the rail did not fall
-        ESP_LOGW(kTag, "the rail did not fall: deep sleep instead");
-        // Only the buttons wake deep sleep, so a countdown left running would mislead the next start. A timed frame
-        // already on the glass keeps its "Turns on in 60 s" here: the panel is asleep, and this path needs a fault.
-        if (devices::ClearRtcWake() != ESP_OK) {
-            ESP_LOGE(kTag, "RTC interrupts not cleared before deep sleep");
-        }
-    }
-    board::EnterDeepSleep(!panel_asleep);
-    ESP_LOGW(kTag, "still running after deep sleep");
-}
-
-void LeaveSoon(lv_timer_t *timer)
-{
-    const auto how = static_cast<LeaveBy>(reinterpret_cast<uintptr_t>(lv_timer_get_user_data(timer)));
-    lv_timer_delete(timer);
-    Leave(how);
-}
-
+// From a timer, not the click (power_leave::LeaveSoon): the press has to finish before the board waits for the buttons to be released.
 void OnSleep(lv_event_t *)
 {
-    // From a timer, not this click: the press has to finish before the board waits for the buttons to be released.
-    lv_timer_create(LeaveSoon, 50, reinterpret_cast<void *>(LeaveBy::kSleep));
+    power_leave::LeaveSoon(How::kSleep, CreateLeave);
 }
 
 void OnPowerOff(lv_event_t *)
 {
-    lv_timer_create(LeaveSoon, 50, reinterpret_cast<void *>(LeaveBy::kPowerOff));
+    power_leave::LeaveSoon(How::kPowerOff, CreateLeave);
 }
 
 void OnPowerOffTimed(lv_event_t *)
 {
-    lv_timer_create(LeaveSoon, 50, reinterpret_cast<void *>(LeaveBy::kPowerOffTimed));
+    power_leave::LeaveSoon(How::kPowerOffTimed, CreateLeave);
 }
 
 void CreatePower(lv_obj_t *screen, lv_group_t *, void *)
@@ -1760,7 +1776,7 @@ void CreateAbout(lv_obj_t *screen, lv_group_t *, void *)
 
 // Lines typed on the console (UART0, the CH343P) run bench commands, so a test can be started and read from a
 // computer (tests/bench/): `bench` opens the refresh benchmark and runs it, its results to the log; `anim` runs its bar
-// without end; `pages [n]` walks the home rows; `stop` ends either; `speed [n]` picks the partial refresh's tuning;
+// without end; `pages [n]` walks the hardware test's rows; `hw` opens its home, the list of them; `stop` ends either; `speed [n]` picks the partial refresh's tuning;
 // `key up|down|ok|hold [n]` presses a button through the real input path; `shot` sends the one-bit frame on the glass;
 // `sound [name|band]` lists, plays or measures the buzzer's sounds; `help` lists them.
 
@@ -1998,7 +2014,8 @@ void SoundCommand(const char *arg)
     std::printf("sound: no sound \"%s\" (try: sound)\n", arg);
 }
 
-void StartPages(const char *arg);  // the page walk, below the home rows it opens
+void StartPages(const char *arg);  // the page walk, below the rows it opens
+void OpenHardwareHome();           // `hw`, below the route it opens
 std::atomic<bool> s_pages_stop{false};
 std::atomic<bool> s_pages_running{false};  // one walk at a time
 
@@ -2022,6 +2039,8 @@ void ConsoleTask(void *)
         if (std::strcmp(line, "bench") == 0) {
             ESP_LOGI(kTag, "console: running the refresh benchmark");
             RunBenchmark();
+        } else if (std::strcmp(line, "hw") == 0) {
+            OpenHardwareHome();
         } else if (std::strcmp(line, "shot") == 0) {
             SendShot();
         } else if (std::strcmp(line, "anim") == 0) {
@@ -2042,7 +2061,7 @@ void ConsoleTask(void *)
         } else if (std::strcmp(line, "sound") == 0 || std::strncmp(line, "sound ", 6) == 0) {
             SoundCommand(line[5] == ' ' ? line + 6 : "");
         } else if (std::strcmp(line, "help") == 0) {
-            std::printf("commands: bench, anim, pages [n], stop, speed [n], key up|down|ok|hold [n], sound [name|band], shot, "
+            std::printf("commands: bench, anim, hw, pages [n], stop, speed [n], key up|down|ok|hold [n], sound [name|band], shot, "
                         "help\n");
         } else if (line[0] != '\0') {
             ESP_LOGW(kTag, "console: unknown command \"%s\" (try: help)", line);
@@ -2057,7 +2076,7 @@ void StartConsole()
         return;
     }
     xTaskCreate(ConsoleTask, "hw_test_console", 4096, nullptr, 2, nullptr);
-    ESP_LOGI(kTag, "console ready: bench, anim, pages, stop, speed, key, sound, shot, help");
+    ESP_LOGI(kTag, "console ready: bench, anim, hw, pages, stop, speed, key, sound, shot, help");
 }
 
 // --- Home -----------------------------------------------------------------------------------------------------
@@ -2080,8 +2099,10 @@ std::unique_ptr<router::Screen> MicrophoneScreen() { return TestScreen(CreateMic
 std::unique_ptr<router::Screen> AboutScreen() { return TestScreen(CreateAbout); }
 std::unique_ptr<router::Screen> RemindersScreen() { return TestScreen(CreateReminders); }
 std::unique_ptr<router::Screen> MascotRoute() { return MascotScreen(); }  // mascot_page.cpp's
+std::unique_ptr<router::Screen> HomeRoute();  // the list of the test screens, below with its rows
 
 constexpr router::Route kRoutes[] = {
+    {"hw.home", router::NoParam<HomeRoute>},
     {"hw.display", router::NoParam<DisplayScreen>},
     {"hw.display.grays", router::NoParam<GraysScreen>},
     {"hw.display.type-scale", router::NoParam<TypeScaleScreen>},
@@ -2104,7 +2125,7 @@ constexpr router::Route kRoutes[] = {
 void AddRoutes()
 {
     if (router::AddRoutes({kRoutes, sizeof(kRoutes) / sizeof(kRoutes[0])}) != ESP_OK) {
-        ESP_LOGE(kTag, "the test screens' routes were refused: home's rows open nothing");
+        ESP_LOGE(kTag, "the test screens' routes were refused: the hardware test's rows open nothing");
     }
 }
 
@@ -2134,25 +2155,40 @@ void OnEntry(lv_event_t *e)
     router::PushRoute(static_cast<const Entry *>(lv_event_get_user_data(e))->route);
 }
 
-// Home's rows: the content column's width, 80 high, 16 apart with no rule between, seven to a page; the rest turn with a
-// swipe or when the focus leaves the page (DESIGN → Layout → Paging).
-constexpr int32_t kHomeRowsPerPage = 7;
+// The hardware test's home, `hw.home`: a screen of its own under the status bar "Hardware test", since the agent deck owns the
+// app's home. Its rows are the content column's width, 80 high, 16 apart with no rule between, six to a page — seven leave no room
+// for the footer's Back; the rest turn with a swipe or when the focus leaves the page (DESIGN → Layout → Paging).
+constexpr int32_t kHomeRowsPerPage = 6;
 
-void BuildHome(lv_obj_t *home)
+// The rows, one per test screen, in the content column.
+void BuildHome(lv_obj_t *content)
 {
-    lv_obj_t *column = lv_obj_create(home);
-    lv_obj_remove_style_all(column);
-    lv_obj_set_width(column, lv_pct(100));
-    lv_obj_set_flex_grow(column, 1);
-    lv_obj_set_style_pad_hor(column, dt::kSpacingEdge, 0);
-    lv_obj_set_style_pad_ver(column, dt::kSpacingMd, 0);
-    lv_obj_set_scrollable(column, false);
-    ui::LetRingOut(column);
-    const widgets::ListView list = widgets::MakeListView(column, kHomeRowsPerPage, dt::kSpacingListRowHeight, widgets::IndicatorCentre::kGlass);
+    const widgets::ListView list = widgets::MakeListView(content, kHomeRowsPerPage, dt::kSpacingListRowHeight);
     for (const Entry &entry : kEntries) {
         widgets::MakeListRow(list.root, entry.label, entry.supporting, OnEntry, const_cast<Entry *>(&entry));
     }
-    widgets::UpdateListView(list);
+    widgets::UpdateListView(list);  // before the footer: the pages' stops come first in the walk, Back last
+}
+
+void CreateHome(lv_obj_t *screen, lv_group_t *, void *)
+{
+    BuildHome(BeginScreen(screen, "Hardware test"));
+    EndScreen(screen);
+}
+
+std::unique_ptr<router::Screen> HomeRoute()
+{
+    return TestScreen(CreateHome);
+}
+
+// `hw`: the hardware test's home over the app's, replacing what is above it, so a bench script starts its key presses from a known
+// place (tests/bench/).
+void OpenHardwareHome()
+{
+    if (lvgl_display::Lock()) {
+        router::GoToRoute("hw.home");
+        lvgl_display::Unlock();
+    }
 }
 
 // The page walk: opens each home row in turn and goes back, a few seconds on each, so a long run of page changes can
@@ -2209,7 +2245,6 @@ void StartPages(const char *arg)
 
 void Install()
 {
-    app_hooks::OnHomeBuilt(BuildHome);
     app_hooks::OnBoot(app_hooks::Phase::kBoardUp, AddRoutes);
     app_hooks::OnBoot(app_hooks::Phase::kReady, NoteStart);
     app_hooks::OnBoot(app_hooks::Phase::kReady, StartConsole);

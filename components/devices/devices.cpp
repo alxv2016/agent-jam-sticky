@@ -1,6 +1,7 @@
 #include "devices.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -249,13 +250,16 @@ void SoundTask(void *)
     }
 }
 
+// The sound setting (SetMuted): read by every call that asks the buzzer task for a sound.
+std::atomic<bool> s_muted{false};
+
 void Ask(const SoundRequest &request)
 {
     if (s_sound_task == nullptr) {
         return;
     }
     taskENTER_CRITICAL(&s_sound_lock);
-    s_sound_request = request;
+    s_sound_request = s_muted.load() && !request.is_tone ? SoundRequest{} : request;  // muted: a silence, which cuts
     ++s_sound_requests;
     taskEXIT_CRITICAL(&s_sound_lock);
     xTaskNotifyGive(s_sound_task);
@@ -412,7 +416,7 @@ void AskMusic(const MusicRequest &music)
         return;
     }
     taskENTER_CRITICAL(&s_sound_lock);
-    s_music = music;
+    s_music = s_muted.load() ? MusicRequest{} : music;
     taskEXIT_CRITICAL(&s_sound_lock);
     xTaskNotifyGive(s_sound_task);
 }
@@ -461,6 +465,9 @@ size_t s_moment_buffer = 0;
 
 void QueueMoment(sound::Moment moment)
 {
+    if (s_muted.load()) {
+        return;
+    }
     taskENTER_CRITICAL(&s_moment_lock);
     s_moments.Push(sound::SoundOf(moment));
     taskEXIT_CRITICAL(&s_moment_lock);
@@ -492,6 +499,21 @@ void PlayMoments()
     }
     Play(sound::Sound{notes, count});
     s_moment_buffer ^= 1;
+}
+
+void SetMuted(bool muted)
+{
+    s_muted.store(muted);
+    if (muted) {
+        DropMoments();
+        StopMusic();
+        Silence();
+    }
+}
+
+bool Muted()
+{
+    return s_muted.load();
 }
 
 // The microphone's channel while a listener has it open: StartListening to StopListening.

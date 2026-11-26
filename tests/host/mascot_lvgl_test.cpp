@@ -1,5 +1,5 @@
 // Host test of Claude's mascot on LVGL's real objects and timers, on the computer with no board, sampled as the glass
-// samples it — a frame every partial refresh, about 460 ms (MASCOT §6; STICKY_UI_KIT_PORT §4 item 8): every move the
+// samples it — a frame every partial refresh, about 460 ms (MASCOT §6; STICKY_DESIGN_TOKENS §13): every move the
 // deck's stage plays draws only the glass's own codes — white, black and the mascot's fills, never a blended grey — at rest
 // and in every sampled frame; every move tells moments; and every move, asked to rest as the deck's stage asks it, comes
 // back to the rest pose. Beside it, the mascot's MascotSfx and the buzzer's Moment name the same moments in the same order

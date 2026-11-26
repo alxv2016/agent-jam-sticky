@@ -13,7 +13,7 @@
 
 // Bitcount Single at one bit a pixel (fonts/bitcount/make_fonts.sh): C objects, declared outside any namespace.
 extern "C" {
-LV_FONT_DECLARE(bitcount_400_30)
+LV_FONT_DECLARE(bitcount_400_20) LV_FONT_DECLARE(bitcount_400_30)
 LV_FONT_DECLARE(bitcount_600_20) LV_FONT_DECLARE(bitcount_600_30) LV_FONT_DECLARE(bitcount_600_40)
 LV_FONT_DECLARE(bitcount_600_50) LV_FONT_DECLARE(bitcount_600_60) LV_FONT_DECLARE(bitcount_600_70)
 LV_FONT_DECLARE(bitcount_600_80) LV_FONT_DECLARE(bitcount_600_100) LV_FONT_DECLARE(bitcount_600_120)
@@ -37,7 +37,8 @@ struct Role {
 Role s_roles[] = {
     {dt::kTypographyHero, nullptr},  {dt::kTypographyDisplay, nullptr}, {dt::kTypographyHeadline, nullptr},
     {dt::kTypographyBody, nullptr},  {dt::kTypographyLabel, nullptr},   {dt::kTypographyCaption, nullptr},
-    {dt::kTypographyCaptionLoose, nullptr},
+    {dt::kTypographyCaptionLoose, nullptr}, {dt::kTypographyTitle, nullptr},    {dt::kTypographyCaptionStrong, nullptr},
+    {dt::kTypographyCaptionRegular, nullptr},
 };
 
 lv_style_t s_screen, s_status_bar, s_divider, s_focus;
@@ -48,7 +49,7 @@ struct BitcountFont {
     const lv_font_t *font;
 };
 constexpr BitcountFont kBitcount[] = {
-    {30, 400, &bitcount_400_30},
+    {20, 400, &bitcount_400_20},   {30, 400, &bitcount_400_30},
     {20, 600, &bitcount_600_20},   {30, 600, &bitcount_600_30},   {40, 600, &bitcount_600_40},
     {50, 600, &bitcount_600_50},   {60, 600, &bitcount_600_60},   {70, 600, &bitcount_600_70},
     {80, 600, &bitcount_600_80},   {100, 600, &bitcount_600_100}, {120, 600, &bitcount_600_120},
@@ -191,6 +192,12 @@ lv_obj_t *NewLabel(lv_obj_t *parent, Type role, const char *text, bool secondary
     lv_label_set_long_mode(label, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_width(label, lv_pct(100));
     return label;
+}
+
+void QuietWords(lv_obj_t *label)
+{
+    // `text-quiet`: level 1 as its dither, which Fill gives every refresh (STICKY_DESIGN_TOKENS §2.3).
+    lv_obj_set_style_text_color(label, Fill(dt::kColorTextQuiet), 0);
 }
 
 // The role's line height token as the line box (STICKY_DESIGN_TOKENS §3, §9).

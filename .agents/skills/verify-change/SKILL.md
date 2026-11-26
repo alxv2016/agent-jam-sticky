@@ -126,7 +126,8 @@ flowchart TD
 5. A visible change: show the person the built screen beside the approved mock ([`ui-designer`](../ui-designer/SKILL.md)
    gate 2); their yes: `V approve <side-by-side> --kind built`.
 6. The change needs the target? The target, below; then `V target --where "<where>" --build "<which build>"
-   --health-exit <n>` — every time, a flash or a deploy each (Do 13).
+   --health-exit <n>` — every time, a flash or a deploy each (Do 13); a flash or a deploy that failed is no run on
+   the target, so record none for it.
 7. The person judges it on the target. Their yes: `V signoff "<what they judged>"`, in their words; what they report
    wrong, and what you learned, routed (Recording what was learned).
 8. `V finish` — the Verified block's draft; exit 1 lists what is still open. On exit 0, fill in the `<…>` lines and

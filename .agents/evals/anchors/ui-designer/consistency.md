@@ -21,3 +21,6 @@ What scores of 0, 2 and 4 look like on this dimension, for the `ui-designer` jud
 ## From the person
 
 - **2026-11-23, poor** (T4) — "Don't change my checkmarks, radio, and switch components, I've asked you to fix typography and spacing not make changes to ui components"
+- **2026-11-25, poor** (T5) — "You need to follow the original design more closely I don't like how you've layout the design" — [2026-11-25-ui-designer-consistency-agent-session-mock1.png](../img/2026-11-25-ui-designer-consistency-agent-session-mock1.png)
+- **2026-11-25, poor** (T6) — "one line not space apart fucking listen"
+- **2026-11-25, poor** (T7) — "that means the On and selection as well — 'labels should all be the same size as Sound labels for all controls' covered every word in the controls, not only the names"

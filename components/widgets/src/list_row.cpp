@@ -3,6 +3,7 @@
 #include "design_tokens.h"
 #include "internal/base.h"
 #include "lvgl_display.h"
+#include "widgets/marquee.h"
 
 namespace widgets {
 namespace dt = design_tokens;
@@ -38,7 +39,8 @@ void BuildStyles()
 }
 }  // namespace
 
-lv_obj_t *MakeListRow(lv_obj_t *parent, const char *label, const char *supporting, lv_event_cb_t on_click, void *user_data)
+lv_obj_t *MakeListRow(lv_obj_t *parent, const char *label, const char *supporting, lv_event_cb_t on_click, void *user_data,
+                      ui::Type title_role, ListRowFit fit, uint32_t key, ui::Type supporting_role)
 {
     BuildStyles();
     lv_obj_t *row = lv_obj_create(parent);
@@ -48,22 +50,37 @@ lv_obj_t *MakeListRow(lv_obj_t *parent, const char *label, const char *supportin
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START);
     lv_obj_set_style_pad_row(row, 0, 0);
-    lv_obj_t *title = lv_label_create(row);
-    lv_label_set_text(title, label);
-    lv_label_set_long_mode(title, LV_LABEL_LONG_MODE_DOTS);
-    lv_obj_set_width(title, lv_pct(100));
-    // One line on its line box: the rows keep their pitch and the detail its distance (STICKY_DESIGN_TOKENS §9).
-    ui::FitLineBox(title, ui::Type::kLabel);
-    if (supporting != nullptr) {
-        lv_obj_t *sub = lv_label_create(row);
-        lv_label_set_text(sub, supporting);
-        lv_obj_set_style_text_font(sub, ui::Font(ui::Type::kCaption), 0);
-        lv_obj_set_style_text_color(sub, ui::Level(dt::kColorTextSecondary), 0);
-        lv_obj_set_style_text_color(sub, ui::Level(dt::kColorTextOnFill), LV_STATE_CHECKED);
-        lv_label_set_long_mode(sub, LV_LABEL_LONG_MODE_DOTS);
-        lv_obj_set_width(sub, lv_pct(100));
-        // One line on its line box, ending in LVGL's dots when too long (STICKY_DESIGN_TOKENS §9).
-        ui::FitLineBox(sub, ui::Type::kCaption);
+    const bool stepped = fit != ListRowFit::kDots;
+    if (stepped) {
+        // A line too long steps instead of ending in dots, and rests at its start after its passes: the row is a control (widgets/marquee.h).
+        MakeMarquee(row, title_role, label, {MarqueeAlign::kStart, key, false});
+        if (supporting != nullptr) {
+            lv_obj_t *sub = MakeMarquee(row, supporting_role, supporting,
+                                        {MarqueeAlign::kStart, key != 0 ? key + 1 : 0, fit == ListRowFit::kSteppedCounting});
+            lv_obj_set_style_text_color(sub, ui::Level(dt::kColorTextSecondary), 0);
+            lv_obj_set_style_text_color(sub, ui::Level(dt::kColorTextOnFill), LV_STATE_CHECKED);
+        }
+    } else {
+        lv_obj_t *title = lv_label_create(row);
+        lv_label_set_text(title, label);
+        if (title_role != ui::Type::kLabel) {
+            lv_obj_set_style_text_font(title, ui::Font(title_role), 0);  // the row's style gives `label`
+        }
+        lv_label_set_long_mode(title, LV_LABEL_LONG_MODE_DOTS);
+        lv_obj_set_width(title, lv_pct(100));
+        // One line on its line box: the rows keep their pitch and the detail its distance (STICKY_DESIGN_TOKENS §9).
+        ui::FitLineBox(title, title_role);
+        if (supporting != nullptr) {
+            lv_obj_t *sub = lv_label_create(row);
+            lv_label_set_text(sub, supporting);
+            lv_obj_set_style_text_font(sub, ui::Font(supporting_role), 0);
+            lv_obj_set_style_text_color(sub, ui::Level(dt::kColorTextSecondary), 0);
+            lv_obj_set_style_text_color(sub, ui::Level(dt::kColorTextOnFill), LV_STATE_CHECKED);
+            lv_label_set_long_mode(sub, LV_LABEL_LONG_MODE_DOTS);
+            lv_obj_set_width(sub, lv_pct(100));
+            // One line on its line box, ending in LVGL's dots when too long (STICKY_DESIGN_TOKENS §9).
+            ui::FitLineBox(sub, supporting_role);
+        }
     }
     ui::RingOutside(row);
     if (on_click != nullptr) {

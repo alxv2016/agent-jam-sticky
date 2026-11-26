@@ -1,4 +1,4 @@
-// The hardware test's mascot page (STICKY_UI_KIT_PORT §4 item 8): Claude's mascot alone on a stage band across the
+// The hardware test's mascot page (STICKY_DESIGN_TOKENS §13): Claude's mascot alone on a stage band across the
 // portrait glass, one move at a time — the deck's fourteen and its rest — played once or looped, each moment of a move
 // heard through the buzzer, so every move, its sounds and the ghosting a loop leaves can be judged on the glass. A move
 // runs as the deck's stage runs it (widgets::mascot_stage_run, AGENT_DECK 9.8), its numbers unchanged, and the glass
@@ -14,12 +14,10 @@
 #include <cstdio>
 
 #include "design_tokens.h"
-#include "devices.h"
-#include "esp_timer.h"
 #include "lvgl_display.h"
 #include "mascot_rules.h"
+#include "mascot_voice.h"
 #include "router/router.h"
-#include "sounds.h"
 #include "ui.h"
 #include "widgets/mascot.h"
 #include "widgets/widgets.h"
@@ -54,7 +52,7 @@ static_assert(widgets::kMascotPageCentreY == kStageTop + kStageHeight - kMascotH
 // the next frame is drawn — the refresh benchmark's period.
 constexpr uint32_t kWatchMs = 5;
 // The footer: Back as on every screen, then Loop and Play, a third each of what is left.
-constexpr int32_t kBackWidth = 160;
+constexpr int32_t kBackWidth = dt::kSpacingButtonBack;
 constexpr int32_t kThirdWidth = (dt::kSpacingContent - kBackWidth - 2 * dt::kSpacingItem) / 2;
 
 constexpr int kMoves = static_cast<int>(MascotMove::kIdleInPlace) + 1;
@@ -63,12 +61,6 @@ constexpr std::array<const char *, kMoves> kNames = {
     "Rest", "Jump",  "Work", "Finish", "Celebrate", "Idle",      "Wave",         "Needs you",
     "Hello", "Skip", "Spin", "Dust",   "Faceplant", "Skip trip", "Idle in place",
 };
-
-// A mascot's moment is the buzzer's moment of the same name, the lists in one order: tests/host/mascot_lvgl_test.cpp
-// checks each by name; here, the ends, so a list grown on one side only fails the build.
-static_assert(static_cast<int>(widgets::MascotSfx::kFlop) == static_cast<int>(devices::sound::Moment::kFlop) &&
-                  static_cast<int>(widgets::MascotSfx::kBlink) == static_cast<int>(devices::sound::Moment::kBlink),
-              "a mascot's moment is the buzzer's moment of the same name");
 
 // Every frame the glass has taken — drawn, or found unchanged and not sent; a failed refresh is no frame.
 uint32_t RefreshCount(const lvgl_display::Stats &st)
@@ -143,7 +135,7 @@ private:
         mascot_ = widgets::make_mascot(stage, kCell);
         lv_obj_set_pos(mascot_.root, widgets::kMascotPageCentreX - kMascotWidth / 2,
                        widgets::kMascotPageCentreY - kStageTop - kMascotHeight / 2);
-        widgets::set_mascot_sfx(mascot_, OnSfx, this);
+        voice_.Attach(mascot_);  // its moments and its music, heard as the deck's are (mascot_voice.h)
     }
 
     // Under the stage: the readout — three caption lines in one label, as the Display screen's — Previous and Next, and
@@ -209,17 +201,7 @@ private:
     static void OnSounds(lv_event_t *e)
     {
         MascotPage *page = Of(e);
-        page->sounds_on_ = lv_obj_has_state(page->sounds_.toggle, LV_STATE_CHECKED);
-        if (!page->sounds_on_) {
-            page->Hear({}, true);
-        }
-    }
-    // A moment the mascot told as its frame was drawn: held for the next refresh, when the shell's frame hook plays it.
-    static void OnSfx(widgets::MascotSfx sfx, void *user)
-    {
-        if (static_cast<MascotPage *>(user)->sounds_on_) {
-            devices::QueueMoment(static_cast<devices::sound::Moment>(sfx));
-        }
+        page->voice_.SetOn(lv_obj_has_state(page->sounds_.toggle, LV_STATE_CHECKED));
     }
     static void OnWatch(lv_timer_t *t) { static_cast<MascotPage *>(lv_timer_get_user_data(t))->Watch(); }
 
@@ -286,10 +268,7 @@ private:
             watch_ = nullptr;
         }
         widgets::play_mascot(mascot_, MascotMove::kRest);
-        if (drop) {
-            devices::DropMoments();
-        }
-        Hear({}, drop);
+        voice_.Stop(drop, drop);
         pass_.mode = Mode::kRest;
         lv_obj_set_hidden(count_, true);
     }
@@ -322,7 +301,7 @@ private:
         MascotMove shown = MascotMove::kRest;
         uint32_t since = 0;
         const bool at_rest = widgets::mascot_move_now(mascot_, &shown, &since) && shown == MascotMove::kRest;
-        Listen(now, shown, since);
+        voice_.Listen(mascot_, now);
         switch (pass_.Look(now, RunMs(), at_rest)) {
         case mascot_rules::Next::kNothing: return;
         case mascot_rules::Next::kAskRest:
@@ -344,58 +323,6 @@ private:
             return;
         case mascot_rules::Next::kBeginPass: BeginPass(); return;
         }
-    }
-
-    // The music the mascot is heard doing besides its moments — the typing, the spin's, the success, the wave's "hi"s,
-    // the thinking — as the deck's stage hears it (mascot_rules.h MusicOnView), on the buzzer's one voice under them.
-    void Listen(uint32_t now, MascotMove shown, uint32_t since)
-    {
-        if (!sounds_on_) {
-            return;
-        }
-        mascot_rules::Seen seen;
-        seen.typing = widgets::mascot_typing(mascot_);
-        if (seen.typing && !typing_) {
-            typing_since_ = now;
-        }
-        typing_ = seen.typing;
-        seen.spin = shown == MascotMove::kSpin;
-        seen.done = shown == MascotMove::kFinish || shown == MascotMove::kCelebrate;
-        seen.done_after = seen.done ? widgets::mascot_stage_run(shown).pass_ms : 0;
-        seen.move_since = since;
-        widgets::MascotJaunt jaunt = widgets::MascotJaunt::kSkip;
-        uint32_t jaunt_since = 0;
-        if (widgets::mascot_jaunt(mascot_, &jaunt, &jaunt_since)) {
-            seen.wave = jaunt == widgets::MascotJaunt::kWave;
-            seen.think = jaunt == widgets::MascotJaunt::kThink;
-            seen.jaunt_since = jaunt_since;
-        }
-        Hear(mascot_rules::MusicOnView(seen, typing_since_), false);
-    }
-
-    // `heard` from now: played from where its move is, kept, or stopped — `force` stops even the success.
-    void Hear(const mascot_rules::Heard &heard, bool force)
-    {
-        const mascot_rules::Change change = mascot_rules::ChangeOf(heard_, heard);
-        if (change == mascot_rules::Change::kKeep && !(force && heard_.music != mascot_rules::Music::kNone)) {
-            return;
-        }
-        heard_ = heard;
-        if (change != mascot_rules::Change::kPlay || force) {
-            devices::StopMusic();
-            heard_ = {};
-            return;
-        }
-        using mascot_rules::Music;
-        using DeviceMusic = devices::sound::Music;
-        const DeviceMusic music = heard.music == Music::kTyping    ? DeviceMusic::kTyping
-                                  : heard.music == Music::kSpin    ? DeviceMusic::kSpin
-                                  : heard.music == Music::kSuccess ? DeviceMusic::kSuccess
-                                  : heard.music == Music::kWave    ? DeviceMusic::kWave
-                                                                   : DeviceMusic::kThink;
-        // Its start on the move's clock, which may lie ahead (the celebrate's success): the buzzer waits for it.
-        const auto into_ms = static_cast<int32_t>(lv_tick_get() - heard.since);
-        devices::PlayMusic(music, esp_timer_get_time() - int64_t{into_ms} * 1000);
     }
 
     // --- What the page says ------------------------------------------------------------------------------------------
@@ -470,11 +397,8 @@ private:
     lv_obj_t *play_ = nullptr;
     lv_timer_t *watch_ = nullptr;
     int move_ = 0;  // MascotMove's order: 0 is Rest
-    bool sounds_on_ = true;
+    mascot_voice::Voice voice_;  // the Move sounds toggle's: the moments and the music
     mascot_rules::Pass pass_;
-    mascot_rules::Heard heard_;  // the music sounding
-    bool typing_ = false;
-    uint32_t typing_since_ = 0;
     uint32_t full_base_ = 0;
     uint32_t frame_ms_ = kFrameMs;  // this glass's frame on this page: the estimate's divisor
     std::array<uint32_t, kMoves> played_ = {};

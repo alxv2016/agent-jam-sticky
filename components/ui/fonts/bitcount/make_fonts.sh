@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compiles Bitcount Single at one bit a pixel for LVGL: the type scale's ladder at weights 600 and 700, and 30 px at 400
+# Compiles Bitcount Single at one bit a pixel for LVGL: the type scale's ladder at weights 600 and 700, and 30 and 20 px at 400
 # (STICKY_DESIGN_TOKENS §3). The three TTFs are the upright Regular, SemiBold and Bold instances of Bitcount Single's variable
 # font from petrvanblokland/TYPETR-Bitcount (OFL.txt), Version 1.001 — wght 400, 600 and 700, ELXP 0, ELSH 0, slnt 0,
 # CRSV 0 — cut with fontTools' instancer. Bitcount draws on a 100-unit cell, a tenth of the em, so a size that is a multiple of
@@ -24,5 +24,7 @@ for weight in 600 700; do
     for size in "${TEXT_SIZES[@]}"; do conv "$weight" "$file" "$size" "$TEXT_RANGE"; done
     for size in "${FIGURE_SIZES[@]}"; do conv "$weight" "$file" "$size" "$FIGURE_RANGE"; done
 done
-# The one regular size: body, 30 px at weight 400 (DESIGN → Typography → Scale and roles).
+# The two regular sizes (DESIGN → Typography → Scale and roles): body, 30 px at weight 400, and caption-regular, 20 px at weight 400,
+# the same glyph range as the other sizes.
 conv 400 BitcountSingle-Regular.ttf 30 "$TEXT_RANGE"
+conv 400 BitcountSingle-Regular.ttf 20 "$TEXT_RANGE"

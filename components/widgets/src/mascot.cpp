@@ -18,7 +18,7 @@ static_assert(widgets::theme::kScreenWidth == board_config::kScreenWidth &&
 #endif
 
 /*
- * CLAUDE'S MASCOT, PORTED FROM THE AGENT DECK with its numbers unchanged (STICKY_UI_KIT_PORT §4 item 8): its moves are
+ * CLAUDE'S MASCOT, PORTED FROM THE AGENT DECK with its numbers unchanged (STICKY_DESIGN_TOKENS §13): its moves are
  * played at the deck's pace and seen at the e-paper glass's, whatever pose is current as each partial refresh starts —
  * about two a second — and its moments sound as that refresh starts (MASCOT §6; the person's choice, 2026-11-24). Its
  * colours are DESIGN → Colors → The mascot's greys, fills a partial refresh draws as dithers; every part is a solid box
@@ -2084,6 +2084,7 @@ struct WaveKey {
 constexpr int32_t kWaveSwingMs = 200; // a swing of the hand, out or in
 constexpr int32_t kWaveSwings = 6;
 constexpr int32_t kWaveHandMs = 1800; // one hand's wave, wind-up to settled
+static_assert(kWaveHandMs == static_cast<int32_t>(kMascotHelloMs), "mascot.h's kMascotHelloMs is the hello's length");
 constexpr int32_t kWaveLeftFrom = 2200;
 constexpr int32_t kWaveFlapFrom = 4000;
 constexpr int32_t kWaveFlapMs = 260;

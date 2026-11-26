@@ -15,18 +15,20 @@
 #include "widgets/carousel.h"          // Carousel, CarouselCard, MakeCarousel, CarouselIndex, ShowCarouselCard
 #include "widgets/checkbox.h"          // MakeCheckbox
 #include "widgets/checkbox_row.h"      // CheckboxRow, MakeCheckboxRow, SetCheckboxRowEnabled
-#include "widgets/chip.h"              // MakeChip
+#include "widgets/chip.h"              // MakeChip, MakeSmallChip
 #include "widgets/choice_card.h"       // MakeChoiceCard, SetChoiceChosen, ChoiceChosen
-#include "widgets/detail_row.h"        // DetailRow, MakeDetailRow, SetDetailRow
+#include "widgets/detail_row.h"        // DetailRow, MakeDetailRow, SetDetailRow, SetDetailRowOneSizeDown
 #include "widgets/dialog.h"            // Dialog, MakeDialog, OpenDialog, CloseDialog
 #include "widgets/dropdown.h"          // Dropdown, MakeDropdown, DropdownSelected, SetDropdownSelected, ChooseDropdown, SetDropdownEnabled, SetDropdownOpener
-#include "widgets/glyph.h"             // Glyph, IconAction
+#include "widgets/glyph.h"             // Glyph, IconAction (kWifi, kSettings, kPower: the deck's foot)
 #include "widgets/horizontal_pager.h"  // HorizontalPager, MakeHorizontalPager, UpdateHorizontalPager, HorizontalPagerPage, HorizontalPagerPages
 #include "widgets/icon_button.h"        // MakeIconButton, IconButtonWords
 #include "widgets/keyboard.h"          // KeyboardKind, KeyboardConfig, OpenKeyboard
 #include "widgets/list_view.h"         // ListView, PageWords, MakeListView, UpdateListView, ListViewPage, ListViewPages
-#include "widgets/list_row.h"          // MakeListRow, SetListRowChosen
-#include "widgets/network_row.h"       // NetworkState, MakeNetworkRow, SetNetworkRow
+#include "widgets/link_indicator.h"    // MakeLinkIndicator, SetLinkIndicator
+#include "widgets/list_row.h"          // MakeListRow (ListRowFit), SetListRowChosen
+#include "widgets/marquee.h"           // MakeMarquee, SetMarquee, MarqueeOptions, MarqueeKey: a stepped line
+#include "widgets/network_row.h"       // NetworkState, NetworkLook, MakeNetworkRow, SetNetworkRow
 #include "widgets/page_dots.h"         // MakePageDots, SetPageDot
 #include "widgets/progress_bar.h"      // ProgressBar, MakeProgressBar, SetProgress
 #include "widgets/radio.h"             // MakeRadio
@@ -38,13 +40,15 @@
 #include "widgets/section_heading.h"   // MakeSectionHeading
 #include "widgets/select_sheet.h"      // OpenSelectSheet, CloseSelectSheet, SelectSheetOpen, SelectSheetRowsPerPage
 #include "widgets/segment.h"           // MakeSegment, SegmentChosen, SetSegmentChosen, SetSegmentEnabled
-#include "widgets/status_block.h"      // MakeStatusBlock, StatusMark
+#include "widgets/status_block.h"      // MakeStatusBlock, MakeStackedStatusBlock, StatusMark
 #include "widgets/status_line.h"       // MakeStatusLine
 #include "widgets/step_bar.h"          // StepBar, StepState, MakeStepBar, SetStep
 #include "widgets/text_input.h"        // TextInput, MakeTextInput, MakePasswordInput, InputText, SetInputText, InputAppend, InputErase, SetInputShown, SetInputEnabled, SetInputActivateHandler, InputKeyboardTarget
 #include "widgets/text_view.h"         // TextView, MakeTextView, SetTextView, TextViewPage, TextViewPages
+#include "widgets/swipe_page.h"      // MakeSwipePage
 #include "widgets/toggle.h"            // MakeToggle
 #include "widgets/toggle_icon_button.h" // MakeToggleIconButton
 #include "widgets/toggle_icon_row.h"   // ToggleIconRow, MakeToggleIconRow, SetToggleIconRowEnabled
 #include "widgets/toggle_row.h"        // ToggleRow, MakeToggleRow, SetToggleRowEnabled
 #include "widgets/value_row.h"         // ValueRow, MakeValueRow, SetValueRow
+#include "widgets/words_role.h"        // SetWordsRole, SetLabelRole: words one size down

@@ -1,7 +1,8 @@
 #pragma once
 
 /*
- * Ported from the agent deck (STICKY_UI_KIT_PORT §4 item 8); "AGENT_DECK n" below is the deck's own doc, section n, in its repo.
+ * Ported from the agent deck (STICKY_DESIGN_TOKENS §13); "AGENT_DECK n" below is the deck's own doc, section n, in its
+ * repo.
  *
  * THE MASCOT — Claude's, drawn as rectangles on a theme::kMascotCols x kMascotRows cell grid (AGENT_DECK 9): the body,
  * two hands, two eyes, four legs — each an upper half and a foot — every part a whole number of cells at rest, in
@@ -48,7 +49,7 @@ Mascot make_mascot(lv_obj_t *parent, int32_t cell);
 // reckon from this centre, so a page puts the root's centre here. The hardware test's mascot page: the stage band under
 // the status bar and its 16 px, 360 px high, the root standing on its bottom edge, centred across the glass — a move may
 // go off it, the finish's flag 10 px past the right edge in its widest frames: the person's choice, 2026-11-24
-// (STICKY_UI_KIT_PORT §4 item 8).
+// (STICKY_DESIGN_TOKENS §13).
 inline constexpr int32_t kMascotPageCentreX = 240;
 inline constexpr int32_t kMascotPageCentreY = 324;
 
@@ -108,6 +109,15 @@ inline MascotPlay mascot_play(MascotMove move, uint32_t now)
 // eyes and the body home in kMascotLookSettleMs.
 inline constexpr uint32_t kMascotLookSettleMs = 200;
 MascotPlay mascot_play_look(uint32_t now);
+
+// HOW LONG ONE CYCLE TAKES, for a page that plays one and then rests the mascot (AGENT_DECK 4.7): the idle's lean to look one way and then
+// the other, one loop of kIdle, and the look-around played on its own (mascot_play_look). The deck's own lengths, which the widget's moves
+// are keyed to, so a page that asks for the rest at their end asks it as the move comes home.
+inline constexpr uint32_t kMascotIdleCycleMs = 5000;
+inline constexpr uint32_t kMascotLookCycleMs = 5600;
+// kHello's length — the wave's first hand, once, wind-up to settled — for a page that waits it out: the agent deck's startup
+// screen (STICKY_AGENT_DECK §4.1).
+inline constexpr uint32_t kMascotHelloMs = 1800;
 
 // A reaction — kSkip, kSpin, kDust, and kSkipTrip on the stage: played once, to its end, as its event comes.
 inline bool mascot_reaction(MascotMove move)

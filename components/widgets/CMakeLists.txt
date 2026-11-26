@@ -1,7 +1,7 @@
 # widgets builds DESIGN.md's kit as LVGL objects, one header and one source per widget, as the agent deck's widgets
 # component does (STICKY_DESIGN_TOKENS §9 says what the deck is); ui is its theme — the fonts, the styles, the focus ring — and design_tokens its values
 # (DESIGN → Components → The kit; STICKY_DESIGN_TOKENS §9). marks/marks.c is the deck's check, clock and link-off art and
-# BYTE-90's seventeen glyphs at one bit, compiled by marks/make_marks.py.
+# BYTE-90's seventeen glyphs, and the deck's Wi-Fi, settings and link art, at one bit, compiled by marks/make_marks.py.
 idf_component_register(SRCS "src/internal/base.cpp"
                             "src/internal/setting_row.cpp"
                             "src/internal/swipe.cpp"
@@ -43,8 +43,12 @@ idf_component_register(SRCS "src/internal/base.cpp"
                             "src/keyboard.cpp"
                             "src/text_input.cpp"
                             "src/mascot.cpp"
+                            "src/words_role.cpp"
+                            "src/swipe_page.cpp"
+                            "src/link_indicator.cpp"
+                            "src/marquee.cpp"
                             "marks/marks.c"
                        INCLUDE_DIRS "include"
                        PRIV_INCLUDE_DIRS "src"
-                       REQUIRES lvgl__lvgl
-                       PRIV_REQUIRES ui design_tokens lvgl_display router board_config mbedtls)
+                       REQUIRES lvgl__lvgl ui
+                       PRIV_REQUIRES design_tokens lvgl_display router board_config mbedtls)

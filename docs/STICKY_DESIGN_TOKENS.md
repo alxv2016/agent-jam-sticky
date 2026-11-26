@@ -42,6 +42,8 @@ heading path for why. Do not renumber; add new material under the next free numb
 | 10 | [Paging and the swipe](#10-paging-and-the-swipe) | How a list view, a text view and a horizontal pager turn a page: the pages, the swipe's thresholds and window, the lift, the ends and who owns a drag |
 | 11 | [The keyboard](#11-the-keyboard) | The pages and keys, the key-by-key walk, how a press types, the typing-only partial count, and what the field component will take over |
 | 12 | [The select sheet](#12-the-select-sheet) | The bottom sheet a dropdown opens: its height, how many rows a page, and the overlay that takes and gives back focus |
+| 13 | [Claude's mascot page](#13-claudes-mascot-page) | The mascot's widget and demo page as ported from the agent deck: the moves and their pace, the cell, the page's layout and controls, its sounds, the V1.0's waveform |
+| 14 | [The agent deck port's additions](#14-the-agent-deck-ports-additions) | What the deck's screens needed of the kit: the `title`, `caption-strong` and `caption-regular` roles, words one size down, the small chip, the foot's icons and the link indicator, the stacked status block, a list row's body title and its supporting line, a detail row's labels, the outlined network row, the swipe page, the timed holds, the stepped line, the settings' one left edge and the quiet words' proof |
 
 ---
 
@@ -62,8 +64,9 @@ heading path for why. Do not renumber; add new material under the next free numb
 - **Paint `scale.primary.1` or `scale.primary.2` solid on a UI element** — fill it with `ui::Fill`, the dither (§4).
   The solid greys are for images drawn with a greyscale refresh (DESIGN → Colors → The four levels).
 - **Animate** — no timer drives a redraw faster than §5's limits.
-- **Draw a stroke under 2 px, a weight under 600 except `body` at 400, or words under `caption`, 20 px.** A lighter weight breaks up at
-  one bit a pixel; `body`'s 3 px strokes keep its gaps open (§3).
+- **Draw a stroke under 2 px, a weight under 600 except `body` and `caption-regular` at 400, or words under `caption`, 20 px.** A lighter
+  weight breaks up at one bit a pixel; `body`'s 3 px strokes keep its gaps open, and `caption-regular`'s 1 and 2 px are the person's choice
+  for a supporting line, open to the glass (§3).
 - **Use a value the header does not have** — decide it in DESIGN.md first.
 
 ## 2. Colour
@@ -114,6 +117,7 @@ their value on each refresh — the design check reads them (§7).
 | `colors.keyline` | exempt | `#FFFFFF` | `#FFFFFF` | The white line round an offset's outer edge, `spacing.stroke.hairline` wide: invisible over white, an edge over a dither (§4.1) |
 | `colors.text-disabled` | exempt | `#F8F8F8` | `#F8F8F8` | Words, check, dot and glyph on a disabled control's light-dither face: the sparse dither of one black pixel in sixteen on every refresh (§4) — the value is the pattern's average, in linear light |
 | `colors.text-disabled-page` | exempt | `#F0F0F0` | `#F0F0F0` | A disabled row's name and state word, a disabled slider's knob and value, a disabled mark's dot — on the white: one black pixel in eight on every refresh |
+| `colors.text-quiet` | exempt | `#555555` | `#000000` | The agent deck's small supporting lines, `caption` in the dark dither on every refresh — a fill: a partial draws it as its dither, the partial column its solid value; 3.50 : 1 on the white, under the text floor by an argued exception (DESIGN → Exceptions → Quiet words; §2.3) |
 | `colors.mascot-body` | exempt | `#555555` | `#000000` | The mascot's body, hands and legs: the dark dither on every refresh, a level lighter than its shade and darker than its tint — provisional, refined on the glass — a fill: a partial draws it as its dither, the partial column its solid value (DESIGN → Colors → The mascot's greys) |
 | `colors.mascot-shade` | exempt | `#000000` | `#000000` | A side of the mascot turned away (DESIGN → Colors → The mascot's greys) |
 | `colors.mascot-tint` | exempt | `#AAAAAA` | `#FFFFFF` | A hand in front of its body: the light dither — a fill: a partial draws it as its dither, the partial column its solid value (DESIGN → Colors → The mascot's greys) |
@@ -176,17 +180,43 @@ their value on each refresh — the design check reads them (§7).
   off box has no black part, so it keeps a `spacing.stroke.default` `colors.outline` edge, 21 : 1 on the glass, rather
   than rely on the dither alone, 1.3 : 1.
 
+### 2.3 Quiet words
+
+**Supporting words in the dark dither do not clear the floor, so `colors.text-quiet` is an `exempt` role held by an argued exception, never paired.** The agent deck's
+reset lines, a sub-agent's tokens, "4 sessions" and a request's agent name are drawn in `ui::Fill(1)` in the approved mocks, the
+person's look, 2026-11-25. That is a word of `caption` or `label` whose every stroke pixel is the dark dither (`kDitherDark`, `0x56`:
+one white pixel in four on every refresh, §4.1), where `text-secondary` is solid `#555555` on a greyscale frame and black on a
+partial one (§2.2).
+
+| Words | Ground | Linear-light average of the words' pixels | Ratio | Floor |
+| --- | --- | --- | --- | --- |
+| `text-secondary` on a full refresh | `colors.background` | `#555555` | 7.46 | 4.5 |
+| `text-secondary` on a partial refresh | `colors.background` | `#000000` | 21.00 | 4.5 |
+| Quiet words, every refresh | `colors.background` | `#898989` (one in four white) | 3.50 | 4.5 |
+
+- **The ratio is the dither's average, the measure this doc uses for every dither (§2.2)** — `contrast.py '#898989' '#FFFFFF'` prints
+  `FAIL 3.50:1 (floor 4.5:1)`. It is the same 3.5 : 1 as white words on the dark dither (§2.2), and the reason DESIGN → Elevation &
+  Depth → Dither keeps words off it. Only a disabled control's words, decoration and a logotype may sit under the floor (DESIGN → Colors →
+  Contrast floors), and supporting words are none of them.
+- **The role is `exempt` and no pair is filed** — a `colors.text-quiet` of kind `text` would fail D1 on its own pair, and the check reads
+  `exempt` as a role it does not pair, as it reads a disabled control's words. It is the person's decision, 2026-11-25, that these words stay
+  grey: DESIGN → Exceptions → Quiet words argues it against principle 1 and bounds it to a supporting line, `caption`, on the deck's screens,
+  never the one thing a screen says. No other word takes the role, and the floor holds for every one.
+- **The look is in the kit behind one call** — `ui::QuietWords(label)` (`components/ui/ui.cpp`) sets the label's text colour to
+  `ui::Fill(kColorTextQuiet)`, the token in the header (`kColorTextQuiet`, level 1). It is on the kit page ("Quiet words") beside
+  `text-secondary`. A screen of the deck takes it for the four places above.
+
 ## 3. Type
 
-- **The face is Bitcount Single**, a pixel font, at weights 600 and 700, and 400 at 30 px alone. The Regular, SemiBold and Bold are
+- **The face is Bitcount Single**, a pixel font, at weights 600 and 700, and 400 at 30 and 20 px alone. The Regular, SemiBold and Bold are
   the upright instances of its variable font, Version 1.001 (`wght` 400, 600 and 700, `ELXP` 0, `ELSH` 0, `slnt` 0, `CRSV` 0),
   from petrvanblokland/TYPETR-Bitcount, cut with fontTools' instancer and under the SIL Open Font License
-  (`components/ui/fonts/bitcount/OFL.txt`). The Regular is for `scale-30-regular`.
+  (`components/ui/fonts/bitcount/OFL.txt`). The Regular is for `scale-30-regular` and `scale-20-regular`.
   The lighter weight's ink is shorter, so it compiles to a shorter line, on the same cells. The table gives each file's.
 
 | File | `wght` | `line_height`, `base_line` at 30 px |
 | --- | --- | --- |
-| `BitcountSingle-Regular.ttf` | 400 | 24, 3 |
+| `BitcountSingle-Regular.ttf` | 400 | 24, 3 (17, 3 at 20 px) |
 | `BitcountSingle-SemiBold.ttf` | 600 | 26, 4 |
 | `BitcountSingle-Bold.ttf` | 700 | 26, 4 |
 
@@ -195,22 +225,30 @@ their value on each refresh — the design check reads them (§7).
 - **Bitcount draws on a 100-unit cell, a tenth of the em, so every size is a multiple of 10 px** — each cell then falls
   on whole panel pixels, 2 px at 20 px and 6 px at 60 px. A size between draws its cells unevenly. Weight widens each
   cell's square by 20 units at 600 and 30 at 700, so the two weights look alike below about 50 px `[D]`.
-- **The scale is the primitives, `typography.scale-<size>-<semibold|bold>`, and `typography.scale-30-regular`.** The sizes are
+- **The scale is the primitives, `typography.scale-<size>-<semibold|bold>`, and `typography.scale-30-regular` and `typography.scale-20-regular`.** The sizes are
   20, 30, 40, 50, 60, 70 and 80 px with every character the strings use, and 100, 120 and 160 px with figures only. Each comes at
   both weights, with a line pitch of 1.2 em to 40 px and then tapering: 56 px at 50, 64 at 60, 72 at 70 and 80 at 80.
   Each step is on the 4 px grid and never under the compiled font's own `line_height`. A pitch under it would be clamped
   to it, since `LineSpace` stops at 0. The figures' pitch is the height of their digits, a font box rounded up to 4 px: 68 at 100, 80 at 120 and
   108 at 160 (one line only, so no leading is seen). They are `kTypographyScale30Semibold` and its
-  siblings in `design_tokens.h`. The one 400 is `kTypographyScale30Regular`, with the same glyph range as the other sizes
-  (`bitcount_400_30.c`).
-- **A role is one primitive** — `hero` `scale-60-bold`, `display` `scale-50-bold`, `headline` `scale-40-bold`, `body`
-  `scale-30-regular` on a 40 px line, `label` `scale-30-bold`, `caption` `scale-20-semibold`. In the header, `kTypographyBody` is
+  siblings in `design_tokens.h`. The two 400s are `kTypographyScale30Regular` and `kTypographyScale20Regular`, each with the same glyph range as the other sizes
+  (`bitcount_400_30.c`, `bitcount_400_20.c`, the "•" included); `make_fonts.sh` compiles both. The 20 px one costs 2,081 bytes of flash
+  (its object on the ESP32-S3, against 3,702 for `bitcount_400_30`), 22,028 bytes of source; the app image grew
+  2,272 bytes with the font and the code of this change, 1,103,392 to 1,105,664 `[D]`.
+- **A role is one primitive.** The kit's are `hero` `scale-60-bold`, `display` `scale-50-bold`, `headline` `scale-40-bold`,
+  `body` `scale-30-regular` on a 40 px line, `label` `scale-30-bold` and `caption` `scale-20-semibold`. The agent deck adds
+  three. The first, `title`, is `scale-30-semibold` (`kTypographyTitle`, 36 px line). The second, `caption-strong`, is
+  `scale-20-bold` (`kTypographyCaptionStrong`, 24 px line). The third, `caption-regular`, is `scale-20-regular`
+  (`kTypographyCaptionRegular`, 24 px line). `title` and `caption-strong` take fonts compiled already
+  (`bitcount_600_30`, `bitcount_700_20`); `caption-regular` takes the new `bitcount_400_20`. `ui::Type` gains `kTitle`, `kCaptionStrong` and
+  `kCaptionRegular` after `kCaptionLoose`, and `ui::Font`, `LineBox` and `NewLabel` take them as any role. In the header, `kTypographyBody` is
   `kTypographyScale30Regular`'s size and weight on a 40 px line. Google's linter allows no group under `typography`, so DESIGN.md
   writes each role's values out with its primitive named beside it.
-  A Wi-Fi network's name and the status band's news are `caption`, and a choice card's name is `label`. A select sheet's options
+  A Wi-Fi network's name is `caption-strong` over its facts in `caption`, the status band's news is `caption`, and a choice card's name is `label`. A select sheet's options
   are `body`, the chosen one `label`. `caption-loose` is `caption`'s primitive on a 30 px line (`kTypographyCaptionLoose`), a
   text view's. It is the deck's 24 px line on 16 px type at its 1.5 em `[DECK]`, as 1.5 em of 20 px.
-- **A role's line height is its line pitch** — 64, 56, 48, 40, 36 and 24 px, and 30 for `caption-loose`. `ui::NewLabel` and the
+- **A role's line height is its line pitch** — 64, 56, 48, 40, 36 and 24 px, 30 for `caption-loose`, and 36 for `title` and 24 for
+  `caption-strong` and `caption-regular`. `ui::NewLabel` and the
   screen's style set LVGL's line space to the pitch less the compiled font's height. So the lines of a block step by the pitch.
   A single line is the compiled font's height, about 0.9 em. That is 19 px for `caption` at 20 px and 26 for `label` at 30
   (`line_height` 26, `base_line` 4). It is 24 for `body` at 30 (`line_height` 24, `base_line` 3) and 52 at 60. A block of n lines is
@@ -235,6 +273,8 @@ their value on each refresh — the design check reads them (§7).
   margin (`widgets::detail::Glue`, `internal/glue.h`), so the column's `pad_row` is the gap `[D]`.
   A section heading's `pad_top` is the section less the parent's own `pad_row`, so the two add up to 48 whatever the parent sets.
   The page's first heading, with nothing above it, keeps `spacing.lg`.
+- **A stepped line moves `kSpacingMarqueeStep`, 48 px, a step** — a whole number of pixels, `spacing.marquee-step` (§14.6).
+
 ### 4.1 The dithers
 
 - **A grey fill is a dither** — `ui::Fill(level)` gives levels 1 and 2 their fill codes (`FillCode`, in
@@ -320,6 +360,9 @@ their value on each refresh — the design check reads them (§7).
 | `kClockTickMs` | 60000 ms | Declared for DESIGN.md's clock redraw, `motion.clock-tick`; the firmware has no clock yet |
 | `kMotionKeyRepeatDelayMs` | 600 ms | How long UP or DOWN is held before it steps again, `motion.key-repeat-delay` — `kKeyRepeatDelayUs` in `key_rules.h`, which also lets a step that drew nothing be followed this long after it |
 | `kMotionKeyRepeatPeriodMs` | 500 ms | How often a held UP or DOWN steps after that, `motion.key-repeat-period` — `kKeyRepeatPeriodUs` in `key_rules.h` |
+| `kMotionMarqueeRestDelayMs` | 4000 ms | How long a stepped line rests with its start in view before its passes, each time it begins, `motion.marquee-rest` — `widgets/src/marquee.cpp` `kRestMs` (§14.6) |
+| `kMotionMarqueeStepDelayMs` | 1000 ms | The one clock every stepped line moves on, `motion.marquee-step`: one lv_timer, one partial refresh a step (§14.6) |
+| `kMarqueePasses`, `kMarqueeGapSpaces` | 3, 3 | A stepped line's passes before it rests, and the spaces before its words come round: counts, no size or time, so no DESIGN token — in `token_parity.py`'s `HEADER_ONLY` as the refresh policy's are |
 
 - **The six sound words are DESIGN.md's `sound.*` tokens, and `devices` plays them by word** (`sounds.h`: `kSounds`, in
   `sound::Word`'s order, `devices::Play(Word)`). The hardware test's Buttons and buzzer screen has a row for each, and the
@@ -463,8 +506,9 @@ their value on each refresh — the design check reads them (§7).
   the host tests — and leaves the header's comments, its derived symbols and its `static_assert`s where a person
   writes them.
 - **A symbol in the header that is no front-matter token is in the check's `HEADER_ONLY` list, with its reason.** They
-  are the elevation struct's `kNoShadow`, the derived `kFocusRingReach` and `detail::kScale`, the touch thresholds
-  (§10), and the refresh policy's `kRefreshPartialLimit` and `kFeedbackTickMs`. §5's names for three motion delays (`kWaitIndicatorDelayMs`,
+  are the elevation struct's `kNoShadow`, the derived `kFocusRingReach` and `detail::kScale`, and the touch thresholds
+  (§10). The rest are the refresh policy's `kRefreshPartialLimit` and `kFeedbackTickMs`, and a stepped line's counts, `kMarqueePasses` and `kMarqueeGapSpaces`.
+  §5's names for three motion delays (`kWaitIndicatorDelayMs`,
   `kSelfUpdateMinMs`, `kClockTickMs`) are in its `ALIASES` list, each checked equal to the token symbol it names. An
   entry the header no longer declares, or that a front-matter token now names, fails as stale. Any other symbol needs
   its token in DESIGN.md first.
@@ -520,6 +564,10 @@ their value on each refresh — the design check reads them (§7).
 | A script that compares DESIGN.md's front matter with §2's tables | Open | A change to a colour role, which §2's tables would have to follow by hand |
 | The glyph ranges beyond ASCII and · ° × – — ’ • … — a name with an accent, a currency — and what a character outside them draws: LVGL's placeholder box is on (`CONFIG_LV_USE_FONT_PLACEHOLDER`) | Open | An out-of-range character drawn on the glass; the first strings that need more |
 | The glass's real white and black, against the levels' nominal 21 : 1 | Open | A reading with a light meter on a V1.0 and a V2.0 board |
+| The kit port's controls built and not yet seen on the glass: the checkbox and radio rows, the button icons, the horizontal pager, the roller with the Clock screen, the carousel with the Welcome screen, wrapping detail and radio rows, the escape chain's first link and slide-off; and whether a facts page's 432 × 480 ring leaves a ghost on either panel, and whether people press OK on a facts page and wait | Open | The kit page and the hardware test's screens walked on a V1.0 and a V2.0 |
+| When a mascot moment's sound lands against the ink's change: the offset from a refresh's start to the ink moving, which a moment waits for (§13) | Open | A bench measurement on a V1.0 and a V2.0 |
+| The mascot's music — the typing, the spin, the success, the wave and the thinking — in time with its move under the moments (§13) | Open | Heard on the board |
+| The mascot's greys, provisional until the person sees the mascot on the glass (§13) | Open | The demo page seen on a V1.0 and a V2.0 |
 | A reduced-motion setting for Claude's mascot — its branch the move's end pose alone, its moment with it (MASCOT §6) — since the moves run at the glass's pace and only the demo page plays them; the widget's `lv_anim_start` carries an `a11y-exception` until then | Open | The first screen other than the hardware test's demo page that shows the mascot moving |
 
 ## 9. The ring outside and the ported widgets
@@ -573,7 +621,7 @@ their value on each refresh — the design check reads them (§7).
 | Toggle | track 66 × 30, thumb 36 × 24 inset 3 | 93 × 42, 51 × 34, 4 | 96 × 44, 52 × 36 inset 4 | `toggle-width`, `toggle-height`, `toggle-thumb-width`, `xs` |
 | Segment | track 252 × 48 → 357 × 68, items inset and apart 6 | 8.5 | 64 high, items 48, 8 round and between | `target`, `sm`, `rounded.md` / `xl` |
 | Range slider | 36 high, fill 30, knob 6 × 24 | 51, 42, 8.5 × 34 | 52, 44, 8 × 36 | `slider-height`, `xs`, `sm` |
-| Standard button | 150 × 44, edge 2 reserved on every variant, words 12 in | 212 × 62, 2.8, 17 | 212 × 64, edge 3, padding 16 | `button-width`, `target`, `stroke.default`, `md` |
+| Standard button | 150 × 44, edge 2 reserved on every variant, words 12 in | 212 × 62, 2.8, 17 | 212 × 64, edge 3, padding 16 | `button-width`, `button-back` (Back in words, 160), `target`, `stroke.default`, `md` |
 | Chip, compact button | 48 high, pad 18, edge 3 (chosen) | 68, 25, 4.2 | 64 high, pad 24 (a compact button 24 and its 3 px edge), edge 4 on a chip | `target`, `lg`, `stroke.strong` |
 | Progress bar | stroke 9 (5-hour 12), gap 6 | 13, 17, 8.5 | 12 (16), gap 8 | `progress`, `progress-lead`, `sm` |
 | Step bar | stroke 9, gap 8 | 13, 11 | 12, gap 12 | `progress`, `step-gap` |
@@ -1000,3 +1048,269 @@ their value on each refresh — the design check reads them (§7).
 - **The kit page** shows a dropdown of three options, one of eight whose last option is two lines, and a disabled one. Opening
   the sheet and walking it is a gate 3 look for the scrolled page behind and the partial refreshes.
 
+---
+
+## 13. Claude's mascot page
+
+**Claude's mascot is ported from the agent deck with its moves' numbers unchanged, and plays as a few-frame flipbook:
+whatever pose is current as each partial refresh starts, one bit a pixel, about 2 frames a second on either board** —
+the person's choice, 2026-11-24. The widget is `components/widgets/src/mascot.cpp` (`include/widgets/mascot.h`, its
+frames in `src/internal/mascot_frames.h` as the deck has them, its lengths in `src/internal/mascot_theme.h`); the demo
+page is `components/hw_test/mascot_page.cpp`, route `hw.mascot`, Home's row before About. It is drafted and reviewed
+with the [`mascot-animation`](../.agents/skills/mascot-animation/SKILL.md) skill, its host side in `.agents/project.py`
+→ `MASCOT`. The page is built and not yet seen on the glass `[?]` (§8).
+
+- **The moves are the deck's first, seen at the glass's pace; hand-picked key poses come after,** through the
+  animation gate — the person's choice, 2026-11-24. A move's length is the deck's and the widget's own data
+  (`mascot_theme.h`), not a token, since DESIGN → Motion's tokens hold no duration. Hello, which the deck's stage
+  table leaves out, takes its own length, 1.8 s `[D]`.
+- **The walk, the skip and its trip take 11.3, 7.4 and 10.7 s**: the deck's lengths re-timed for the route's fewer
+  steps at this cell, no key or pace touched; the trip's band is derived for this glass, and the stage trips at the
+  first skip either way `[D]`.
+- **The cell is 24 px** (`spacing.mascot-cell`), 1.5× the deck's, a mascot pixel three whole 4 × 4 dither tiles — the
+  person's choice over 2×, whose finish, dust and work ran off the 480 px glass.
+- **The page is portrait, 480 × 800** (`kScreenWidth`, `kScreenHeight`), not the deck's landscape stage. A 360 px
+  stage band stands under the status bar, the mascot centred on its bottom edge (`kMascotPageCentreX` 240,
+  `kMascotPageCentreY` 324). It is free to go off the glass: the finish's flag reaches 10 px past the right edge in
+  its widest frames. The status bar's title names the move and its place; under the stage, a three-line readout of its
+  frames and the glass's partials and fulls (§5), Previous and Next, the Move sounds toggle, and Back, Loop and
+  Play/Stop in the footer — the person's answers and yes, 2026-11-24.
+- **It opens on Rest, still, with no blink at rest.** Each move runs as the deck's stage runs it (`mascot_stage_run`),
+  the live "n of N" in the stage's corner, N the pass's length over a frame until it has played and the count it took
+  after. Loop replays the move with the deck's 1.5 s rest between passes until Stop.
+- **Its sounds are the deck's own, at its pitches, on the note player, one voice, synced at the glass's pace.** The
+  person chose them by ear on a V2.0, 2026-11-24. They win over the same sounds moved into the buzzer's band, and over
+  the deck's synth streamed through the buzzer, which hisses. How the moments are queued and played is §5.
+- **On a V1.0 the page keeps the person's preset, by default the kept waveform, about 1.84 frames a second** — the
+  person's choice, 2026-11-25, after the faster drives left the moves' ghost on the mascot's dithered body
+  ([STICKY_EPAPER_WAVEFORMS §3.5](STICKY_EPAPER_WAVEFORMS.md#35-presets-and-defaults)).
+- **The page is the first place where something animates**: DESIGN → Motion's "Nothing animates" is answered for
+  it by DESIGN → Exceptions → The hardware-test demo, and for the agent deck's screens by DESIGN → Exceptions → Claude's mascot on the
+  deck's screens (§14).
+
+## 14. The agent deck port's additions
+
+What the agent deck's screens needed of the kit, each opt-in: every existing widget's default look is unchanged, and the audit's frames
+of the hardware test (the kit page's first seventeen views, every ringed stop's frame) match the frames drawn before the
+additions, byte for byte `[D]`. The checks are `tests/host/deck_kit_lvgl_test.cpp` (281 checks on LVGL's real layout, fonts and renderer at 480 × 800),
+`tests/host/token_parity.py` for the tokens and the design check for §2; each addition has a specimen on the kit page, "Small chips" to
+"Quiet words" at its foot. The deck's screens are built from these calls alone; the harness that drafted them reached past the
+kit in places, and these are the places.
+
+### 14.1 Words and roles
+
+- **Three roles** — `title`, `caption-strong` and `caption-regular` (§3), the last with the one new font, `bitcount_400_20`. The role table of `ui`, `s_roles`, has ten rows now, in the order of the enum. The hardware test's type scale page roles and the screen audit's role list know the three. So a 30 px semibold, a 20 px bold or a 20 px regular
+  is a role there and no longer an off-scale size.
+- **Words one size down: `widgets::SetWordsRole(obj, role)`** (`widgets/words_role.h`) — walks `obj` and every child and brings each label
+  set in a larger size than `role` down to it. It sets the font, LVGL's line space (the role's pitch less the font's height) and
+  `ui::FitLineBox`, so the label is whole line boxes tall with its words centred in each (§9). A label at the role's size or under it is
+  left alone. So a toggle row's name and state word, a value row's name and value, a dropdown's, a radio row's, a list row's title and a choice
+  card's name come down to `caption` or `caption-strong`. A `caption` supporting line, a reason or a hidden label stays.
+  `widgets::SetLabelRole(label, role)` sets one label to a role whatever size it holds, with the same font, line space and line box. The size of a
+  label is read from `ui`'s compiled fonts (`ui::Bitcount`), never from its line height. A gap held by a negative margin
+  (`widgets::detail::Glue`) follows the new line box. The rows' own geometry does the rest. A toggle row's words column and a value row, dropdown field or list row of fixed height keep their 64 or 80 px with the words centred. A radio row's column keeps its 72. A choice
+  card keeps its floor of 74 and centres its words, growing about its centre. The host test builds every kind at one line and two, with the reason
+  showing, disabled and chosen, and reads each row's height and the offset of its content from its centre: 0 px in every case, and the
+  heights are what the kit gave them `[D]`. One call is one choice for a whole control. A label set again later keeps its role, and a second
+  call changes nothing.
+- **A name over its line keeps `pair-sm`** — a choice card's, a list row's and a detail row's name stand over their line on line boxes
+  (§9). So a role that is smaller leaves their own boxes closer than DESIGN → Layout → Spacing's 8 px: `caption` over `caption` 5, `caption-strong`
+  over `caption` 6. After the words come down, `SetWordsRole` makes the gap up in the name's margin, `pair-sm` less the leading of the
+  name's bottom and the line's top, wherever the parent is a column with no gap of its own, both are showing and neither is glued. So a
+  choice card at `caption-strong` is 82 px (16 + 24 + 2 + 24 + 16) and a detail row one size down 66 (8 + 24 + 2 + 24 + 8), where the kit's
+  defaults, left alone, stay as they are. The screen audit reads this gap as the `spacing` proxy "pair gap by font box"
+  `[D]`.
+#### Detail rows and list rows
+
+- **A detail row one size down** — `widgets::SetDetailRowOneSizeDown(row)` (`widgets/detail_row.h`): the label in `caption-strong` over its value in `caption`
+  (the person, 2026-11-26: "Label bold, value semibold"). It sets the label's role first (`SetLabelRole`), so the gap `SetWordsRole` makes up is measured from the
+  line box as it will stand, then brings the value down to `caption`. Both are 24 px lines and `pair-sm` stands between their own boxes: the row is 66 px for a
+  line each, 1 px under the `caption-strong` value's 67, since the bold label's font is 18 px tall to the semibold's 19 `[D]`. The default row, name `caption` over value `label`, stays 76 px.
+- **A list row's roles and fit** — `MakeListRow(…, ui::Type title = kLabel, ListRowFit fit = kDots, uint32_t key = 0, ui::Type supporting_role = kCaption)`; `fit` is the stepped line's opt-in (§14.6).
+  `supporting_role` is the supporting line's role, stepped or dotted: the needs-you list passes `caption-regular` under its `body` names, 20 px regular under 30 px regular, and every other row keeps `caption`. The `body` role is the deck's needs-you names, 30 px regular on a 40 px
+  line. So a title in `body` and a `caption` line under it are 40 + 24 inside the row's 80 less its 2 × `spacing.sm`. They fill the 64 exactly
+  and the row stays 80 high and centred. The `widgets` component now requires `ui` publicly, since its headers name `ui::Type`.
+  The arrows of APP_ARCHITECTURE §2 are unchanged, `widgets` having depended on `ui` already.
+- **The heading's count line** — `layout::Quiet(parent, text, fit, role = kCaption)` (`agent_deck/deck_ui.h`) takes the role of the quiet words. The needs-you list passes `caption-regular` for "4 sessions" under `title`: 30 px semibold over 20 px regular, a step in size and in weight, the colour still `text-quiet`, the dark dither. The two roles are 24 px lines, so the line's `-spacing.xs` tuck under the heading and the list below it stand where they stood. The host test reads the font against `ui::Bitcount(20, 400)`, its line box and its place `[HOST]`.
+
+### 14.2 The small chip, the foot's icons and the link indicator
+
+- **The small chip** — `widgets::MakeSmallChip(parent, text, control = false)` (`widgets/chip.h`): `spacing.chip-small` (36 px) high,
+  `rounded.lg`, the light dither, `title` words in black `spacing.md` either side and centred, as wide as its words (194 px for "2 working",
+  230 for "1 needs you"). A reading is an object with no press and no place in the focus group. A control is a button in the group with the
+  kit's ring outside it, `LV_EVENT_CLICKED` for the caller, and its hit area grown by `(spacing.target − spacing.chip-small) / 2`, 14 px, so it
+  is hit across 64 above and below; disabled it is the light dither and its words `text-disabled`. The host test reads the height, the
+  words' centring on both axes, the 64 px hit span and the hit test one pixel past it, the group's count, and the ring's width.
+- **The foot's icons and the link indicator** — the deck's own art through `marks/make_marks.py`, box-averaged and thresholded as every mark:
+  Wi-Fi 38 × 28 (`wifi-on.png`), Settings 34 × 34 (`settings.png`), the link up 34 × 18 (`link_on.png`) and down 34 × 32
+  (`link_off.png`), each on `spacing.icon`'s box and trimmed to its ink, and the status Wi-Fi 81 × 60 at `spacing.status-mark`'s 85
+  (`wifi-on.png`). Regenerating `marks.c` changed none of the existing marks: the diff holds additions only `[D]`. `IconAction::kWifi` and
+  `kSettings` (and `Glyph::kWifi`, `kSettings`) are the icon button's, in any variant (the foot's are tonal, as the sound toggle beside
+  them). **Power** is BYTE-90's `power.png`, 34 × 34 on the same box (`glyph_power`), added through the same script with additions
+  only in the diff `[D]`. Its symbols are `IconAction::kPower` and `Glyph::kPower`, the foot's last icon button, `Turn off`, DESIGN → Exceptions → The icon
+  button. It turns the deck off from `power_leave`'s sequence (APP_ARCHITECTURE §1). `widgets::MakeLinkIndicator(parent, up)` is the image itself in `text-primary`, no box, clickable or group member.
+  `SetLinkIndicator(indicator, up)` swaps its face. A row that centres it vertically keeps either face centred. The deck's foot is the caller's
+  layout: the indicator on the left, the icon buttons flush right.
+
+### 14.3 The stacked status block and the network row
+
+- **The stacked status block** — `widgets::MakeStackedStatusBlock(parent, heading, description, mark)` (`widgets/status_block.h`): the mark,
+  `spacing.item` under it the `label` heading, `spacing.pair-md` under that between their own boxes (the same `Glue` as the beside block) the
+  `body` line in `text-secondary`. It is a column as wide as its parent with every part centred across it, and the words wrap and centre inside it. The
+  host test reads the mark's, the heading's and the line's box centres within one pixel of the block's. It reads the ink of each line within a glyph's
+  side bearing of it (a full stop's ink stands left in its cell, 9 px on "later.") and both gaps. The `StatusMark::kWifi` mark is 81 px wide against
+  the slot's 73, which the beside block's words stand at one x for (§9). A beside block given it draws no mark rather than cut one. The
+  stacked block is a mark's own width, so it has no slot.
+- **The network row's name** is `caption-strong`, 20 px bold, in every look and for a dotted or a stepped name, over its facts in `caption`: the same 24 px line, so the row stays 80 px with its name where it stood. The dotted label takes the role's font and line box, the stepped line is made in the role (§14.6). The inverted row, the outlined row and the row at rest alike `[HOST]`.
+- **The network row outlined** — `MakeNetworkRow(…, NetworkLook look = kInverted)`; `NetworkLook::kOutlined` draws the connected or connecting row white inside a `spacing.stroke.default`, 3 px, black outline (`colors.outline`), with the name, the facts, the check, the padlock and the lit bars `text-primary`. The unlit bars are the light dither, as on a row at rest, since the ground is white.
+  - **The outline is the row's border**, drawn inside it, so the row's padding gives up its width: `spacing.md − 3` either side and `spacing.sm − 3` above and below. The name stands at the x and y it has at rest, and the row stays 80 px `[HOST]`.
+  - **The look is the row's flag** (`LV_OBJ_FLAG_USER_3`), so `SetNetworkRow` draws it each time. A row at rest is the ordinary row in either look: no border and the list row's padding. The ring is untouched.
+  - **The host tests read** the fill, the edge's width, colour and opacity, the ink of every word and glyph, the unlit bars and the name's place, on the kit's row and on both deck pages `[HOST]`.
+
+### 14.4 The swipe page
+
+- **`widgets::MakeSwipePage(parent, width, height, turn, user, axis)`** (`widgets/swipe_page.h`) — a bare container, `width` by `height`, that
+  claims a drag along its axis with the swipe the list view, the text view and the pager share (§10). It uses `detail::ClaimSwipe` on a scrollable
+  object that has room to go (a 1 px child twice its length), and the band is put back at once so nothing moves under the finger. On the lift
+  one swipe turns one page and calls `turn(dir, user)` — +1 for a swipe left or up. The deck's home carousel is one, 480 × 800, sideways;
+  a long question's band is one, vertical, which scrolls its own pages with `lv_obj_scroll_to_y`. The same thresholds as every page swipe
+  (`kTouchSwipeDistance`, the flick); a drag across the axis chains to the page behind. It ignores its parent's layout and lets the rings of
+  its controls out. It joins no focus group: the screen's keys turn its pages. `tests/host/swipe_lvgl_test.cpp` drags a page of its own with
+  a scripted finger — one turn each way along its axis, with the owner's pointer, the page unmoved, none across it — and
+  `tests/host/deck_screens_lvgl_test.cpp` swipes the carousel sideways `[HOST]`.
+
+### 14.5 The holds, and what is not here
+
+- **The three holds** — `kMotionStartupHoldDelayMs` 2000, `kMotionAnsweredHoldDelayMs` 2300 and `kMotionTimedOutHoldDelayMs` 1800, each the
+  time the code waits as §6 names a motion token; DESIGN → Exceptions → Timed leaves is their argument. The firmware's two timers and the
+  screens they leave are the deck feature's, and nothing in this stage starts one.
+- **The mascot's cycle lengths a page may read** — `widgets::kMascotIdleCycleMs`, 5000, and `kMascotLookCycleMs`, 5600, in `mascot.h`: the
+  idle's lean and the look-around, the lengths `mascot_theme.h` keys the moves to (`kMascotIdleMs`, `kMascotLookMs` are these). The needs-you
+  list's avatars ask for rest at their end (STICKY_AGENT_DECK §4.3). `mascot_voice::Voice::Attach` takes a `same_blink_ms` so several mascots
+  on one voice, a list's avatars, tell a blink they share once.
+- **What is not here** — the deck's startup logo and the deck's screens themselves: they are the `agent_deck` feature's
+  ([STICKY_AGENT_DECK](STICKY_AGENT_DECK.md)).
+
+### 14.6 The stepped line
+
+A one-line field too long for its room rests, then moves along its words in steps, where it ended in dots. The argument is DESIGN → Exceptions → Stepped lines on the deck's screens; the screens' side is [STICKY_AGENT_DECK §4.11](STICKY_AGENT_DECK.md#411-stepped-lines).
+
+- **The API** is in `widgets/marquee.h`: `widgets::MakeMarquee(parent, role, text, {align, key, carry})`, `SetMarquee(line, text)` and `ProbeMarquee(line)`.
+- **The tests:** `tests/host/marquee_lvgl_test.cpp` holds the widget's checks on a fake clock; `tests/host/deck_screens_lvgl_test.cpp` holds each screen's `[HOST]`.
+- **The clock and a control's line** are §14.7; **a key, a covered screen, the clock's limit and the kit's calls** are §14.8.
+
+**The values are tokens.**
+
+- **Rest:** `kMotionMarqueeRestDelayMs`, 4 s.
+- **Step:** `kSpacingMarqueeStep`, 48 px, every `kMotionMarqueeStepDelayMs`, 1 s.
+- **Passes:** `kMarqueePasses`, 3, then it stands at its start (§14.7).
+- **Gap:** the words come round after `kMarqueeGapSpaces`, 3, spaces of the line's own font.
+- **A pass** is the words and the gap, `run` px, in `ceil(run / 48)` steps. Each step goes on from the last, and the words come round at `run`.
+- **The last step of the last pass** is short and lands on the start.
+- **Worked case:** the 62-character doing line of a session's page is 744 px in `caption`. A pass is 780 px and 17 steps; three passes are 51 s of moving, then 4 s of rest `[D]`.
+
+**A line is a box, a window and a label.**
+
+- **The box** is the role's line box high and `lv_pct(100)` wide unless its caller sets another width. It draws nothing.
+- **The window** clips, and the label moves in it.
+- **A line that fits** is the label alone, as wide as the box and aligned in it. A centred name stays centred.
+- **A fitting line draws pixel for pixel as the dotted label it replaces.** The host test renders a list row and a network row each way and compares every pixel of the 80 px row `[HOST]`.
+- **A line standing after its passes draws that label too.** Its label holds the words once in `LV_LABEL_LONG_MODE_DOTS`, the room wide and one line box high, and the host test compares its pixels with a dotted label's: none differ `[HOST]`.
+- **A line too long** holds its words twice with the gap between, so the label is as wide as they are.
+- **A step** is `lv_obj_set_x` on the label. The words are drawn whole at their role at one bit a pixel; only where they stand changes.
+- **The window reaches `kBleed`, 1 px, left of the box.** The box lets it out (`LV_EVENT_REFR_EXT_DRAW_SIZE`, as §9's ring).
+- **The reason for the bleed:** the Bitcount fonts' stems stand at most 1 px left of their cell in ASCII, in `caption`, `label`, `title` and `caption-strong`; `caption-regular` and `body` have none. A window cut there would take the first letter of "Bash" a column thinner than the dotted label drew it `[HOST]`.
+- **The label's long mode is the wrapping one** while the line fits or steps, never LVGL's `CLIP`, which clips to the label's own box. It is `DOTS` while the line stands after its passes, and the wrapping one again when the line begins again.
+
+**The room is the box's own content width.**
+
+- **It is measured** with `lv_text_get_size` in the label's font when the layout gives one (`LV_EVENT_SIZE_CHANGED`), and again at a step if it changed.
+- **So a row fits again** whose padding a screen sets after making it, or after a resize.
+
+### 14.7 The stepped line's clock and controls
+
+The lines of §14.6 step on one clock, and every line stands at its start after its passes, by these rules.
+
+**One clock.**
+
+- **One `lv_timer`**, `kMotionMarqueeStepDelayMs` apart, steps every line that is due. Lines step together and the glass draws one frame for them: the host test counts one flush for each step of two lines `[HOST]`.
+- **Its life:** it is created with the first line that steps and deletes itself at a step that finds none.
+- **A line counts its rest** in time from when it came to rest. It moves at the first step of the clock at least `kMotionMarqueeRestDelayMs` after.
+- **A line begun when no other is mid-pass** (the clock is reset then) rests exactly 4 s.
+- **A line begun between two steps** rests 4 to 5 s.
+- **A step** is a change of state on LVGL's timer, drawn by the next frame the display renders.
+- **A frame the mascot is already drawing** carries the step.
+- **A step the mascot's frame does not carry** is a partial refresh of its own, for the three passes only, which counts toward `kRefreshPartialLimit` (STICKY_AGENT_DECK §4.11). Not yet measured on the glass `[?]`.
+
+**After its passes every line stands at its start.**
+
+- **The last step of the last pass** lands on the start and sets the line's `stopped`: a line in a control and a reading alike (the person, 2026-11-26: "Stop after 3 passes"). Its label holds the words once, ending in dots (§14.10). It moves no more and draws nothing.
+- **The clock stays** while a stopped line is under it, one `lv_timer` a second that changes no object, so a line sees its page covered and shown again. It deletes itself when no line steps.
+- **A line in a control** has an ancestor in a focus group (`lv_obj_get_group`). At each step the clock reads its control's state: a rising `LV_STATE_FOCUSED` or `LV_STATE_PRESSED` begins the line again from the start, resting first. So focus arriving takes a line mid-pass back to its start, and a stopped one moves again, at the next step, at most a second late.
+- **A reading** (a line in no control) begins again, resting first, in three cases.
+  - **Its words change:** `SetMarquee` with other words, or a screen built again with other words under the line's key (§14.8). The same words leave it standing.
+  - **Its page is turned to:** a carousel page's lines are made again with the page's own keys, so they are new and at rest `[HOST]`.
+  - **Its screen is shown again:** a step that finds the screen covered (not active, or an overlay open) marks a stopped reading, which keeps its dots meanwhile. The first step that finds it shown begins it, resting from then; a rebuild under its key carries the mark. A cover under 1 s is not seen. A cover never begins a control's line.
+- **The tests** hold it `[HOST]`.
+  - The marquee test, on its fake clock: three passes, then no move in 30 s. Other words, a covered screen shown again and a page
+    built again under its key begin it; the same words do not.
+  - The deck screens test: a session's page, a record, a page turned, home entered again.
+- **What it costs:** after three passes a line draws nothing, so a page at rest makes no refresh of its own (STICKY_AGENT_DECK §4.11).
+
+### 14.8 The stepped line's keys, covered screens and kit
+
+The lines of §14.6 keep a pass across a rebuild, stand still when covered and are built by the kit's calls.
+
+**A screen built again keeps a pass under way, and a line standing, by a key.**
+
+- **The case:** a screen that builds itself from its model deletes its lines and makes them again in the one call. Home does so on every record, the list every `motion.self-update`.
+- **The key** is `MarqueeOptions::key`, which names the field: `MarqueeKey(scope, owner, field)` — the screen, an agent's or a request's id, which line.
+- **A deleted line keeps its place** for the one rebuild, until LVGL's next `lv_async_call`: its rest's start, its step, whether it stopped, whether its control is held.
+- **A line made again** under the same key with the same words takes the place over, a pass under way or a stop, which it draws in dots.
+- **Other words** under the key start from their start, and so does a line made later.
+- **`SetMarquee`** does the same for a line kept: the same words do nothing.
+- **`carry`:** the list's facts count the wait (`Bash • 24s`, new every rebuild), so the facts line is made `carry`. New words under the same key carry the pass on, which restarting each 5 s would never let reach its end `[HOST]`.
+
+**A covered line stands still.**
+
+- **At each step** a line on a screen that is not LVGL's active one, or while any router overlay stands (`router::OverlayOpen`), keeps its place. That holds for a pass under way too.
+- **It counts its rest again** from when it is uncovered (DESIGN → Motion → Waits and things that update on their own).
+- **A standing reading** is begun again by the cover (§14.7); the line made again by the screen's entering takes over its place, begun.
+
+**A full clock degrades, never breaks.**
+
+- **The limits:** the clock holds 24 lines (a page of the deck's holds at most about ten) and 24 keeps for a rebuild, both tables
+  in PSRAM (`lvgl_display::InPsram`, APP_ARCHITECTURE §2): only the LVGL task's timer and events touch them.
+- **A line past the limit ends in dots**, as a plain label does, and the widget logs a warning; so does one whose words it
+  has no memory to copy. Its words are never cut off with nothing to say so `[HOST]`.
+
+**`SetMarquee`, the key and the options are the kit's.**
+
+- **A screen builds a stepped line** with `layout::Step` (`agent_deck/deck_ui.h`).
+- **A row** takes `MakeListRow(…, ListRowFit::kStepped` or `kSteppedCounting, key)` and `MakeNetworkRow(…, NetworkName::kStepped, key)`.
+- **Every other caller** keeps the dotted default, its code unchanged.
+
+### 14.9 The settings' one left edge
+
+The deck's settings stand every row's words at one x, `spacing.edge + spacing.md`, 40 px, on both pages.
+
+- **The value, network and list rows** reach it by their own padding: the dropdown, the battery's value row, the network row and the Hardware test row stand their words `spacing.md` inside a box that stands on the content's edge, 24 px.
+- **The toggle rows and the name over the slider** have no box of their own. The screen gives each `spacing.md` of padding at its left (`InsetWords` in `agent_deck/settings_screen.cpp`), so Sound, Wi-Fi and Auto sleep start at 40. The toggle and the slider's track stay on the content's edges, 24 and 456.
+- **Why 40 and not 24:** words at 24 would put the network row's outline, the dropdown's frame and each ring in the margin, 8 px from the glass's edge. The rows' boxes and rings stay on `spacing.edge`, and the words follow the rule DESIGN → Layout → Spacing gives for rows with a box.
+- **The scroll indicator's lane** stands in the right margin, `spacing.scroll-x`, clear of the rows' right edge on both pages.
+- **The host test** reads the x of each row's words on page 1 and page 2, and that the lane stands right of the rows `[HOST]`. The kit's toggle row is unchanged: the hardware test's own toggle rows keep their words at the edge.
+
+### 14.10 The stepped line standing in dots
+
+A line that has made its passes holds its words once, ending in LVGL's three full stops, where it held them twice to step (the person, 2026-11-26: "Stopped readings end in …").
+
+- **The swap:** the last step of the last pass sets `stopped` and sets the label to the words once, `LV_LABEL_LONG_MODE_DOTS`, the room wide and one line box high. This is the one frame the stop draws. At every step after it the clock changes no object.
+- **The pixels:** the line draws the dotted label's pixels, the last dot inside the box. The host test compares them with a dotted label of the same role and room: none differ `[HOST]`.
+- **The way back:** a restart holds the words twice again, in the wrapping mode, at the label's own width, and the line rests and steps as before. Four things restart it:
+  - other words, `SetMarquee` or a page built again under the line's key;
+  - a reading's page turned to or shown again;
+  - a control's focus;
+  - a control's press.
+- **A key keeps it:** a page built again with the same words takes the stop over, and the new line is made in dots (§14.8).
+- **The marquee test** reads the label's mode, its text and its width, the pixels, that no frame follows the stop in 20 s, and the words twice again after each of the four restarts `[HOST]`.
+- **The deck screens test** reads a session's name and doing line standing in dots, and a list row's name and facts going back to stepping on focus `[HOST]`.

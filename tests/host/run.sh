@@ -58,11 +58,11 @@ build_lvgl() {
 # names; a .c font. HOST_<set> is the compiler and its flags.
 plain=(-std=c++20 -Wall -Wextra -Werror -I components/lvgl_display/include -I components/widgets/src
        -I components/design_tokens/include -I components/ui/include -I components/router/include
-       -I components/devices/include)
+       -I components/devices/include -I components/mascot_voice/include -I components/power_leave/include)
 # The widgets' headers, and stand-ins for the ESP-IDF headers the theme includes (tests/host/stubs).
 lvgl=("${plain[@]}" -Wno-deprecated-declarations -DLV_CONF_SKIP=1 -isystem "$LVGL" -isystem "$LVGL/src"
       -I components/widgets/include -I components/app_hooks/include -I components/devices/include
-      -I components/chiptune/include -I tests/host/stubs)
+      -I components/chiptune/include -I components/agent_deck -I tests/host/stubs)
 font=(-O0 -w -DLV_CONF_SKIP=1 -DLV_LVGL_H_INCLUDE_SIMPLE=1 -I "$LVGL")
 export HOST_plain="$CXX ${plain[*]}" HOST_lvgl="$CXX ${lvgl[*]}" HOST_font="$CC ${font[*]}"
 

@@ -229,6 +229,25 @@ void TestFirstPressRings()
     Check(s_page.clicks[1] == 1, "the next OK presses");
 }
 
+void TestFirstPressActs()
+{
+    // A stop marked SetFirstPressActs — the deck's page with nothing on it to press — takes its first press at once.
+    router::Focus(s_page.buttons[1]);
+    router::ClearRing();
+    router::SetFirstPressActs(s_page.buttons[1], true);
+    Press(LV_KEY_NEXT);
+    Check(Focused() == s_page.buttons[2], "with no ring, a marked stop's first DOWN moves at once");
+    router::Focus(s_page.buttons[1]);
+    router::ClearRing();
+    const int before = s_page.clicks[1];
+    Press(LV_KEY_ENTER);
+    Check(s_page.clicks[1] == before + 1, "and its first OK goes through");
+    router::SetFirstPressActs(s_page.buttons[1], false);
+    router::ClearRing();
+    Press(LV_KEY_NEXT);
+    Check(Focused() == s_page.buttons[1] && Ringed(s_page.buttons[1]), "the mark taken off, the first press only rings again");
+}
+
 void TestHeldKeyAfterTheRing()
 {
     // A held DOWN whose first press only rang: the repeat's release and fresh press (lvgl_display's KeyRepeat) step from there.
@@ -412,6 +431,7 @@ int main()
     router::SetRoot(MakeThreeButtons());
     s_home = s_page;
     TestFirstPressRings();
+    TestFirstPressActs();
     TestHeldKeyAfterTheRing();
     TestOffTheGlass();
     TestTap();

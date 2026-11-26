@@ -140,6 +140,10 @@ void Focus(lv_obj_t *obj);
 void Ring(lv_obj_t *obj);
 // Takes the ring off the focused control of the bound group, which goes on naming it; not while a control is open for editing.
 void ClearRing();
+// Marks `obj` as a stop whose first press acts at once: focused with no ring on the glass, its first UP, DOWN or OK goes
+// through rather than only showing the ring. For a stop that presses nothing and draws no ring — the agent deck's page with
+// nothing on it to press, where UP and DOWN turn the page (DESIGN → Layout → Paging). `acts` false takes the mark off.
+void SetFirstPressActs(lv_obj_t *obj, bool acts);
 // Hides or shows `obj`. Hiding it when the focused control is `obj` or inside it hands focus to `next` first — ringed only if
 // the focused control was — or, with no `next`, takes the ring and the focus state off it, its group still naming it. Showing
 // moves nothing.

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Regenerates marks.c: the 1-bit marks of the widgets component, from 128 x 128 alpha artwork — a checkbox card's check
 and the status block's check, clock and link-off from the agent deck's (STICKY_DESIGN_TOKENS §9 says what the deck is), and
-the ten glyphs of the buttons, the checkbox and the radio from BYTE-90's icon PNGs, and the six of the Wi-Fi network row and the
+the eleven glyphs of the buttons, the checkbox and the radio from BYTE-90's icon PNGs (the foot's Power among them), the deck's own Wi-Fi, settings and link
+glyphs on the same box (the foot's icon buttons and the link indicator), and the six of the Wi-Fi network row and the
 dropdown, cut from the same PNGs to a box of their own (DESIGN → Components → Icons).
 
     python3 make_marks.py <the agent deck's components/icons/source folder> <BYTE-90's assets/icons folder>
@@ -26,6 +27,7 @@ MARKS = [("check", "check", 38, "the checkbox card's check, about 25 px of ink",
          ("status_check", "check", 85, "the status block's check (spacing.status-mark 85 px of art)", "deck"),
          ("status_clock", "clock", 85, "the status block's clock", "deck"),
          ("status_link_off", "link_off", 85, "the status block's link-off", "deck"),
+         ("status_wifi", "wifi-on", 85, "the status block's Wi-Fi, stacked blocks only (81 px wide, over the 73 px slot)", "deck"),
          ("glyph_arrow_back", "arrow_back", GLYPH, "Back: an arrow pointing left", "byte90"),
          ("glyph_close", "close", GLYPH, "Close: a cross", "byte90"),
          ("glyph_play", "play", GLYPH, "Play", "byte90"),
@@ -36,6 +38,11 @@ MARKS = [("check", "check", 38, "the checkbox card's check, about 25 px of ink",
          ("glyph_check", "check", GLYPH, "Save, and a checkbox's check", "byte90"),
          ("glyph_mic", "mic-on", GLYPH, "Record: the microphone", "byte90"),
          ("glyph_refresh", "refresh", GLYPH, "Retry: the refresh arrow", "byte90"),
+         ("glyph_wifi", "wifi-on", GLYPH, "Wi-Fi: the deck's art, the foot's icon button that opens the Wi-Fi page", "deck"),
+         ("glyph_settings", "settings", GLYPH, "Settings: the deck's art, the foot's icon button that opens the settings", "deck"),
+         ("glyph_power", "power", GLYPH, "Power: BYTE-90's power glyph, the foot's icon button that turns the deck off", "byte90"),
+         ("glyph_link_on", "link_on", GLYPH, "the bridge link up: the deck's art, an indicator and never a button", "deck"),
+         ("glyph_link_off", "link_off", GLYPH, "the bridge link down: the deck's art, the indicator's other face", "deck"),
          ("glyph_signal_weak", "wifi-1bar", None, "a network's signal, weak: the dot", "byte90", SIGNAL_CROP, (40, 30)),
          ("glyph_signal_fair", "wifi-2bar", None, "a network's signal, fair: the dot and one arc", "byte90", SIGNAL_CROP, (40, 30)),
          ("glyph_signal_strong", "wifi-3bar", None, "a network's signal, strong: the dot and two arcs; also the unlit bars", "byte90",

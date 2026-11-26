@@ -1,7 +1,7 @@
 // The mascot page's passes, with no LVGL and no board in it, so tests/host checks it on the computer: a pass begins on
 // frame 1; each refresh drawn moves the frame on; a looping move is asked to rest once the deck's stage's run has
 // passed, a once-only move as it begins; the pass ends on the frame that draws rest, and a loop begins the next after
-// kLoopRestMs; "n of N" never shows n past N; and the readout's words (STICKY_UI_KIT_PORT §4 item 8).
+// kLoopRestMs; "n of N" never shows n past N; and the readout's words (STICKY_DESIGN_TOKENS §13).
 
 #pragma once
 
@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+
+#include "mascot_voice_rules.h"
 
 namespace hw_test::mascot_rules {
 
@@ -131,67 +133,13 @@ inline void FormatLooping(char *out, size_t size, uint32_t passes)
     }
 }
 
-// --- The music: what the mascot on the stage is heard doing, besides its moments (DESIGN → Motion → Sound) -------------
-
-enum class Music : uint8_t { kNone, kTyping, kSpin, kSuccess, kWave, kThink };
-
-// What the mascot shows now, as the widget says it: typing at the laptop; the move on view and when it began; a jaunt —
-// the wave's "hi"s or the idle's thinking — and when its beat began.
-struct Seen {
-    bool typing = false;
-    bool spin = false;     // the spin is the move on view
-    bool done = false;     // the finish or the celebrate is
-    uint32_t done_after = 0;  // how long into it the success waits: the done move's whole movement
-    uint32_t move_since = 0;
-    bool wave = false;
-    bool think = false;
-    uint32_t jaunt_since = 0;
-};
-
-// The music and when it began, on the move's clock: `since` 0 is none.
-struct Heard {
-    Music music = Music::kNone;
-    uint32_t since = 0;
-};
-
-// The deck's order on one voice: the spin; else the success, once the finish's or the celebrate's movement is done;
-// else the wave's or the thinking's beat; else the typing, looped from when it began (`typing_since`, the page's own
-// note of it). A music's `since` may lie ahead: it sounds from then.
-constexpr Heard MusicOnView(const Seen &seen, uint32_t typing_since)
-{
-    if (seen.spin) {
-        return {Music::kSpin, seen.move_since};
-    }
-    if (seen.done) {
-        // After the movement: the success begins as the finish's or the celebrate's movement ends, its moments heard
-        // first — the developer's ask, 2026-11-24, over the deck's success from the move's start — and plays to its end
-        // however the move ends.
-        return {Music::kSuccess, seen.move_since + seen.done_after};
-    }
-    if (seen.wave) {
-        return {Music::kWave, seen.jaunt_since};
-    }
-    if (seen.think) {
-        return {Music::kThink, seen.jaunt_since};
-    }
-    if (seen.typing) {
-        return {Music::kTyping, typing_since};
-    }
-    return {};
-}
-
-// What a change of music does to the one sounding: a new one plays; none stops it, but for the success, which plays to
-// its end as the deck's does.
-enum class Change : uint8_t { kKeep, kPlay, kStop };
-constexpr Change ChangeOf(const Heard &was, const Heard &now)
-{
-    if (was.music == now.music && was.since == now.since) {
-        return Change::kKeep;
-    }
-    if (now.music != Music::kNone) {
-        return Change::kPlay;
-    }
-    return was.music == Music::kSuccess ? Change::kKeep : Change::kStop;
-}
+// --- The music: what the mascot on the stage is heard doing, besides its moments — shared with the agent deck's screens, so the
+// rules are mascot_voice's (components/mascot_voice, DESIGN → Motion → Sound) and the names stay here for this page's tests.
+using mascot_voice::Change;
+using mascot_voice::ChangeOf;
+using mascot_voice::Heard;
+using mascot_voice::Music;
+using mascot_voice::MusicOnView;
+using mascot_voice::Seen;
 
 }  // namespace hw_test::mascot_rules

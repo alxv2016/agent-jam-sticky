@@ -98,6 +98,11 @@ void PlayMusic(sound::Music music, int64_t began_us);
 void StopMusic();
 // Drops the moments held and not yet played: a page that stops its mascot, so none sounds over what comes next.
 void DropMoments();
+// The product's sound setting: muted, every call above is silent — a word, a sound, the press tick, the mascot's moments
+// and its music — and what plays stops; Tone alone still sounds, the hardware test's check that the buzzer works. Unmuted
+// at boot; any task.
+void SetMuted(bool muted);
+bool Muted();
 
 // --- The PDM microphone ------------------------------------------------------------------------------------------
 

@@ -30,6 +30,7 @@ colors:
   knob: "{colors.white}"  # a range slider's knob bar on its black fill
   text-disabled: "{colors.scale.sparse.sixteenth}"  # words and marks on a disabled control's face; exempt from contrast
   text-disabled-page: "{colors.scale.sparse.eighth}"  # a disabled row's name, state word and a slider's knob and value on white; exempt
+  text-quiet: "{colors.scale.primary.1}"  # the agent deck's small supporting lines, drawn in the dark dither on every refresh; an argued exception under the text floor (Exceptions → Quiet words)
   shadow-1: "{colors.scale.sparse.eighth}"  # elevation 1's offset: one black pixel in eight; no words or marks on it
   shadow-2: "{colors.scale.primary.2}"  # elevation 2's offset, a bottom sheet's: the light dither
   shadow-3: "{colors.scale.primary.1}"  # elevation 3's offset, a dialog's: the dark dither
@@ -63,7 +64,12 @@ typography:
     fontSize: 20px
     fontWeight: 700
     lineHeight: 24px
-  scale-30-regular:  # the only regular weight: body
+  scale-20-regular:  # the second regular weight: caption-regular
+    fontFamily: Bitcount Single
+    fontSize: 20px
+    fontWeight: 400
+    lineHeight: 24px
+  scale-30-regular:  # the first regular weight: body
     fontFamily: Bitcount Single
     fontSize: 30px
     fontWeight: 400
@@ -194,6 +200,21 @@ typography:
     fontSize: 20px
     fontWeight: 600
     lineHeight: 30px
+  title:  # = typography.scale-30-semibold: the deck's screens' names and headings, a chip's words
+    fontFamily: Bitcount Single
+    fontSize: 30px
+    fontWeight: 600
+    lineHeight: 36px
+  caption-strong:  # = typography.scale-20-bold: a choice card's name, a detail row's label and a network row's name at caption's size, one size under `label`
+    fontFamily: Bitcount Single
+    fontSize: 20px
+    fontWeight: 700
+    lineHeight: 24px
+  caption-regular:  # = typography.scale-20-regular: the needs-you list's facts line and its heading's count line, `caption`'s size at body's weight
+    fontFamily: Bitcount Single
+    fontSize: 20px
+    fontWeight: 400
+    lineHeight: 24px
 rounded:
   none: 0px
   sm: 4px
@@ -221,6 +242,7 @@ spacing:
   toggle-thumb-width: 52px
   slider-height: 52px
   button-width: 212px  # the standard button; a compact one is as wide as its words
+  button-back: 160px  # Back in words: the outline button alone at a footer's left, the settings', the Wi-Fi page's, the hardware test's
   card-inset: 20px  # a choice card's and radio row's words in from the edge
   check-size: 44px  # a checkbox's and a radio's control: the toggle's height
   check-dot: 16px  # a radio's dot on its black disc
@@ -239,7 +261,9 @@ spacing:
   status-mark-slot: 73px  # the status block's mark slot: the widest compiled mark (clock, link-off), the art flush left; words stand `edge` + slot + `lg` in
   overlay-offset: 6px  # how far an offset stands from its box, at every elevation level
   key-gap: 12px  # between the keyboard's keys, across and down: a key's 4 px ring 4 px out leaves 4 px
+  chip-small: 36px  # the small chip drawn: `rounded.lg`, its hit area padded to `spacing.target`; its words `title`, `spacing.md` either side
   mascot-cell: 24px  # Claude's mascot: a cell, two of its pixels — a pixel 12 px, three whole 4 x 4 dither tiles; 1.5x the deck's, the person's choice on the glass
+  marquee-step: 48px  # how far a stepped line moves each step: the deck's 48 px a second, taken in one-second steps (Exceptions → Stepped lines on the deck's screens)
   # The gaps by role, each a step of the scale. A pair's gap is measured between the two texts' own boxes (the font's height, no leading).
   pair-sm: "{spacing.sm}"  # a row's label over its one line
   pair-md: "{spacing.md}"  # a title over a wrapped description; a headline over body
@@ -301,6 +325,18 @@ motion:
     duration: 0ms
     delay: 1500ms
     timingFunction: steps(1, start)
+  startup-hold:  # the startup screen stays up this long from its first frame on the glass, its mascot's hello played whole, then hands over to home (Exceptions → Timed leaves)
+    duration: 0ms
+    delay: 2000ms
+    timingFunction: steps(1, start)
+  answered-hold:  # "Answered" stays this long, then the screen goes back to where the request came from (Exceptions → Timed leaves)
+    duration: 0ms
+    delay: 2300ms
+    timingFunction: steps(1, start)
+  timed-out-hold:  # "Timed out" stays this long, then the same (Exceptions → Timed leaves)
+    duration: 0ms
+    delay: 1800ms
+    timingFunction: steps(1, start)
   key-repeat-delay:  # a held UP or DOWN steps again once it has been held this long (Focus and input)
     duration: 0ms
     delay: 600ms
@@ -308,6 +344,14 @@ motion:
   key-repeat-period:  # then steps again this often while it is held, each step's frame landed first
     duration: 0ms
     delay: 500ms
+    timingFunction: steps(1, start)
+  marquee-rest:  # a stepped line rests this long with its start in view before its passes, each time it begins (Exceptions → Stepped lines on the deck's screens)
+    duration: 0ms
+    delay: 4000ms
+    timingFunction: steps(1, start)
+  marquee-step:  # then moves `spacing.marquee-step` this often, one partial refresh a step, every line on one clock
+    duration: 0ms
+    delay: 1000ms
     timingFunction: steps(1, start)
 sound:  # the buzzer's words, each in the agent deck's note format: wave, a start and an end pitch (0 for no slide), a length, on or off; a pitch of 0 is a rest (Motion → Sound)
   band-low: 2000Hz   # every pitch at or above, round the buzzer's 4 kHz resonance
@@ -535,6 +579,13 @@ components:
     typography: "{typography.label}"
     rounded: "{rounded.sm}"
     padding: "{spacing.sm}"
+  chip-small:  # the small chip: the chip's look, 36 px drawn and hit across 64; a reading unless its screen makes it a control
+    backgroundColor: "{colors.band}"
+    textColor: "{colors.text-primary}"
+    typography: "{typography.title}"
+    rounded: "{rounded.lg}"
+    height: "{spacing.chip-small}"
+    padding: "{spacing.md}"
   timeline-chip:  # a rounded box, never a pill; chosen is a black edge of `spacing.stroke.strong`, the fill unchanged
     backgroundColor: "{colors.band}"
     textColor: "{colors.text-primary}"
@@ -738,6 +789,9 @@ components:
   network-row-chosen:  # the network in use or being joined: the inversion
     backgroundColor: "{colors.surface-chosen}"
     textColor: "{colors.text-on-fill}"
+  network-row-joined:  # the same network, where its screen asks for the outlined look: white inside a `spacing.stroke.default` outline, every word and glyph black
+    backgroundColor: "{colors.background}"
+    textColor: "{colors.text-primary}"
   text-input:  # the frame of a text or password input; its words `label`, its placeholder `caption`
     backgroundColor: "{colors.background}"
     textColor: "{colors.text-primary}"
@@ -914,6 +968,9 @@ When two pull against each other, the earlier wins — between options that both
   when on, which a checkbox's check and a radio's dot are too; a range slider's knob bar, white on its black fill. Each is the mark that clears 3 : 1 on its own surface
   — the thumb on `band`, the other two on `surface-on` — so each flips with it.
 
+- **`text-quiet`** — the dark dither as words: the agent deck's small supporting lines (the reset lines under the usage bars, a
+  sub-agent's tokens, "4 sessions", a request's agent name). It averages 3.5 : 1 on the white, under the text floor, which an
+  argued exception holds (Exceptions → Quiet words); every other word keeps the floor.
 - **`shadow-1`, `shadow-2`, `shadow-3`, `keyline`** — an offset's dither by elevation level — the eighth (one black pixel in
   eight), the light dither and the dark dither — and the white line that rings its outer edge (Elevation & Depth). No words or
   marks stand on an offset, so it needs no contrast pair; it is decoration and exempt.
@@ -957,10 +1014,11 @@ When two pull against each other, the earlier wins — between options that both
 
 - **Bitcount Single, compiled into the firmware** — a pixel font, each letter built from square cells, under the SIL
   Open Font License; at one bit a pixel its strokes are the glass's own pixels.
-- **Weights 600 and 700, and one 400.** A lighter weight breaks up at one bit a pixel, so the regular weight is cut at
-  one size only: `body`, 30 px, whose 3 px strokes keep its gaps open at 40 px of line. Hierarchy comes from size and weight,
-  never from grey alone. Below 50 px the 600 and 700 look alike, so size carries the hierarchy there, and `body`'s 400
-  against `label`'s 700 is the one pair at 30 px that differs by weight.
+- **Weights 600 and 700, and a 400 at two sizes.** A lighter weight breaks up at one bit a pixel, so the regular weight is cut at
+  two sizes only: `body`, 30 px, whose 3 px strokes keep its gaps open at 40 px of line, and `caption-regular`, 20 px, for a supporting
+  line under `body` or `title` words. Its strokes are 1 and 2 px, where the 600's and the 700's are 3 at the same size, so it is the thinnest
+  text on the glass, held to a supporting line and judged on the glass (Open items → Whether `caption-regular` reads). Hierarchy comes from size and weight,
+  never from grey alone. Below 50 px the 600 and 700 look alike. So size carries the hierarchy there. `body`'s 400 against `label`'s 700 is the one pair at 30 px that differs by weight. At 20 px `caption-strong`'s 700 over `caption`'s 600 is the one pair that differs by weight. The eye finds that step by the heavier strokes, not by size. `caption-regular` under `body` makes a pair of two regulars that differ by size. `title` is the 600 at 30 px, which looks like `label`'s 700 at one bit a pixel. So a screen sets it over words of another size — the deck's headings over their `caption` or `caption-regular` lines — and never leans on it to tell two 30 px texts apart. The needs-you heading's count line is `caption-regular` under `title`, so the pair differs in size and in weight.
 - **Every size is a multiple of 10 px** — the font's cell is a tenth of the em, so each cell is whole pixels.
 - **Glyphs are drawn at one bit a pixel** on every refresh, so a stroke is solid black, never a grey edge that
   thresholds into a ragged one. A disabled control's words are the one text in a dither (`text-disabled`), and
@@ -974,7 +1032,8 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
   700 (`typography.scale-30-semibold` and its siblings). Lines are 1.2 em apart up to 40 px and closer as the size
   grows: 56 px at 50, 64 at 60, 72 at 70 and 80 at 80, each on the 4 px grid and never under the font's own height.
   Figures sit on the height of their digits: 68 px at 100, 80 at 120 and 108 at 160. Thirty px also comes at 400,
-  `typography.scale-30-regular`, and `body` sets it on a 40 px line. A screen takes a role, never a primitive. Only the
+  `typography.scale-30-regular`, and `body` sets it on a 40 px line. Twenty px comes at 400 too, `typography.scale-20-regular`,
+  which `caption-regular` takes on its 24 px line. A screen takes a role, never a primitive. Only the
   hardware test's type scale page shows the primitives themselves (DESIGN → Exceptions).
 - **A role is one primitive:**
 
@@ -985,13 +1044,17 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 | `headline` | `scale-40-bold` | 40 px, 12.3 pt | A screen's title |
 | `body` | `scale-30-regular` on a 40 px line | 30 px, 9.2 pt | Everything people read: a transcript, a summary, a note; a row's state and value words; a dropdown's options; a status block's description |
 | `label` | `scale-30-bold` | 30 px, 9.2 pt | The status bar's title, buttons, hints, tags, a row's title, a choice card's name, the chosen dropdown option, a field's typed text — `body`'s size, in bold |
-| `caption` | `scale-20-semibold` | 20 px, 6.1 pt | Timestamps, a field's placeholder, a Wi-Fi network's name and its facts, the status band's news — the smallest words on the glass, 12 px a character |
+| `caption` | `scale-20-semibold` | 20 px, 6.1 pt | Timestamps, a field's placeholder, a Wi-Fi network's facts, a detail row's value one size down, the name on the kit's default detail row (the hardware test's About page and Serial number), the status band's news — the smallest words on the glass, 12 px a character |
 | `caption-loose` | `scale-20-semibold` on a 30 px line | 20 px, 6.1 pt | A text view's lines: `caption` on a line 1.5 em apart, easy to follow back |
+| `title` | `scale-30-semibold` | 30 px, 9.2 pt | The agent deck's screens' names and headings — "Needs you", "Usage 42%", an agent's name, "Settings" — and a small chip's words: `label`'s size one weight lighter, so a heading reads between `body` and `label` |
+| `caption-strong` | `scale-20-bold` | 20 px, 6.1 pt | A Wi-Fi network's name over its facts; a choice card's name and a detail row's label one size down, where a screen sets its words one size under `label` (Components → The kit → Words one size down); `caption`'s size, bold |
+| `caption-regular` | `scale-20-regular` | 20 px, 6.1 pt | The needs-you list's facts line under its `body` names, its heading's count line under `title`, and any supporting line a screen sets under `body` words (Components → The kit → List row); `caption`'s size at `body`'s weight, so the line is lighter than the words over it |
 
 ### Reading
 
 - **24 characters of `body` a line** across the content width — wrap, never truncate, words people read.
-- **Truncate only a label whose full words are one press away.**
+- **Truncate only a label whose full words are one press away.** On the agent deck's screens a one-line field too long for
+  its room rests with its start in view and then steps along its words, as a marquee. After its passes it stands at its start ending in dots (Exceptions → Stepped lines on the deck's screens). Body text and every other words that can wrap still wrap, never step.
 - **`hero` and `display` are large text** for contrast — WCAG's 14 pt bold.
 - **`hero` and `display` set one or two lines** — a third line is `body`.
 - **Figures keep their width** — every character is the same width — so a changing number, the clock, the battery, a
@@ -1010,6 +1073,8 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 
 - **The status bar** — `spacing.status-bar` along the top edge: the screen's title, on white over a hairline; the
   device's own state has no place on the glass yet (Open items).
+- **The agent deck's screens draw no status bar.** The startup screen, the carousel (the overview and an agent's page), standby, the needs-you list, a request, a question, a request closed elsewhere, the settings and the Wi-Fi page stand on the glass with the deck's own regions. They are the clock top-right, a heading in `title` where the page has one, the facts, and the foot's page dots, icons or answers. The person's decision, 2026-11-25: no title bar the deck lacks. The hardware test, a
+  bench tool, keeps its status bar and footer. Everything else on a screen follows the regions below.
 - **The status band** — optional. A screen that can get news reserves `spacing.list-row-height` between its title bar and its
   content, and leaves it white until news comes, so nothing moves when it does. Its words stand between the title bar's
   rule above and a `spacing.stroke.hairline` rule below that shows only with news, no box and no fill. A screen that
@@ -1032,6 +1097,10 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
   page keeps `lg` under the page's top padding. The screen's side margins are `edge`, 24.
 - **A section heading's words start at `edge`** over boxes and controls, and over the setting rows whose words stand there. They
   start `md` in over rows whose words stand 16 in: value rows, detail rows, list rows, network rows, dropdowns and status blocks.
+- **The deck's settings put every row's words on one left edge, `spacing.edge` plus `spacing.md`, 40 px.** The value, network and list rows
+  stand their words there inside their boxes. The toggle rows and the name over the slider carry the same `spacing.md` at their left, and their
+  controls, the slider's track and the rows' boxes stay on the content's edges at 24 and 456. Words at 24 would put the rows' boxes and
+  their rings in the margin, off the scale. The scroll indicator's lane in the right margin stays clear of both pages.
 - **Every touch target is `spacing.target`, 64 px — 6.9 mm.** A control may draw smaller and pad its hit area — a
   toggle draws `spacing.toggle-height`, 44 px, a checkbox or radio `spacing.check-size`, 44 px, and each takes touches
   across 64.
@@ -1046,8 +1115,12 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
   first row never shows in what is left. A list's band is cut to the page's last row and the focus ring's reach under it.
 - **Focus wraps across pages** — DOWN on the last row of the last page goes to the first row of the first page, a page
   turn like any other.
+- **The agent deck's carousel is a paged strip of pages, and UP and DOWN turn them** — the overview, then a page per agent. UP and DOWN
+  walk the page's one stop and the foot's four icons — Wi-Fi, sound, Settings and Power — in one wrapping order: DOWN on a page turns to the next page and keeps the stop. On the last page it reaches the foot, and from the foot it comes back to the first or the last page. A sideways swipe turns one page, and at either end nothing wraps (the buttons wrap). The stop stands over the page's control when it has one — the overview's count, Review — and rings as it appears, so one press of OK opens what waits. Else it is an unseen stop that draws no ring. OK there presses nothing, and the first UP or DOWN turns the page at once (Focus and input → the first press's exception).
 - **A page with nothing to focus is still a stop** — a page of facts takes UP and DOWN as a page of rows does, one press
-  a page, and the ring round it shows where the person is. Focus wraps over it like any other stop.
+  a page, and the ring round it shows where the person is. Focus wraps over it like any other stop. The agent deck's
+  carousel is the exception: its pages turn on UP and DOWN and the page dots say where the person is, so a carousel page
+  with nothing on it to press draws no ring (the person, 2026-11-26).
 
 ## Elevation & Depth
 
@@ -1132,7 +1205,11 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 ### Nothing animates
 
 - **Every motion token is a step** — `steps(1, start)`, no duration: a change is the next frame. No slide, fade, scale,
-  spinner, blinking cursor or marquee; e-paper cannot show them, and trying costs refreshes.
+  spinner, blinking cursor or smooth marquee; e-paper cannot show them, and trying costs refreshes.
+- **Claude's mascot is the one thing that plays frames**, on the agent deck's screens and the hardware test's mascot page, at
+  the glass's pace (Exceptions → Claude's mascot on the deck's screens); nothing else on a screen animates but one other thing, which only steps. That is a one-line field too long for its room, on the agent deck's screens, and it moves
+  `spacing.marquee-step` every `motion.marquee-step` after resting `motion.marquee-rest` (Exceptions → Stepped lines on the
+  deck's screens).
 - **The refresh is the motion.** A press and a selection land in one partial refresh, and so does a change of screen
   on the V2.0; on the V1.0 a change of screen is two, through white, 1 to 1.25 s, so the old page leaves no ghost. A full
   refresh — the whole glass flashing — is kept for the first frame after waking, the update after twenty partial
@@ -1159,13 +1236,13 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 ### Waits and things that update on their own
 
 - **A wait shows nothing for its first second** (`motion.wait-indicator`), then still words of what is happening.
-- **Nothing updates on its own faster than every 5 s** (`motion.self-update`) — a recording's timer, a wait's progress
-  — and the clock once a minute (`motion.clock-tick`), except a masked field's last character, which hides itself after
-  `motion.password-reveal`, once per character (Exceptions → A password's last character).
+- **Nothing updates on its own faster than every 5 s** (`motion.self-update`) — a recording's timer, a wait's progress — and the clock once a minute (`motion.clock-tick`). Two things are excepted. A masked field's last character hides itself after `motion.password-reveal`, once per character (Exceptions → A password's last character). A stepped line moves every
+  `motion.marquee-step` while it moves (Exceptions → Stepped lines on the deck's screens).
 - **A covered screen stops updating itself** — while a sheet, a dialog or the keyboard stands over it, its own updates wait,
   and when it is uncovered it reads again at once.
-- **Nothing leaves on a timer** — a message stays until the next change of screen or its caller retracts it. One exception: a masked field's last
-  typed character (Exceptions → A password's last character, `motion.password-reveal`).
+- **Nothing leaves on a timer** — a message stays until the next change of screen or its caller retracts it. Two exceptions: a masked field's last
+  typed character (Exceptions → A password's last character, `motion.password-reveal`), and the agent deck's three timed
+  leaves (Exceptions → Timed leaves, `motion.startup-hold`, `motion.answered-hold` and `motion.timed-out-hold`).
 
 ### Sound
 
@@ -1250,17 +1327,12 @@ serves, reached and used by the keys and by touch.
   status bar's title is `label`; the band's news is `caption`.
 - **Button** — the action button (black, one per screen, `button-action`), the outline button (`button-outline`), the
   tonal button (the light dither, black words, `button-tonal`) for a second action that is not Cancel, and the ghost
-  button (words alone, `button-ghost`) for a third. A compact button is any of them as wide as its words. The standard
-  one is `spacing.button-width` wide, `rounded.lg`, with a `spacing.stroke.default` edge reserved on every variant so
-  none changes size. Its padding is `spacing.md` either side, inside the edge, in any button of a set width, and
-  `spacing.lg` in a compact one. The words are centred and are never clipped. A half button's ten characters (180 px) are
+  button (words alone, `button-ghost`) for a third. A compact button is any of them as wide as its words. The standard one is `spacing.button-width` wide, `rounded.lg`, with a `spacing.stroke.default` edge reserved on every variant so none changes size. Its padding is `spacing.md` either side, inside the edge, in any button of a set width. In a compact one it is `spacing.lg`. Back in words, alone at a footer's left — the settings', the hardware test's — is the outline
+  button `spacing.button-back` wide. The words are centred and are never clipped. A half button's ten characters (180 px) are
   wider than the 170 px its padding leaves, so they sit over the padding, 11 px from the edge. A third's six (108 px)
-  sit over 95 px, 9 or 10 px from it. A destructive action is the action button: its words and its dialog carry the danger, never a
-  colour. A button may have a glyph before its words: `spacing.icon` of art, its ink then `spacing.md` of white from the
-  first letter, the glyph and the words centred as one group in the words' colour. A half button holds 7
+  sit over 95 px, 9 or 10 px from it. A destructive action is the action button: its words and its dialog carry the danger, never a colour. A button may have a glyph before its words. The glyph is `spacing.icon` of art, its ink then `spacing.md` of white from the first letter, and the glyph and the words are centred as one group in the words' colour. A half button holds 7
   characters beside one (a glyph of 28 px, 16, and 7 × 18 = 170 px) and a full-width button 19. A footer third holds
-  none, so it takes the word alone or an icon button. The glyphs beside words are Record (the microphone), Play, Back
-  (the arrow), Save (the check) and Retry (the refresh); one glyph means one thing everywhere. The icon button is a
+  none, so it takes the word alone or an icon button. The glyphs beside words are Record (the microphone), Play, Back (the arrow), Save (the check) and Retry (the refresh). One glyph means one thing everywhere. The icon button is a
   square of `spacing.target` with a glyph and no words, in the button's four variants. The toggle icon button is a
   tonal tile that goes black when on, its glyph the current state. Both are in the closed set of DESIGN → Exceptions. A
   toggle icon row says the state in words beside the tile, as a toggle row does. No button has a pressed state
@@ -1287,7 +1359,7 @@ serves, reached and used by the keys and by touch.
 - **Value row, detail row, section heading** — a setting's name left and its value right in `text-secondary`. Its words stand
   `spacing.md` in from the row's outer edge, and a value row reserves its `spacing.stroke.default` edge inside that. A value
   that does not fit ends in LVGL's dots (three full stops, the one place they stand; Voice & Content) when its full words are
-  one press away. A value row's value is in `body`. A fact's name in `caption` over its value is never focused. Both wrap to 33
+  one press away. A value row's value is in `body`. A fact's name in `caption` over its value is never focused. The kit's default stays on the hardware test's About page and Serial number: the name in `caption` over the value in `label`. Both wrap to 33
   and 22 characters a line and are never cut, since nothing is one press away.
   A section heading is a group's name in `caption` above its group. `spacing.section` of room stands over it, which sets it off
   from the content before. The first heading on a page keeps `spacing.lg` under the page's top padding. A group's name under a
@@ -1295,14 +1367,21 @@ serves, reached and used by the keys and by touch.
 - **A row's content is centred on its height** — one line or more. A toggle, checkbox, radio, value, home, network or list-view
   row, a choice card, a dropdown field and a select sheet's option all keep their words and controls on the row's
   vertical axis. A row that grows with its words grows about its centre. A host test holds it (STICKY_DESIGN_TOKENS §9).
-- **List row** — a title and a supporting line in `spacing.list-row-height`, 80 px, `rounded.lg`: `spacing.sm` above
-  and below, `spacing.md` either side, `spacing.md` from the next row and no rule between; a one-line row is
-  `spacing.target`, 64 px. The ring and the gap separate rows.
+- **Words one size down** — a screen that holds many controls on one page may set a control's words smaller than the
+  kit's default, to a role of the type scale. A toggle row, a value row, a dropdown, a radio row, a list row or a choice card takes `caption` or `caption-strong` for its name, its state word and its value. A detail row's label takes `caption-strong` and its value `caption`, so the row reads as the name in bold over its fact, as a network row's does. The words keep their line box. Each is refitted to the role's line height and centred on it, so the row stays centred on its height. Only words larger than the role come down to it: a `caption` supporting line stays as it is (a detail row's label is set to its role outright, since it has `caption`'s size already). It is one call and one choice for a whole row, never a size for a single word beside its neighbour. It is a role from the scale, never a size of its own (STICKY_DESIGN_TOKENS §14).
+- **List row** — a title and a supporting line in `spacing.list-row-height`, 80 px, `rounded.lg`. It has `spacing.sm`
+  above and below, `spacing.md` either side, `spacing.md` from the next row and no rule between. A one-line row is
+  `spacing.target`, 64 px. The ring and the gap separate rows. Its title is `label`; a screen whose names are the page's
+  own words — the agent deck's needs-you list — sets them in `body`, 30 px regular, so the names are not heavier than the
+  page's title over them. A line too long for the row ends in LVGL's dots by default; a row may ask for the stepped line
+  instead — the needs-you list does, for its names and facts (Exceptions → Stepped lines on the deck's screens). A row's supporting line is `caption` by default and `text-secondary`. A screen whose names are in `body` sets it in `caption-regular`, 20 px regular, as the needs-you list's facts. That makes a regular line under a regular name, the name the larger and the line the lighter in size and colour; a semibold line under a regular name would be the heavier. The kit's other list rows keep `caption`. The two are 24 px lines, so the row stays 80 px and centred.
 - **Timeline** — date chips, then the chosen date's recordings as list rows.
 - **Chip, segment** — a chip is a rounded box `rounded.lg` as wide as its words, on the light dither, chosen with a
   black edge of `spacing.stroke.strong` and the fill unchanged — the deck's chip, never a pill. A segment is up to four
   choices on one light-dither track `spacing.target` high, `spacing.sm` round the items and between them, the chosen
-  item a black pill behind its white word. Every item is a focus stop.
+  item a black pill behind its white word. Every item is a focus stop. **The small chip** is the chip's look at
+  `spacing.chip-small`, 36 px drawn: the light dither, black words in `title`, `rounded.lg`, `spacing.md` either side, with
+  its hit area padded to `spacing.target` like any control drawn smaller. It is a reading — the deck's "2 working", an agent's state — and a focus stop only where its screen makes it one, as the home view's "1 needs you", which opens the oldest request. A reading has no ring, takes no press and is no stop. It has no chosen edge.
 - **Sticky** — one follow-up as a card: its tag and its words in `display` or `body`.
 - **Carousel** — onboarding, one card at a time. The card is white in a `spacing.stroke.default` outline, `rounded.lg`, filling
   the content's height, `spacing.card-inset` in. Its title is `display` and its words `body`, `spacing.pair-lg` under it. Its page
@@ -1311,6 +1390,11 @@ serves, reached and used by the keys and by touch.
   the first card, and Skip (outline) stands in the middle slot on every card. A swipe left or right turns one card on the lift,
   with `sound.at-end` past either end. A turn is one partial refresh. Holding OK leaves, as Skip does, at any depth: the screen's
   own escape, which the router runs when nothing is open.
+- **Swipe page** — a container that turns a page when the finger sweeps along its axis: sideways for the agent deck's carousel, up or
+  down for a band of whole items that pages itself (a long question's). No fill, no edge, no stop and no hit area of its own. One
+  swipe turns one page on the lift, by its distance or a flick at its end, and nothing follows the finger; past either end nothing
+  wraps and `sound.at-end` sounds. A drag across its axis chains to the page behind. The keys turn its pages their own way (Layout →
+  Paging); the container turns nothing by itself.
 - **Dialog** — a decision the person must make now, with one action button and Cancel. A destructive action is
   one verb under a title that names what it destroys ("Delete", under "Delete this note?"), and its dialog opens with
   focus on Cancel. It sits
@@ -1319,13 +1403,13 @@ serves, reached and used by the keys and by touch.
   `spacing.item` apart. Its offset, `spacing.overlay-offset` down and to the right in `shadow-3`, stands inside the page's margin
   (Elevation & Depth). A touch outside it is eaten (Focus and input).
 - **Network row** — a Wi-Fi network in `spacing.list-row-height`, 80 px, `rounded.lg`, `spacing.md` either side and `spacing.sm`
-  above and below. Its name and its facts line are both `caption`, the name up to 28 characters and then LVGL's dots. An open
+  above and below. Its name is `caption-strong`, 20 px bold, over its facts line in `caption`, 20 px semibold: the same size and line, so the row's layout is the one it had, and the name reads first by its weight. The name runs up to 28 characters and then LVGL's dots, or, where a screen asks, a stepped line (the agent deck's Wi-Fi page and settings; Exceptions → Stepped lines on the deck's screens). An open
   network says "Open" and a secured one carries a padlock before "Locked". The connected one carries a check before "Connected"
   and then its padlock or "Open", and the one being joined says "Connecting…". At the right end stands its signal, a glyph alone
   with no word, centred on the row's height. The lit bars are black and the unlit bars the light dither, drawn under them on the
   same canvas (DESIGN → Exceptions). The connected network and the one being joined are the chosen inversion, with their words,
   glyphs and lit bars white and the unlit bars the dark dither. They differ by the check and the words. A failed join is no row
-  state: the row goes back to rest and a dialog says why. Rows are `spacing.md` apart in a list view, no box.
+  state: the row goes back to rest and a dialog says why. Where its screen asks for the outlined look — the deck's settings and Wi-Fi page, the person's choice — the connected row is white inside a `spacing.stroke.default` black outline instead (`network-row-joined`). Every word and glyph is black, its check and its lit bars too, and the unlit bars are the light dither, as on a row at rest. The outline is drawn inside the row and the padding gives up its width, so the words stand where they stand at rest. It differs from a plain row by its outline and from the chosen inversion by its white fill. The rest of the row, its facts and its ring, is unchanged. Rows are `spacing.md` apart in a list view, no box.
 - **Keyboard** — a full-glass overlay with Cancel and one action named for what it does ("Join", "Done"). It has six keys a row, each
   `spacing.target` square, `spacing.key-gap` apart. Letters come in the order of the alphabet, then digits with common
   punctuation (123), then the rest of the punctuation (#+=): four pages of six rows, each key `rounded.md`. A character key
@@ -1376,10 +1460,12 @@ serves, reached and used by the keys and by touch.
   is. A vertical drag that starts on it is the page's. OK on an item does what the item does and never turns a page.
 - **Icons** — a meaningful icon always has its word beside it ("Home", "Wi-Fi"), except the icon button's closed set
   of glyphs (DESIGN → Exceptions); no icon stroke under `spacing.stroke.hairline`. The glyphs are BYTE-90's art at one
-  bit on a `spacing.icon` box, eighteen in the widgets component alone. The buttons take an arrow, a cross, play, pause,
-  stop, the speaker on and off, a check, the microphone and a refresh. The rest are a signal in three strengths, a
+  bit on a `spacing.icon` box, nineteen in the widgets component alone. The buttons take an arrow, a cross, play, pause,
+  stop, the speaker on and off, a check, the microphone and a refresh, and the deck's foot the power glyph. The rest are a signal in three strengths, a
   padlock, a check for a row's facts line, a select chevron and the open and slashed eye, each cut to a box of its own.
-  Each is in its words' colour or a button's, never a grey. Any other glyph needs the person's yes and a place here.
+  The deck's own art adds four more images on the same box: Wi-Fi and Settings, which the icon button takes (DESIGN →
+  Exceptions → The icon button), and the bridge link's two faces, up and down, which only the link indicator draws (DESIGN →
+  Exceptions → The link indicator). Each is in its words' colour or a button's, never a grey. Any other glyph needs the person's yes and a place here.
 - **Status line** — news that asks nothing, as plain words under the title. It is `spacing.list-row-height` high and
   `spacing.content` wide, in `caption`, left, wrapped to two lines and never cut. Copy is 60 characters at most: past them LVGL
   ends the second line in dots and the log says so. It has no glyph, no box, no fill and no edge, so nothing about it can be taken
@@ -1451,6 +1537,8 @@ serves, reached and used by the keys and by touch.
   alone, drawn 85 tall and compiled at most 73 wide. The mark stands flush left in a slot `spacing.status-mark-slot` wide, and the words follow a
   `spacing.lg` after the slot, so every block's words stand at one x (`edge` + slot + `lg`, 121 px on the glass), whatever its mark.
   It marks an empty or a done state. With no mark the slot stays empty, and the words stand where they would after a mark.
+  **A stacked block** is the same three parts in a column, all centred across the content: the mark, `spacing.item` under it the heading in `label`, and under that, `spacing.pair-md` between their own boxes, the line in `body`, wrapping and centred. There is no slot, so a mark of its own width stands. The deck's Wi-Fi, 81 px of art, is the one mark wider than the slot, and only a stacked block takes it. A screen that holds one block alone — a state of the Wi-Fi page, an answered request —
+  stacks it and centres it on the glass's height.
 - **Recording indicator** — "Recording" and its time, with a distinct tone at start and stop.
 
 ### States
@@ -1493,9 +1581,9 @@ serves, reached and used by the keys and by touch.
 - Don't animate anything — no slides, fades, spinners or blinking cursors.
 - Don't put words on the dark dither, or white words on any dither — a disabled control's words, in a sparse dither,
   alone sit lighter than their ground; don't rely on a 1 px line.
-- Don't use a weight under 600, except `body` at 400, or a size under `caption`. A lighter weight breaks up at one bit a pixel;
-  `body`'s 3 px strokes keep its gaps open (Typography → Face).
-- Don't time anything to leave — but for a password's last typed character (Exceptions).
+- Don't use a weight under 600, except `body` and `caption-regular` at 400, or a size under `caption`. A lighter weight breaks up at one bit a pixel;
+  `body`'s 3 px strokes keep its gaps open, and `caption-regular`'s 1 and 2 px strokes are the person's choice for a supporting line, open to the glass's judgement (Typography → Face).
+- Don't time anything to leave — but for a password's last typed character and the agent deck's three timed leaves (Exceptions).
 - Don't trigger two full refreshes back to back — one full refresh's own time apart at the least.
 
 ## Focus and input
@@ -1511,10 +1599,8 @@ serves, reached and used by the keys and by touch.
 - **The AI button records** — a hold records and its release saves; a press-to-start, press-to-stop way, the hold's
   length, and how a hold is told from OK, a wake and power-off are open (DESIGN → Open items).
 - **The first button press shows the focus ring and moves nothing**; the next moves it, and focus wraps at the ends of
-  a list. With no ring on the glass — a screen just opened, a sheet or a dialog opened by touch, or after a touch — the
-  first UP, DOWN or OK rings the focused control and moves and presses nothing. Only the next acts, so the
-  first OK never presses what the person cannot see is chosen. The press still ticks. When the focused control is off the
-  glass, the first press rings the first control in view instead. A control open for editing takes its keys at once.
+  a list. With no ring on the glass — a screen just opened, a sheet or a dialog opened by touch, or after a touch — the first UP, DOWN or OK rings the focused control and moves and presses nothing. Only the next acts. So the first OK never presses what the person cannot see is chosen. The press still ticks. When the focused control is off the
+  glass, the first press rings the first control in view instead. A control open for editing takes its keys at once. So does a stop that presses nothing and draws no ring: the agent deck's carousel page with nothing on it to press, whose first UP or DOWN turns the page (`router::SetFirstPressActs`; Layout → Paging).
 - **A touch shows no ring and drops the one showing** — the ring is the buttons'. The place stays: the next button press
   rings the control the finger last pressed, and walks on from there.
 - **A press acts on the lift, on the control** — a finger that slides off what it pressed, past its hit area and
@@ -1544,7 +1630,9 @@ serves, reached and used by the keys and by touch.
   one when the overlay opened, without if it did not; every overlay closes with Cancel or Back.
 - **Holding OK is the escape, one step a hold**: first it closes a control open for editing, putting back what it had. Else
   it cancels the top overlay — the keyboard, a sheet, a dialog — so a dialog over a sheet goes first and the sheet next.
-  Else it goes back one screen. At home with nothing open it does nothing.
+  Else a screen's own escape, where it keeps one — the agent deck's request and question leave as Dismiss does, a request waiting on
+  and a question left to the terminal, and the needs-you list leaves for the overview. Else it goes back one screen. At home with
+  nothing open it does nothing.
 - **A touch outside a dialog or a sheet is eaten** — the tick, and nothing else: no tap reaches the page behind and no drag
   moves it. A sheet has no drag, throw or handle: a swipe on its list turns a page, and its way out is Cancel and holding OK.
 
@@ -1584,8 +1672,7 @@ serves, reached and used by the keys and by touch.
   white at 21 : 1, round the page, never covered by the status band above or the footer below (2.4.7, 2.4.11).
 - **Contrast** — DESIGN → Colors → Contrast floors, on both refreshes.
 - **Text size** — nothing under `caption`; a larger text setting that steps every role up one is open.
-- **No time limits** — nothing leaves on a timer, but for a password's last typed character, which is feedback and
-  loses nothing when it hides (Exceptions → A password's last character).
+- **No time limits** — nothing leaves on a timer, with two exceptions. A password's last typed character is feedback and loses nothing when it hides (Exceptions → A password's last character). The agent deck's three timed leaves are no task and take nothing from the person (Exceptions → Timed leaves).
 - **Flashing** — a full refresh is rare and never repeated back to back; whether one counts as more than three flashes
   a second is open.
 - **Plain language** — one task per screen, and a destructive action asks first in a dialog.
@@ -1610,6 +1697,8 @@ support, Not applicable, with a reason on every row. A closed device is rated by
 | 3.3.2 Labels or instructions | Partially supports | Every input has a label, and instructions stand only where input is unusual (Accessibility, above). Welcome and Help are not built, so the conventions are not taught yet, and some strings restate them (Open items → The key legends) |
 | 4.1.2 Name, role, value | Not applicable | Closed software with no assistive technology (EN 301 549 11.4.1.2.2); state is drawn |
 | 4.1.3 Status messages | Not applicable | EN 301 549 11.4.1.3.2; the status line and its sounds are good design, not a claim |
+| WCAG 2.2.2 Pause, stop, hide: stepped lines | Supports | A stepped line (Exceptions → Stepped lines on the deck's screens) stops itself: after its three passes, about 51 s for a 62-character line, it stands at its start ending in dots, a line in a control and a reading alike, and moves again only when its words change, its page is turned to or shown again, or its control is focused or pressed. Nothing on a page stepped keeps moving for ever (the person's decision, 2026-11-26) |
+| WCAG 2.2.2 Pause, stop, hide: Claude's mascot | Partially supports | Claude's mascot loops its move for as long as its screen is up (Exceptions → Claude's mascot on the deck's screens), and the person cannot pause it (Open items → How long the mascot loops) |
 | EN 301 549 5.1.3.1 Non-visual access | Does not support | No speech or tactile output; the buzzer sounds event tones only, with no labels. 5.1.3.2 to 5.1.3.16 follow: not applicable |
 | EN 301 549 5.1.4 Closed functionality: text size | Partially supports | The smallest role is `caption`, 20 px; the visual angle at a stated viewing distance is not computed (Open items → The viewing distance) |
 | EN 301 549 5.1.5 Visual identification of audio | Partially supports | Every outcome sound has words on the glass. A press's tick and the end-of-list double tick have nothing on it (Open items → A press answered without sound) |
@@ -1657,8 +1746,7 @@ A value off these tokens is argued here — what, where and why — before a scr
   So Nothing animates, Nothing leaves on a timer, Nothing updates on its own faster than every 5 s, A screen takes a role,
   Content turns by page and Six words cannot hold there.
 - **Where it stops:** a size that matches a token uses the token; text, colours by role, focus and hit areas follow
-  this file; nothing outside `components/hw_test` uses the exception — the mascot's moves are the widget's
-  (`components/widgets/src/mascot.cpp`), and only this page plays them. The type scale page's sample frames and the Touch
+  this file; nothing outside `components/hw_test` uses the exception. The mascot's moves are the widget's (`components/widgets/src/mascot.cpp`), and only this page plays them, until the agent deck's screens do under their own exception (Claude's mascot on the deck's screens, below). The type scale page's sample frames and the Touch
   screen's tap layer are the only controls built outside the kit.
 - **Not this exception:** a `touch-exception` marker in `components/widgets` is the touch check being told that a line
   keeps a rule of this file by a way the check cannot see. The ways are no momentum and a claimed band, which is how a
@@ -1687,7 +1775,12 @@ The deck's lone glyph on a button, and the toggle with a glyph for each state.
     unlike the sound toggle, which shows its state. The field itself shows the state (bullets or letters);
   - Play, Pause and Stop;
   - sound on and off as a toggle's two glyphs: the glyph shows the current state, never the action a press takes, and
-    the state is also in words beside it (Components → Toggle).
+    the state is also in words beside it (Components → Toggle);
+  - Wi-Fi and Settings, the agent deck's own art: each opens its page from the deck's home foot, in the tonal variant as the
+    sound toggle beside it. Neither has a word beside it, and neither is ever a destructive action. The settings' cog and the
+    Wi-Fi fan are the deck's own, and the shape is the name, as the speaker is; the page each opens carries its name as its
+    title;
+  - Power, BYTE-90's power glyph: it turns the agent deck off from its home foot, last at the right edge after Settings, in the tonal variant as they are, named "Turn off" for the footer's hint. It is a focus stop in the foot's walk and stands on standby's foot too, which is the same foot. It turns the device off at once, with no confirmation (the person's decision, 2026-11-26). No dialog stands between the press and the frame the glass keeps, `Off` over the mascot at rest. Turning off loses nothing the deck holds, since it keeps no work of its own unsaved, and holding OK turns the device on. The hardware test's Battery and power screen turns the board off too, with its own button, so this glyph is not the only way to it. It stops at the deck's home foot.
 
   An icon button inside a field is the one drawn smaller than its hit area, against "drawn and hit alike": a 64 px button
   and its 8 px ring cannot sit inside a 64 px field with white between them and the outline. It is drawn `spacing.xl`
@@ -1700,6 +1793,83 @@ The deck's lone glyph on a button, and the toggle with a glyph for each state.
   Any other glyph has its word beside it. Each glyph means one action everywhere; it is never the only way to a
   destructive action, nor a dialog's action. In every other way it is a button — the focus ring, a variant from
   Components → Button, no stroke under `spacing.stroke.hairline` — and a toggle's state is never a grey alone.
+
+### The link indicator
+
+The bridge's link, up or down, shown by a glyph alone in the agent deck's foot.
+
+- **What:** a glyph with no word beside it, against Components → Icons' "a meaningful icon always has its word beside it"; it is no
+  button, so it is not the icon button's closed set either. It is the deck's link art, two faces — up and down — drawn in
+  `text-primary` on the white glass, with no box and no fill.
+- **Why:** the deck's foot shows the link this way and the person asked for it, "an indicator, not a button — its glyph alone, no
+  button box, out of the focus group" (2026-11-25). The two faces differ by shape — a whole chain and a broken one — never by
+  a grey.
+- **Where it stops:** the agent deck's home foot, and nowhere else. It takes no press, no focus and no ring, and has no hit area. It stands on the foot's left edge, the icon buttons flush to its right, so no ring reaches it (Focus and input).
+
+### Claude's mascot on the deck's screens
+
+The mascot loops its state's move on the agent deck's screens, over everything.
+
+- **What:** on every screen of the agent deck that shows Claude's mascot — the home view, an agent's page, standby, the startup
+  screen, a request closed elsewhere (its spin or look-around plays once, for the page's hold). On each of them the mascot loops its state's move as a flipbook at the glass's pace, about two frames a second, one partial refresh a key pose. It is drawn in front of every element of its page. The needs-you list shows one in each row, its agent's, at `spacing.mascot-cell`'s
+  quarter, 6 px a cell, 60 × 48. At rest, and every 3 s one of them, picked at random and never the one before while there is another, plays one cycle of the idle and comes home. The cycle is its lean to look one way and then the other, 5 s, or its look-around, 5.6 s, at even odds. A cycle outlasts the 3 s between picks, so two may move at once. A list with one agent plays a cycle and rests the rest of 6 s. The off frame the glass keeps while the deck is off holds the mascot at rest, still. When it moves or jumps it passes over any element in front of it. Nothing moves out of its way, and it is never behind one. It is against Motion → Nothing animates, Waits and things that update
+  on their own ("nothing updates on its own faster than every 5 s"), principle 3 (Still, and changed sparingly) and Do's and
+  Don'ts' "don't animate anything".
+- **Why:** the person's decisions, 2026-11-25, over a move that plays once and holds and over a still pose: "Loop like the deck", and "the mascot needs to also be above all UI". On the list, 2026-11-26, "you are missing the animations idle animations on the
+  mascots in the agent list", the deck's own cycle, its numbers unchanged. The deck's mascot is its face, and what it is doing is how the deck tells a state at a glance — working, waiting, done — which a still pose does not. It is over the other elements because a move that goes behind a chip or a line of words is clipped in its middle and reads as a fault.
+- **Where it stops:** the widget's own moves (`components/widgets/src/mascot.cpp`), the same flipbook the hardware test's mascot
+  page plays, on the pages named above, one mascot to a page. The needs-you list's avatars are the one place a page holds several. Its cycle plays only the idle's lean and look-around, never a walk or a skip out of the avatar's place, and in front of nothing: an avatar leans within its row's room and over no word. No other element of a screen animates. The mascot carries no fact the page does not say in words (Colors → The mascot's greys), so a frame that is late or dropped loses nothing. Its moments
+  sound with its frames as Motion → Sound sets. A covered screen's loop waits (Motion → Waits and things that update on their own). Every frame is a partial refresh that counts toward the twenty. A list's avatars are heard as the home view's mascot is, by their moments, and a blink two of them share is heard once. A list covered by a request stops its cycle, and one entered begins it again from 3 s.
+  How long a loop runs before the glass rests is open (Open items → How long the mascot loops).
+
+### Stepped lines on the deck's screens
+
+A one-line field too long for its room rests, then moves along its words in steps, and stands ending in dots once it has made its passes.
+
+- **What:** a one-line text field that does not fit its room. On the deck's screens these are an agent's name over its chip, the doing line and "in <session>", the request's tool and a joining network's name. They are also a needs-you row's name and facts, and the name on a network row (the joined network, the Mac's networks, the settings' row).
+  - **It rests** `motion.marquee-rest`, 4 s, with its start in view.
+  - **It then moves** `spacing.marquee-step`, 48 px, every `motion.marquee-step`, 1 s: one partial refresh a step.
+  - **It makes three passes round**, the text coming round after a gap of three spaces, and stands at its start.
+  - **It then stands in dots:** its words once, cut where its room ends, with LVGL's three full stops in place of the rest, so no word is cut with no mark. It draws the dotted label's pixels and no frame while it stands. When it begins again it holds its words twice and steps.
+  - **Drawn whole:** the line's words are drawn at their role, at one bit a pixel; only where they stand changes, a whole number of pixels a step.
+  - **One clock:** every stepped line on a screen moves on one clock, so lines step together and cost one refresh, not one each.
+  - **The mascot:** a step lands in whatever frame the glass draws next, so while Claude's mascot is playing it rides that frame.
+  - **A line that fits** stands still, and a centred one stays centred.
+  - **It is against** Motion → Nothing animates ("no … marquee") and Waits and things that update on their own ("nothing updates on its own faster than every 5 s"). It is against principle 3 (Still, and changed sparingly) and Do's and Don'ts' "don't animate anything". It is against Typography → Reading's "truncate only a label whose full words are one press away" and Accessibility's WCAG 2.2.2.
+- **Why:** the person's decision, 2026-11-26, over dots, on the deck's marquee stepped for e-paper ("let's try A", the 48 px
+  a second of the deck taken in one-second steps, over a 96 px step every two seconds). The deck's rule is "wrap, don't
+  truncate; a line that must stay one line scrolls as a marquee", and dots lose the end of a name or a doing line that the person
+  came to read. A step is a partial refresh the glass can draw, where a smooth scroll would not be.
+- **Where it stops:**
+  - **One-line fields only**, never body text, which wraps, and never a button's label, a heading that fits or a field whose full
+    words are one press away (a value row's value). A list row and a network row end in dots unless a screen asks for the stepped
+    line, as the deck's screens do and the hardware test's rows do not.
+  - **Every line stands at its start after its passes**, ending in dots, a line in a control and a reading alike, so no stepped line moves for ever. A line in a control (the line of a row or a button, an ancestor in the focus group) begins again, resting first, when its text is set, or the control is focused or pressed again. A reading, in no control, begins again when its words change or its page is turned to or shown again: a screen entered, a carousel page turned, a page built again with new words under its key. A page built again with the same words leaves it standing in dots. Its full words are one turn of the page, or one focus on its control, away, since the line steps again then. A covered screen's reading is shown again when it is uncovered. Nothing else moves a line.
+  - **The same words set again do nothing**: a pass under way goes on, or a line standing stays standing; new words start from their start.
+  - **A covered screen's lines stand still**, as everything that updates itself does, and a line on a screen no longer on top
+    waits for it. Each step is a partial refresh and counts toward the twenty, about one a second while a line moves, shared with the
+    mascot's frames where it plays, for the three passes only: a line that has made them draws nothing. The mascot's loop and the needs-you list's avatars already keep those screens from resting, so the
+    lines add a refresh only where nothing else would change that second.
+  - No other element steps; no line is set to a speed or a size of its own.
+
+### Timed leaves
+
+Three of the agent deck's screens leave by themselves.
+
+- **What:** the startup screen stays up `motion.startup-hold`, 2 s, counted from its first frame on the glass, while its mascot says hello — one hand's wave — then hands over to the home view. A request closed elsewhere — answered in the terminal, or timed out before an answer came — shows "Answered" for `motion.answered-hold`, 2.3 s, or
+  "Timed out" for `motion.timed-out-hold`, 1.8 s, then goes back to where the request came from. It is against Motion → Nothing
+  leaves on a timer, Accessibility → No time limits (WCAG 2.2.1) and Do's and Don'ts' "don't time anything to leave".
+- **Why:** the person's decisions, 2026-11-25, on the deck's own timings: the two holds match the length of the mascot's move that plays on each (the deck's closed-request screens), and the startup's 2 s is the deck's. The startup screen asks for nothing and waits on nothing. A request closed elsewhere reports something that already happened on the Mac, which no press here could change. The next screen the person needs is the one the request came from.
+- **Where it stops:** these three screens and no others. Nothing the person needs expires, since no task is open on any of them and what they say is also on the screen that follows (the agent's page no longer lists the request). No other message or screen leaves on a timer. A masked field's last character is its own exception (A password's last character).
+
+### Quiet words
+
+The agent deck's small supporting lines are words in the dark dither, 3.5 : 1 on the white glass.
+
+- **What:** `colors.text-quiet`, the dark dither (`scale.primary.1` as a fill) drawn as words on every refresh, in `caption` (`ui::QuietWords`), or in `caption-regular` for the count line under a heading. It is the reset lines under the usage bars, a session's or a sub-agent's tokens, a request's or a question's agent name, and "4 sessions" under the needs-you title, in `caption-regular`. It is also "No plan data" where the usage is unknown, "On battery only" beside Auto sleep, and the Wi-Fi page's supporting lines ("Pick the Mac's network", "This takes a few seconds."). A word in the dark dither averages 3.50 : 1 against the white in linear light (STICKY_DESIGN_TOKENS §2.3). That is under the 4.5 : 1 floor for text (Colors → Contrast floors), where `text-secondary` is 7.46 : 1 on a full refresh and black on a partial one.
+  It is against principle 1 (Accessible by default) and "Text and lines are never dithered".
+- **Why:** the person's decision, 2026-11-25, over `text-secondary` and a larger size, on the mocks: the grey words stay, the look the agent deck has, where a small line of supporting detail steps back from the facts it serves (the figure, the name, the tool). On a partial refresh `text-secondary` is black, as loud as the heading it sits under. The dither stays grey on every refresh.
+- **Where it stops:** a supporting line only, never the one thing a screen says, never the only sign of a state and never a control's name or a button's words. Each says nothing the screen does not say in a heading, a figure or a name beside it ("Usage 42%" over its reset, "Needs you" over "4 sessions", the tool over its agent). So a reader who cannot make it out loses a detail, not a fact. It is `caption`, or `caption-regular` for the needs-you heading's count line, and the deck's screens' alone. The count line is regular so the heading over it, 30 px semibold, differs in size and weight; its colour is the same quiet dither. Nothing else on the glass takes `text-quiet`, and every other word keeps the floor.
 
 ### A password's last character
 
@@ -1722,8 +1892,8 @@ A masked field shows the last character typed in the clear for a moment, and the
 
 A Wi-Fi network's signal shows every bar of the glyph, the lit ones black and the unlit ones in the light dither.
 
-- **What:** the unlit bars of the signal glyph are dithered strokes — the light dither on the white page, the dark dither on
-  the inverted row — against Colors → The four levels' "Text and lines are never dithered".
+- **What:** the unlit bars of the signal glyph are dithered strokes: the light dither on the white page and on the outlined row, the dark dither on the inverted row (Components → Network row). This is against Colors → The four
+  levels' "Text and lines are never dithered".
 - **Why:** the count of lit bars carries the signal, so the unlit bars are decorative and meet no contrast floor. They say
   how much is missing by being faint, as the deck's `wifi_indicator` shows a quiet tint under the lit part, and at one bit the
   only quiet is a dither. A 3 to 4 px arc in a dither is a dotted band — faint on the glass.
@@ -1753,6 +1923,9 @@ The chosen option of a select sheet is marked by the check, without its word.
 
 ## Open items
 
+- **How long the mascot loops** — the deck's mascot loops its move for as long as its screen is up (Exceptions → Claude's mascot on
+  the deck's screens), and every frame is a partial refresh that costs battery and brings the next full refresh nearer. Whether the loop rests after a time, or at sleep, is open. The needs-you list's avatars cycle for as long as it is up, one begun every 3 s and each lasting 5 s or more. So the list is never at rest: about 6 to 11 frames a cycle, a full refresh every twenty.
+
 - **A setting for the keys' repeat** — holding UP or DOWN repeats after `motion.key-repeat-delay` every
   `motion.key-repeat-period`, with no setting to slow or stop it; EN 301 549 5.7 asks for one where a key repeats, so the
   conformance table rates it Does not support. Add the setting once a Settings screen exists.
@@ -1762,7 +1935,8 @@ The chosen option of a select sheet is marked by the check, without its word.
   restates the key conventions; they go with the Help screen and the Welcome teaching, which are not built yet, and
   until then 3.3.2 is rated Partially supports.
 - **The frame left on the glass while the device sleeps** — the stickies, the lock screen or a blank glass — decided
-  with the designs.
+  with the designs. The agent deck's frame while it is off, the chip `Off`, the mascot at rest and `Hold OK to turn on.`, is built as
+  drafted and not yet seen by the person.
 - **The viewing distance** the sizes are set for — `hero`'s 60 px figures read at about 35 cm and `display` at about
   29 cm.
 - **The clock's own size** — the lock screen's clock takes a type size of its own, likely one of the 100, 120 and
@@ -1781,6 +1955,7 @@ The chosen option of a select sheet is marked by the check, without its word.
 - **A status line left up** — it stays until the next change of screen or its caller retracts it, so on a device that sits on
   one screen for days it can read as current when it is not; whether that is acceptable, or a caller's `Clear` is enough.
 - **The glass's real contrast** — its white and black measured against the nominal 21 : 1.
+- **Whether `caption-regular` reads** — the needs-you list's facts line is 20 px at weight 400, whose strokes are 1 and 2 px, thinner than any other text on the glass (Typography → Face), and the person chose it over `caption` for the hierarchy of the name over its line. The needs-you heading's count line takes the same weight in `text-quiet`, the dark dither, which cuts those strokes further. Whether it holds at one bit a pixel on a V1.0 and a V2.0 board, in `text-secondary`, in `text-quiet`, and on a row that is the chosen inversion, white on black, is the person's look; if it breaks up, the line returns to `caption`.
 - **Whether a 2 px hairline and `caption` at 20 px read from a metre away** — on a V1.0 and a V2.0 board.
 - **How many times a full refresh flashes**, against WCAG's three a second.
 - **Press-to-start and press-to-stop recording** beside the hold.

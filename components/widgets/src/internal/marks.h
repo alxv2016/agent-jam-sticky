@@ -11,6 +11,7 @@ extern const lv_image_dsc_t widgets_mark_check;            // a checkbox card's 
 extern const lv_image_dsc_t widgets_mark_status_check;     // the status block's marks, 57 x 41, 73 x 73, 73 x 68
 extern const lv_image_dsc_t widgets_mark_status_clock;
 extern const lv_image_dsc_t widgets_mark_status_link_off;
+extern const lv_image_dsc_t widgets_mark_status_wifi;      // 81 x 60: wider than the slot, so a stacked block's alone
 // The glyphs, at the art box `spacing.icon` (40 px); the ink size is each one's own.
 extern const lv_image_dsc_t widgets_mark_glyph_arrow_back;  // 27 x 26
 extern const lv_image_dsc_t widgets_mark_glyph_close;       // 22 x 22
@@ -22,6 +23,12 @@ extern const lv_image_dsc_t widgets_mark_glyph_speaker_off; // 33 x 34
 extern const lv_image_dsc_t widgets_mark_glyph_check;       // 26 x 20: the checkbox's check, and Save's
 extern const lv_image_dsc_t widgets_mark_glyph_mic;         // 24 x 33
 extern const lv_image_dsc_t widgets_mark_glyph_refresh;     // 28 x 28
+// The agent deck's own foot: Wi-Fi, Settings and Power on the icon button's box, and the bridge link's two faces, which the link indicator swaps.
+extern const lv_image_dsc_t widgets_mark_glyph_wifi;        // 38 x 28
+extern const lv_image_dsc_t widgets_mark_glyph_settings;    // 34 x 34
+extern const lv_image_dsc_t widgets_mark_glyph_power;       // 34 x 34: BYTE-90's art, the foot's last icon button
+extern const lv_image_dsc_t widgets_mark_glyph_link_on;     // 34 x 18
+extern const lv_image_dsc_t widgets_mark_glyph_link_off;    // 34 x 32
 // The Wi-Fi network row's and the dropdown's glyphs, each cut to a box of its own, not trimmed.
 extern const lv_image_dsc_t widgets_mark_glyph_signal_weak;    // 40 x 30, the three signal glyphs share one canvas
 extern const lv_image_dsc_t widgets_mark_glyph_signal_fair;    // 40 x 30

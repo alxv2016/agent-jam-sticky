@@ -7,3 +7,4 @@
 //
 // Only lines starting FEATURE( are read, by the preprocessor and by CMake alike.
 FEATURE(hw_test)
+FEATURE(agent_deck)

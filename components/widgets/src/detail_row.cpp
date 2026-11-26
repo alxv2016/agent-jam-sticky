@@ -2,6 +2,7 @@
 
 #include "design_tokens.h"
 #include "internal/base.h"
+#include "widgets/words_role.h"
 
 namespace widgets {
 namespace dt = design_tokens;
@@ -23,6 +24,14 @@ DetailRow MakeDetailRow(lv_obj_t *parent, const char *name, const char *value)
     lv_obj_set_style_pad_top(row.value, lv_obj_get_style_pad_top(row.value, LV_PART_MAIN) + 1, 0);
     lv_obj_set_style_pad_bottom(row.value, lv_obj_get_style_pad_bottom(row.value, LV_PART_MAIN) - 1, 0);
     return row;
+}
+
+void SetDetailRowOneSizeDown(const DetailRow &row)
+{
+    // The name takes `caption-strong` first, so the gap SetWordsRole makes up between the two boxes is measured from its line box as it
+    // will stand; the value then comes down to `caption`. Both are 24 px line boxes, so the row keeps its height.
+    SetLabelRole(row.label, ui::Type::kCaptionStrong);
+    SetWordsRole(row.root, ui::Type::kCaption);
 }
 
 void SetDetailRow(const DetailRow &row, const char *value)

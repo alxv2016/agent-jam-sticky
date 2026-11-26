@@ -35,10 +35,25 @@ void OnBoot(Phase phase, void (*step)());
 inline constexpr size_t kMaxHomeBuilders = 8;
 void OnHomeBuilt(void (*build)(lv_obj_t *home));
 
+// A feature that owns the whole home screen — its own regions, with no status bar of the shell's — claims it with its screen's
+// four calls, plain functions so this header names no router type (APP_ARCHITECTURE §2, §7). The shell makes the router's root
+// from them in place of its own home: `create` builds under the LVGL lock into the root the router made, its focus group bound,
+// as router::Screen::OnCreate does; `enter`, `exit` and `covered` are the screen's lifecycle (router/screen.h) and each may be
+// nullptr. One feature may claim home; a second claim is logged and ignored, and the first one's screen is home.
+struct HomeScreen {
+    void (*create)(lv_obj_t *root, lv_group_t *group);
+    void (*enter)();
+    void (*exit)();
+    void (*covered)(bool covered);
+};
+void ClaimHome(const HomeScreen &screen);
+
 // --- The shell's side: called from app_shell::Run() -----------------------------------------------------------
 
 void Seal();
 void RunBoot(Phase phase);
 void BuildHome(lv_obj_t *home);
+// The claimed home, or nullptr when no feature claimed it: the shell then draws its own.
+const HomeScreen *ClaimedHome();
 
 }  // namespace app_hooks

@@ -1,6 +1,6 @@
 // The icon button: a square of `spacing.target` with a glyph and no word, in the button's four variants — an exception with
-// a closed set (DESIGN → Exceptions → The icon button): Back, Close, Play, Pause and Stop — and, inside a text field, Close as
-// the clear and the eye's two faces (text_input.h). Sound on and off is the toggle icon button's own pair
+// a closed set (DESIGN → Exceptions → The icon button): Back, Close, Play, Pause and Stop; Wi-Fi, Settings and Power from the agent
+// deck's foot — and, inside a text field, Close as the clear and the eye's two faces (text_input.h). Sound on and off is the toggle icon button's own pair
 // (toggle_icon_button.h).
 
 #pragma once

@@ -4,7 +4,8 @@
 // turn, which LVGL answers with the same scroll events a finger's makes, do not call the swipe again without end; that a
 // 64 px drag turns exactly one page and the page stays turned; that a drag from a disabled child still turns it, once. On the
 // horizontal axis, the horizontal pager is built for real: UpdateHorizontalPager's pages, a horizontal drag on its strip turning
-// one page, and a vertical drag on it chaining to the page behind.
+// one page, and a vertical drag on it chaining to the page behind. The swipe page the deck's carousel turns by (widgets/swipe_page.h): a
+// drag along its axis asks its owner for one turn each way, with the owner's pointer, and nothing slides; a drag across it asks for none.
 // run.sh builds LVGL's sources from managed_components (a firmware build fetches them) into build/host/lvgl, once, and the
 // sources named below, against stand-ins for the ESP-IDF headers (tests/host/stubs).
 // host-sources: components/ui/ui.cpp components/ui/line_box.cpp components/ui/fonts/bitcount/*.c components/widgets/marks/marks.c components/widgets/src/*.cpp components/widgets/src/internal/*.cpp components/router/router.cpp components/router/overlays.cpp components/router/focus.cpp components/router/touch.cpp components/router/routes.cpp components/router/screen.cpp components/router/status.cpp
@@ -23,6 +24,7 @@
 #include "ui.h"
 #include "widgets/chip.h"
 #include "widgets/horizontal_pager.h"
+#include "widgets/swipe_page.h"
 
 using namespace widgets::detail;
 namespace dt = design_tokens;
@@ -463,6 +465,37 @@ void TestVerticalDragChains()
     lv_obj_delete(p.page);
 }
 
+// --- The swipe page (widgets/swipe_page.h): the container the deck's carousel turns by --------------------------------
+
+int s_page_turns;      // how many turns a swipe page asked for
+int32_t s_page_dir;    // the last one's way
+
+void OnPageTurn(int32_t dir, void *user)
+{
+    ++s_page_turns;
+    s_page_dir = dir;
+    ++*static_cast<int *>(user);
+}
+
+void TestSwipePage()
+{
+    int heard = 0;
+    s_page_turns = 0;
+    lv_obj_t *page = widgets::MakeSwipePage(lv_screen_active(), 480, 400, OnPageTurn, &heard);
+    DragX(400, 100, 200, 4);
+    Check(s_page_turns == 1 && s_page_dir == 1 && heard == 1, "a swipe page: a drag left asks for the next page, once, with its owner's pointer");
+    Check(lv_obj_get_scroll_x(page) == 0, "and nothing follows the finger: the page has not moved");
+    DragX(100, 400, 200, 4);
+    Check(s_page_turns == 2 && s_page_dir == -1, "a drag right asks for the page before");
+    Drag(350, 50, 4);
+    Check(s_page_turns == 2, "a vertical drag on a page that turns sideways asks for no turn");
+    lv_obj_delete(page);
+    lv_obj_t *band = widgets::MakeSwipePage(lv_screen_active(), 480, 400, OnPageTurn, &heard, widgets::SwipeAxis::kVertical);
+    Drag(350, 50, 4);
+    Check(s_page_turns == 3 && s_page_dir == 1 && heard == 3, "on a vertical band a drag up asks for the next page");
+    lv_obj_delete(band);
+}
+
 }  // namespace
 
 int main()
@@ -495,6 +528,7 @@ int main()
     TestPagerPages();
     TestHorizontalSwipe();
     TestVerticalDragChains();
+    TestSwipePage();
 
     std::printf("swipe on LVGL: %d checks, %d failed\n", s_checks, s_failures);
     return s_failures == 0 ? 0 : 1;

@@ -34,7 +34,7 @@ void FirstScreen()
 {
     ESP_ERROR_CHECK(ui::Start());
     ESP_ERROR_CHECK(router::Init());
-    ESP_ERROR_CHECK(router::SetRoot(router::MakeScreen(screen_home::Build)));
+    ESP_ERROR_CHECK(router::SetRoot(screen_home::Make()));
 }
 
 // A widget's cue, as the buzzer's sound word: the glass's controls ask by event, and only the shell knows the buzzer plays

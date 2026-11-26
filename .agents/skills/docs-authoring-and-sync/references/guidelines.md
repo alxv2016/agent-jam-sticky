@@ -25,7 +25,7 @@ material under the next free number.
 | 3 | [Structure](#3-structure) | Naming, opening block, section building blocks, numbering, contents table, writing a section |
 | 4 | [Content](#4-content) | What to capture; rationale, history, values, sources and tags; what may be removed; the facts every project records; code comments and citations |
 | 5 | [Writing style](#5-writing-style) | Bullets, prose, terminology |
-| 6 | [Markdown mechanics](#6-markdown-mechanics) | Tables, code blocks, links, banners, tags, lint, Mermaid diagrams |
+| 6 | [Markdown mechanics](#6-markdown-mechanics) | Tables, code blocks, links, banners, tags, lint, Mermaid diagrams, source trees |
 | 7 | [Keeping docs true](#7-keeping-docs-true) | Verifying against code, tokens and config, inbound links, README |
 | 8 | [Rewriting an existing doc](#8-rewriting-an-existing-doc) | The rules that keep a rewrite from losing information |
 | 9 | [Length and splitting](#9-length-and-splitting) | No length limit; signals to restructure, when to split, how to measure |
@@ -81,7 +81,7 @@ Each doc is one of the types in this table, which sets how it opens and what it 
 | --- | --- | --- | --- |
 | Rules and reference | `DESIGN.md` (the design brief), `UI_GUIDELINES`, `CONTENT_STYLE`, `CODING_CONVENTIONS`, `DOCUMENTATION_GUIDELINES` | Rules (Do / Never) | Task lookup, reference tables, traps, exceptions, the reason behind each rule |
 | Interface | `PLATFORM_SPECS` (screen sizes, devices, browsers), `API` (an external service's contract), `HARDWARE_SPECS` | Critical constraints | Tables of values with their sources; stable `§n` cited from code |
-| System explanation | `APP_ARCHITECTURE`, `NAVIGATION`, `DATA_MODEL`, `STATE_AND_STORAGE`, `AUTH`, `OFFLINE`, `NOTIFICATIONS` | The shape of the system and its contracts | How it works, decisions and the alternatives that don't work, measurements, traps |
+| System explanation | `APP_ARCHITECTURE`, `NAVIGATION`, `DATA_MODEL`, `STATE_AND_STORAGE`, `AUTH`, `OFFLINE`, `NOTIFICATIONS` | The shape of the system and its contracts | How it works, decisions and the alternatives that don't work, measurements, traps; in the architecture doc, the technology stack (§4.7) |
 | Configuration | `CONFIG` (environment settings, feature flags, build settings, dependency versions) | The settings that matter | The reason for every non-default setting |
 | Working notes | `OPEN_ITEMS` | Open items, grouped by what unblocks them | Status per item, and the findings an open item still needs. Open items only: when one closes, its outcome moves into the doc that owns the topic and the item is deleted (§4.3) |
 | Requirements | `<FEATURE>_REQUIREMENTS` | Status banner | Requirements, conflicts with today's design, what to measure or test first |
@@ -131,14 +131,16 @@ Pick the blocks a doc needs and keep them in this order. **Omit empty blocks** �
 | Block | Holds | Example |
 | --- | --- | --- |
 | Rules / critical constraints | What must and must not happen — the one home for each rule | "Never put text under 4.5:1 against what is painted behind it" |
+| Goals and non-goals | What the system or feature is for, and what it deliberately does not do — optional, where a reader would otherwise build the non-goal | "Not a content editor: articles are written in the CMS and only shown here" |
 | Task lookup | `I need to… \| Use \| Notes` → component, token, function, file or setting | "Show a non-blocking message → `Toast`" |
 | Traps | Anything that fails silently or misleads: symptom → cause → fix | "Dark mode looks muddy → the theme swapped scale steps, not roles → define each role's dark value" |
 | How it works | Explanation, pipelines, contracts; a Mermaid diagram for any flow (§6.1) | Request → cache → API → screen |
-| Reference tables | Values readers choose from or look up: scales, breakpoints, settings, constants, routes | The spacing scale; the breakpoint table |
-| Decisions | Decision, why, alternatives that don't work and why | "Why tokens by role, not by value" |
+| Reference tables | Values readers choose from or look up: scales, breakpoints, settings, constants, routes | The spacing scale; the breakpoint table; the stack — `Part \| Technology \| Version \| Why \| Not used for` (§4.7) |
+| Decisions | Decision, why, alternatives that don't work and why; how it is enforced (a check, a test, a review) when something enforces it | "Why tokens by role, not by value — the token check fails a literal" |
 | Measurements | Value, conditions (§4.5), source | Time to first screen on a mid-range phone |
 | Exceptions | `Value \| Where \| Reason` register for departures from the doc's rules | A one-off colour on the marketing hero |
 | Open items | Status, what unblocks it | "Reduced-motion behaviour of the onboarding — needs a test on the device" |
+| Glossary | Terms the product uses in a sense of its own, or that readers would confuse, one definition each — in the doc that owns the topic, or one project glossary the others link to | "Sheet: a panel that rises from the bottom edge — never a drawer" |
 | Cross-references | Where related topics live | Links to neighbouring docs and source files |
 
 - **Procedures and checklists are not doc blocks** (§1, Principle 7). Their steps live in the skill that runs them;
@@ -250,6 +252,9 @@ For its topic, a doc captures the items below.
   item. The outcome is every fact, measurement, reason and trap the item established — a finding that stops someone
   repeating a mistake goes in as a rule or a trap. Drop the narrative of the search. This holds for working
   notes too: they keep no closed items.
+- **Keep each decision current; don't supersede it in place.** A decision record kept apart (an ADR) marks an old
+  decision superseded and keeps it; a doc here rewrites the decision as it stands, and git holds the earlier one. What the
+  old decision taught stays as a reason, a rejected alternative or a trap (§4.2).
 - **Avoid history words**: *used to*, *was*, *former*, *originally*, *until recently*, *closed on*.
 
 ### 4.4 Values from code, tokens and config
@@ -259,6 +264,9 @@ For its topic, a doc captures the items below.
 - **Keep restated tables complete** and update them in the same change as the code (§7).
 - **Cite the file a person edits, not a generated one**: the token source, not the built CSS; the manifest
   (`package.json`, `pyproject.toml`) for the declared version range, the lock file for the resolved one.
+- **A stack table names the major version and links the manifest**; the exact version lives only in the manifest and
+  the lock file, so the doc never drifts with an update. List the pieces a reader chooses among, must not replace, or
+  might misuse — never every dependency the manifest already lists.
 
 ### 4.5 Sources and confidence
 
@@ -310,7 +318,8 @@ apply to the product is skipped; one that does is never left only in code or a d
 | Fact | Usually owned by |
 | --- | --- |
 | Target platforms, devices, browsers and screen sizes, with the oldest supported version of each | Interface |
-| Toolchain and runtime versions; each pinned dependency and why it is pinned | Configuration |
+| The technology stack: each language and its standard, framework, runtime and key library, by the part that uses it; why each was chosen and what it is not used for (§4.4) | System explanation — the architecture doc |
+| Toolchain and runtime versions; each pinned dependency and why it is pinned — the exact version lives in the manifest | Configuration |
 | Every non-default setting and feature flag, with its reason | Configuration |
 | Design principles; design tokens: each scale, each role and its value per theme, the contrast pairs, and every exception | The design brief, `DESIGN.md` |
 | Components: what each is for, its states, and when not to use it | The design brief, `DESIGN.md` |
@@ -374,11 +383,12 @@ Each Markdown element follows the rule in this table.
 | Line length | Wrap prose near 120 columns |
 | Emphasis | Bold the key phrase of a bullet; don't bold whole sentences |
 | Diagrams | Mermaid for any flow — see §6.1 |
+| Source trees | A `text` block, only where the reader must create, find or check a file at a path — see §6.2 |
 
 ### 6.1 Diagrams
 
-**Draw every flow as a Mermaid diagram** in a ` ```mermaid ` block — never ASCII art. Mermaid is text, so an agent
-reads it and a diff stays reviewable, and GitHub renders it.
+**Draw every flow as a Mermaid diagram** in a ` ```mermaid ` block — never ASCII art. A source tree is not a flow; it has
+its own rules (§6.2). Mermaid is text, so an agent reads it and a diff stays reviewable, and GitHub renders it.
 
 | Showing | Mermaid type | Fits |
 | --- | --- | --- |
@@ -396,6 +406,53 @@ reads it and a diff stays reviewable, and GitHub renders it.
 - **Keep one diagram to about 15 nodes.** Split by stage past that.
 - **No `style` or `classDef` colours** — diagrams must read in light and dark themes.
 - **Don't diagram a lookup.** Token scales, breakpoints and settings are tables.
+
+### 6.2 Source trees
+
+**Show a source tree only where the reader must create, find or check a file at that path** — a layout the build or a
+tool expects, the files a scaffold or a tutorial step leaves, or a short map of a workspace that says where a new file
+goes. Projects whose layout is a convention do this: Cargo's package layout, Zephyr's and ESP-IDF's application
+structure, Django's `startproject` output. No major style guide has a rule of its own on trees, so these follow their
+rules for code blocks and what those projects do.
+
+| Use | Fits | Example |
+| --- | --- | --- |
+| A tree | Nesting the reader must follow: where files sit and what holds what | A firmware project's `main/` and `components/`; a scaffold's output |
+| A table | One path a row with its purpose and its rules | Each config file and what it controls; the paths a check reads |
+| A Mermaid `flowchart TD` (§6.1) | Which part may depend on which | Layering rules; a component's dependencies |
+
+- **Never dump the repo.** A whole-repo or code-level tree repeats what `ls` and the IDE show, and drifts from the code
+  with every file added. C4 calls the code level "very much an optional level of detail" for this reason, and arc42 asks
+  for "relevance over completeness" ([C4 code](https://c4model.com/diagrams/code),
+  [arc42 §5](https://docs.arc42.org/section-5/)).
+- **Show only the paths that matter, about 15 entries over at most three levels.** Elide the rest with an entry that
+  says what it stands for, `# one folder per component`, never a bare `...` — an ellipsis hides what the tree omits.
+- **Give every entry its purpose**: a short comment on its line, or a list right after the tree that explains each one.
+  A tree of bare names shows the shape and teaches nothing.
+- **Mark what the reader does not write**: generated, optional, ignored or vendored paths (`# generated, not
+  committed`). A reader who sees `build/` must know not to edit it.
+- **Draw it the same way everywhere**: a ` ```text ` block, a sentence before it saying what it shows, directories ending
+  in `/`, the branches drawn as `tree` prints them (the example below), the comments aligned, lines within the
+  120-column wrap. The ASCII-art check (S10) passes box-drawing inside a fenced `text` block.
+- **Name only stable, conventional paths** — the ones the build, the layering rules or a tool depends on. A path that
+  moves often belongs in a table the code is checked against, or nowhere.
+- **Keep it true like any value from code (§4.4, §7).** Every path in a tree is a claim the drift review checks: it must
+  exist, under that name. A tree a tool can print (`tree -L 2 --dirsfirst`) is regenerated, not hand-edited, when the
+  layout changes; a tree that maps a rule (E1–E5, a feature's folder) changes in the same commit as the rule.
+- **Don't add a tree where a file caption is enough.** A single listing says which file it is in its introduction
+  (`` `src/lib.rs`: ``), as the Rust Book does, rather than a one-branch tree.
+
+```text
+my-firmware/
+├── CMakeLists.txt        # the project's entry point (required by the build)
+├── main/                 # app_main and the list of features
+├── components/
+│   ├── board/            # brings the hardware up
+│   ├── ui/               # styles and fonts every screen shares
+│   └── # one folder per component, each with its own CMakeLists.txt
+├── docs/                 # the knowledge: rules, reasons, decisions
+└── build/                # generated, not committed
+```
 
 ---
 
