@@ -122,7 +122,7 @@ Firmware facts and Pins tables by their rows, wherever they sit.
 | Crystal | 40 MHz, 10 ppm (X1) | `[SCH]` |
 | Flash | 32 MB QSPI, W25Q256JVEIQ (U17), QIO at 80 MHz | `[SCH]` `[FW]` |
 | PSRAM | 8 MB octal, in the ESP32-S3R8's package, at 80 MHz | `[SCH]` `[DOC]` `[FW]` |
-| Console | UART0 through the CH343P USB bridge, 115200 baud | `[SCH]` `[FW]` |
+| Console | UART0 through the CH343P USB bridge, 115200 baud, shared with the agent deck's link to the bridge on the Mac: `components/uart_line` owns the port and hands each line to its reader by prefix (STICKY_AGENT_DECK §10) | `[SCH]` `[FW]` |
 | Hardware revisions | V1.0 and V2.0 — they differ in the display controller and the screen's finish | `[TEAM]` |
 | Display | SSD1677 on V1.0, SSD2677 on V2.0 | `[TEAM]` `[FW]` `[DOC]` |
 | Display panel | 3.97 in, black and white e-paper — GDEM0397T81 on V1.0, glossy; matte on V2.0 | `[TEAM]` `[FW]` `[DOC]` |

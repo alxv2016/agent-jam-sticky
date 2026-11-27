@@ -139,7 +139,7 @@ void TestRulesPages()
     chip = rules::ChipFor(0, 0, 3, true, false);
     Check(std::string(chip.text) == "3 done", "done");
     chip = rules::ChipFor(0, 0, 0, false, false);
-    Check(chip.shown && std::string(chip.text) == "Connecting...", "no agent and no link: Connecting...");
+    Check(chip.shown && std::string(chip.text) == "Connecting…", "no agent and no link: Connecting…");
     chip = rules::ChipFor(0, 0, 0, true, false);
     Check(!chip.shown, "no agent with the link up: nothing");
 }
@@ -187,8 +187,8 @@ void TestRulesSounds()
     using model::Event;
     rules::EventHeard heard;
     uint32_t id = 0;
-    const auto For = [&heard, &id](Event event, bool added, AgentState was, AgentState now, bool link, bool limited) {
-        return rules::EventSoundFor(event, id, added, was, now, link, limited, heard);
+    const auto For = [&heard, &id](Event event, bool added, AgentState was, AgentState now, bool quiet, bool limited) {
+        return rules::EventSoundFor(event, id, added, was, now, quiet, limited, heard);
     };
     id = 3001;
     Check(For(Event::kRequestOpened, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kAttention,
@@ -202,24 +202,25 @@ void TestRulesSounds()
               For(Event::kRequestOpened, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kAttention,
           "one closed and sent again, as a snapshot after a Reset does, sounds again");
     id = 0;
-    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kLinkUp, "the link come up sounds link up");
-    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone, "once: a link already up is silent");
-    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kNone &&
-              For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kLinkUp,
-          "the link lost is silent, and up again sounds again");
+    Check(For(Event::kLinkAnnounced, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kLinkUp,
+          "the link announced — up, and this deck the active one — sounds link up");
+    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kNone,
+          "the link coming up or going is not the cue itself: the model announces it");
     Check(For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, true) == EventSound::kUsageLimit &&
               For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, true) == EventSound::kNone,
           "the plan's limit hit sounds usage limit, once while it holds");
     Check(For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone &&
               For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, true) == EventSound::kUsageLimit,
           "a limit lifted is silent, and hit again sounds again");
-    Check(For(Event::kAgent, true, AgentState::kIdle, AgentState::kWorking, true, false) == EventSound::kAgentStart, "a new agent working sounds agent start");
-    Check(For(Event::kAgent, false, AgentState::kIdle, AgentState::kWorking, true, false) == EventSound::kAgentStart &&
-              For(Event::kAgent, false, AgentState::kDone, AgentState::kWorking, true, false) == EventSound::kAgentStart,
+    Check(For(Event::kAgent, true, AgentState::kIdle, AgentState::kWorking, false, false) == EventSound::kAgentStart, "a new agent working sounds agent start");
+    Check(For(Event::kAgent, true, AgentState::kIdle, AgentState::kWorking, true, false) == EventSound::kNone,
+          "but not in the snapshot's quiet second, when the bridge sends everything again");
+    Check(For(Event::kAgent, false, AgentState::kIdle, AgentState::kWorking, false, false) == EventSound::kAgentStart &&
+              For(Event::kAgent, false, AgentState::kDone, AgentState::kWorking, false, false) == EventSound::kAgentStart,
           "and one back to work from idle or done");
-    Check(For(Event::kAgent, false, AgentState::kWorking, AgentState::kWorking, true, false) == EventSound::kNone &&
-              For(Event::kAgent, false, AgentState::kNeedsYou, AgentState::kWorking, true, false) == EventSound::kNone &&
-              For(Event::kAgent, true, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone,
+    Check(For(Event::kAgent, false, AgentState::kWorking, AgentState::kWorking, false, false) == EventSound::kNone &&
+              For(Event::kAgent, false, AgentState::kNeedsYou, AgentState::kWorking, false, false) == EventSound::kNone &&
+              For(Event::kAgent, true, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kNone,
           "still working, back from a request, or new and idle: silent");
     Check(For(Event::kRequestClosed, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone &&
               For(Event::kBattery, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone,
@@ -375,7 +376,9 @@ void TestModelObservers(int handle)
     Check(timed_out && model::AgentCount() == 0 && model::QueueCount() == 0 && !model::UsageKnown(), "a reset closes the queue as timed out and forgets the rest");
 
     model::SetLink(true);
-    Check(model::LinkUp() && s_heard.changes.back().event == model::Event::kLink, "the link is told");
+    Check(model::LinkUp() && s_heard.changes.size() >= 2 && s_heard.changes[s_heard.changes.size() - 2].event == model::Event::kLink &&
+              s_heard.changes.back().event == model::Event::kLinkAnnounced,
+          "the link is told, and announced at once with no bridge hello waiting on the deck's role");
     const size_t seen = s_heard.changes.size();
     model::SetLink(true);
     Check(s_heard.changes.size() == seen, "the same link again says nothing");
@@ -520,8 +523,13 @@ void TestSettingsStandby()
     model::SetStandby(true);
     Check(model::Standby() == model::StandbyPage::kRefused, "a standby while connecting: refused");
     model::ConnectPressed();
+    s_heard.changes.clear();
     model::Reset();
-    Check(model::Standby() == model::StandbyPage::kNone && s_heard.changes.back().event == model::Event::kStandby, "the snapshot's reset takes it off, and says so");
+    bool told = false;
+    for (const model::Change &c : s_heard.changes) {
+        told = told || c.event == model::Event::kStandby;
+    }
+    Check(model::Standby() == model::StandbyPage::kNone && told, "the snapshot's reset takes it off, and says so");
     model::SetStandby(true);
     model::SetStandby(false);
     Check(model::Standby() == model::StandbyPage::kNone, "standby false is off");

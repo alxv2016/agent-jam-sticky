@@ -15,17 +15,18 @@ How the agent deck's screens are built on the Sticky. It covers the model and th
 | 7 | [Decisions](#7-decisions) | Why the walk, the stop and the closed page are shaped so |
 | 8 | [Traps](#8-traps) | Symptoms and their causes |
 | 9 | [Open items](#9-open-items) | What the person or the next stage settles |
+| 10 | [The link](#10-the-link) | The bridge's records in and the answers out on the cable: the line, the protocol, the role, the lost link, the mock |
 
 ---
 
 ## 1. The shape
 
-**The deck is one feature, `components/agent_deck`, that claims home and registers six routes; every screen reads one model, and the mock day writes it until the link does.**
+**The deck is one feature, `components/agent_deck`, that claims home and registers six routes; every screen reads one model, and the link to the bridge writes it (§10), the mock day only from the console.**
 
 ```mermaid
 flowchart LR
-  M[deck_mock: the day] -->|SetAgent, OpenRequest…| D[deck_model]
-  L[the link, later] -.->|the same calls| D
+  L[deck_link: the bridge on the cable] -->|SetAgent, OpenRequest…| D[deck_model]
+  M[deck_mock: the day, from the console] -.->|the same calls| D
   D -->|observers| H[home: splash, carousel]
   D -->|observers| W[deck.waiting]
   D -->|observers| R[deck.request, deck.question]
@@ -36,7 +37,8 @@ flowchart LR
 
 | File | Holds |
 | --- | --- |
-| `agent_deck.cpp` | `Install()`: claims home (`app_hooks::ClaimHome`), registers the routes in a `kBoardUp` step |
+| `agent_deck.cpp` | `Install()`: claims home (`app_hooks::ClaimHome`), registers the routes and the deck's sounds in a `kBoardUp` step, and starts the link in a `kReady` step: the queue off the cable's reader task and its drain on LVGL's (§10.1) |
+| `deck_link.h`, `.cpp` | The link to the bridge: the line's framing and CRC, the hello, each record into the model, the answers out and their resends, the lost link (§10) |
 | `deck_model.h`, `.cpp` | The records, the queue, the observers, the settings, the battery, the Wi-Fi record and its asks, the standby page's state |
 | `deck_rules.h` | The rules with no LVGL: the words, the page order, the count, the moves, where a request leaves to, the battery's words, the zones, the standby page's words, the list avatars' pick |
 | `deck_mock.h`, `.cpp` | The deck's made-up day as C structs, played on one `lv_timer`; the battery's readings; the radio and the Mac that answer the Wi-Fi page and Connect |
@@ -72,7 +74,7 @@ The mascot's voice (`components/mascot_voice`) is shared with the hardware test'
 
 ### 3.1 Records and the queue
 
-**The model keeps the deck's records — agents, usage, queued requests and questions, the link — in the shape the link will call.** `SetAgent`, `RemoveAgent`, `SetUsage`, `OpenRequest`, `OpenQuestion`, `CloseRequest` and `SetLink` are AGENT_DECK 6's calls; `Reset` forgets everything and closes what is queued as timed out. Agents stand in arrival order, twelve at most; a thirteenth takes the oldest idle agent's place, else the oldest done one's, else is refused. The queue holds four. A fifth `OpenRequest` returns false and is left to the terminal. A screen's answer leaves the queue and goes to the listener the link sets (`SetListeners`). The agents', the queue's and the Wi-Fi record's tables live in PSRAM (`lvgl_display::InPsram`, APP_ARCHITECTURE §2), as do home's and the mock's state: only the LVGL task touches them. `Answer(id, allow)` answers a request. `AnswerQuestion(id, part, chosen)` answers a question, with `chosen` 0 leaving it to the terminal.
+**The model keeps the deck's records in the shape the link calls: agents, usage, queued requests and questions, the link.** Its calls are AGENT_DECK 6's: `SetAgent`, `RemoveAgent`, `SetUsage`, `OpenRequest`, `OpenQuestion`, `CloseRequest`, `SetLink`. A lost link calls `Forget`: everything forgotten and what is open closed as timed out, standby as it is. The snapshot's `reset` calls `Reset`, which is `Forget` and the deck off standby. The bridge's hello calls `BridgeHello`, which holds the connected cue until `reset` or `standby` says the deck's role; `kLinkAnnounced` is its moment (§10). Agents stand in arrival order, twelve at most; a thirteenth takes the oldest idle agent's place, else the oldest done one's, else is refused. The queue holds four. A fifth `OpenRequest` returns false and is left to the terminal. A screen's answer leaves the queue and goes to the listener the link sets (`SetListeners`). The agents', the queue's and the Wi-Fi record's tables live in PSRAM (`lvgl_display::InPsram`, APP_ARCHITECTURE §2), as do home's and the mock's state: only the LVGL task touches them. `Answer(id, allow)` answers a request. `AnswerQuestion(id, part, chosen)` answers a question, with `chosen` 0 leaving it to the terminal.
 
 ### 3.2 Observers
 
@@ -80,7 +82,7 @@ The mascot's voice (`components/mascot_voice`) is shared with the hardware test'
 
 ### 3.3 The mock day
 
-**The mock plays AGENT_DECK 18's day — 180 s, looping — as C structs calling the model, on one 100 ms `lv_timer`.** It starts as the startup screen hands over, so the overview says `Connecting...` for a moment and then the day's first step brings the link up. Each step is a record at its time into the day. A step marked `kOpen` is sent only while its request still waits (the timeout or the terminal's answer the bridge would report). A request's id is made unique per loop, so one day never answers another's. An answer from a screen is heard a tick later, as the deck's mock hears it. The agent then goes back to work: on the same tool when allowed, thinking when denied. The battery reads `Charging • 62%` at the start, 73 % at 80 s and `Charged • 84%` from 110 s, off the charger. The day ends on standby. At 158 s the bridge puts the deck on standby, and the next 22 s are the standby page. Connect is answered with the snapshot 3 s on, which begins the day again. Left alone, the loop's own snapshot at 180 s ends it. The Wi-Fi page is answered by the mock's radio and Mac (§4.8). `tests/host/deck_model_lvgl_test.cpp` plays the day on a fake clock, step by step, loop after loop.
+**The mock plays AGENT_DECK 18's day — 180 s, looping — as C structs calling the model, on one 100 ms `lv_timer`.** It starts from the console's `mock` word, for the bench and the screens' tests (the person, 2026-11-26), and the day's first step brings the link up. Each step is a record at its time into the day. A step marked `kOpen` is sent only while its request still waits (the timeout or the terminal's answer the bridge would report). A request's id is made unique per loop, so one day never answers another's. An answer from a screen is heard a tick later, as the deck's mock hears it. The agent then goes back to work: on the same tool when allowed, thinking when denied. The battery reads `Charging • 62%` at the start, 73 % at 80 s and `Charged • 84%` from 110 s, off the charger. The day ends on standby. At 158 s the bridge puts the deck on standby, and the next 22 s are the standby page. Connect is answered with the snapshot 3 s on, which begins the day again. Left alone, the loop's own snapshot at 180 s ends it. The Wi-Fi page is answered by the mock's radio and Mac (§4.8). `tests/host/deck_model_lvgl_test.cpp` plays the day on a fake clock, step by step, loop after loop.
 
 ---
 
@@ -96,7 +98,7 @@ The mascot's voice (`components/mascot_voice`) is shared with the hardware test'
 
 | Page | Says |
 | --- | --- |
-| Overview | The count chip (`1 needs you`, `2 working`, `3 done`, `Connecting...`); `Usage 42%` in `title` over the lead bar, `Weekly 17%` in `caption` over the other, each reset line right-aligned under its bar in quiet words |
+| Overview | The count chip (`1 needs you`, `2 working`, `3 done`, `Connecting…`); `Usage 42%` in `title` over the lead bar, `Weekly 17%` in `caption` over the other, each reset line right-aligned under its bar in quiet words |
 | A session | The name over the state chip (`Working for 4m`); under the mascot `Context 63%` in `title` over the lead bar where the overview's Usage window stands, so the bar never shifts between pages; its tokens right-aligned under it in quiet words; then the doing line, `spacing.sm` on, where the overview's Weekly starts |
 | A sub-agent | The task over the chip; the doing line, `in <session>`, then its type and its tokens side by side, `spacing.sm` apart |
 | A Needs you page | Review, the kit's action button, centred in its one place, its ring `spacing.md` over the page dots, only while a request of the agent's is queued |
@@ -235,7 +237,7 @@ A param that names no request or question waiting is refused, and the glass does
 
 ### 5.3 Reaching each screen with the console's `key` word
 
-The deck's home is the root; the hardware test is `hw.home`, which the console's `hw` word opens over it. A fresh screen's first `key` only shows the ring (APP_ARCHITECTURE §7), and the day's times are the mock's (§3.3).
+The deck's home is the root; the hardware test is `hw.home`, which the console's `hw` word opens over it. A fresh screen's first `key` only shows the ring (APP_ARCHITECTURE §7), and the day's times are the mock's (§3.3): send `mock` first, with no bridge on the cable.
 
 | To reach | Do |
 | --- | --- |
@@ -265,7 +267,7 @@ The deck's home is the root; the hardware test is `hw.home`, which the console's
 
 **Heard by its moments and its music, outside the ten words** (DESIGN → Motion → Sound): `mascot_voice::Voice` tells each moment to `devices::QueueMoment` as its frame is drawn. It keeps the music (the typing, the spin, the success, the wave, the thinking) in time with the move, as the hardware test's mascot page does. The sound toggle turns the voice off. **The needs-you list's avatars are heard the same way**, by their moments and no music, through one voice for the list (§4.3).
 
-**The deck's news has four sounds of its own, heard wherever the glass is** (DESIGN → Motion → Sound). A request or question joining the queue sounds `sound.attention`. The link coming up sounds `sound.link-up`. A usage record naming a limit sounds `sound.usage-limit`. An agent starting work, new or back from idle or done, sounds `sound.agent-start`. `agent_deck.cpp` hears every change through one model observer, installed at `kBoardUp`, and `rules::EventSoundFor` picks the sound. The link and the limit sound as they come, never again for a record that repeats them, and a question's later parts, which share its id, are silent. A request closed and sent again, as a snapshot after a Reset does, sounds again. On standby none sounds, as the mascot is silent there. The deck still keeps what it heard, so the link and the limit are current when standby ends. `rules::EventSoundCuts` keeps a lower one from cutting a higher one still sounding, in that rank, attention highest, so a snapshot's agents starting do not drown the link coming up. While one sounds, `devices` drops the mascot's moments (`sound::Leads`). The sound toggle mutes them with the rest. They are the deck's own cues moved into the buzzer's band, chosen by the person from the draft (2026-11-26).
+**The deck's news has four sounds of its own, heard wherever the glass is** (DESIGN → Motion → Sound). A request or question joining the queue sounds `sound.attention`. The link coming up sounds `sound.link-up`, once a `reset` makes this deck the active one (§10.2). A usage record naming a limit sounds `sound.usage-limit`. An agent starting work, new or back from idle or done, sounds `sound.agent-start`, but not in the snapshot's first second (§10.2). `agent_deck.cpp` hears every change through one model observer, installed at `kBoardUp`, and `rules::EventSoundFor` picks the sound. The link and the limit sound as they come, never again for a record that repeats them, and a question's later parts, which share its id, are silent. A request closed and sent again, as a snapshot after a Reset does, sounds again. On standby none sounds, as the mascot is silent there. The deck still keeps what it heard, so the link and the limit are current when standby ends. `rules::EventSoundCuts` keeps a lower one from cutting a higher one still sounding, in that rank, attention highest, so a snapshot's agents starting do not drown the link coming up. While one sounds, `devices` drops the mascot's moments (`sound::Leads`). The sound toggle mutes them with the rest. They are the deck's own cues moved into the buzzer's band, chosen by the person from the draft (2026-11-26).
 
 ---
 
@@ -288,7 +290,7 @@ The deck's home is the root; the hardware test is `hw.home`, which the console's
 | The startup screen and the carousel share one root | Home is the stack's bottom and never popped | A second root cannot replace the first; pushing the carousel over the splash draws home once for nothing |
 | Standby is home's own state, not a route | The deck's page is built in place of the carousel (AGENT_DECK 4.13); the foot and the settings stay reachable and the stack keeps its depth | A pushed route holds home and standby together and leaves through the stack |
 | The settings' rows page in a clipping band, Hardware test on page 2 | The six rows end 64 px over Back's ring and a row needs 80; the approved frame's numbers stay, and a clipped row stays in the walk where a hidden one would not | A seventh row on one page pushes Back off the glass or squeezes the rings under 16 px; hiding the other page's rows takes them out of the walk |
-| The Wi-Fi page asks the link and waits for its answer | The link will answer in time; the mock answers a tick later, never from inside the click that asked, which would delete the button it came from | A page that moves its own stage shows what the link has not done |
+| The Wi-Fi page asks the link and waits for its answer | The link answers in time, with the Wi-Fi stage; the mock answers a tick later, never from inside the click that asked, which would delete the button it came from | A page that moves its own stage shows what the link has not done |
 | A list stands on a column as wide as the glass | The kit's scroll indicator stands in the right margin, past a content-wide column, which clips it | A list in the content column hides the indicator |
 | Power turns the deck off with no confirmation | The person's decision, 2026-11-26 (DESIGN → Exceptions → The icon button): the press is the intent, and the frame says what happened and how to turn it on | A dialog before the off adds a step the person declined |
 | The way the board leaves is a component of its own, `power_leave`, with the frame passed in | The hardware test and the deck both leave the board and a feature may not include another (E4); the sequence carries the buzzer's, the RTC's and the panel's safety order once | Each feature keeping its own copy lets the two drift apart; the deck including `hw_test`'s header breaks E4 |
@@ -332,9 +334,52 @@ The deck's home is the root; the hardware test is `hw.home`, which the console's
 | Item | Status | Unblocked by |
 | --- | --- | --- |
 | The off frame (§4.10), built as drafted: the chip, the mascot at rest, `Hold OK to turn on.` | Open | The person's look on the glass |
-| The link: records arrive from the Mac over UART0 or Wi-Fi; the model's calls are the link's | Open | The logic port |
-| The settings keep Auto sleep, the time zone and the Wi-Fi switch in the model only: the glass does not sleep by it and the clock does not follow the zone | Open | The logic port |
-| The battery is the mock's; the board's gauge is not read here | Open | The logic port |
-| The Wi-Fi page draws only the wrong-password failure; the deck's other failures, the Mac asked and the bridge pairing steps come with the link | Open | The logic port |
+| The link over Wi-Fi: joining, pairing on the cable, the TLS session and the Mac finding the deck by mDNS | Open | The logic port's Wi-Fi stage |
+| With the mock day off, the Wi-Fi page's buttons ask a listener nobody sets: the page waits on them | Open | The logic port's Wi-Fi stage |
+| The battery reads `--%`: the board's gauge is not read yet, and the mock's figures play only with the day | Open | The logic port's battery and settings stage |
+| The settings keep Auto sleep, the time zone and the Wi-Fi switch in the model only: the glass does not sleep by it and the clock does not follow the zone | Open | The logic port's battery and settings stage |
+| The Wi-Fi page draws only the wrong-password failure; the deck's other failures, the Mac asked and the bridge pairing steps come with the Wi-Fi stage | Open | The logic port's Wi-Fi stage |
 | The panel goes to standby after 1 s without a refresh (`kStandbyAfterMs`), and a stepped line's steps are 1 s apart, so each step may wake it; and a long line's steps, one partial a second for its three passes, bring the full refresh about every 20 s of moving (§4.11) | Open | The person, on the glass, with the battery and the ghost the loop leaves |
-| The 15 s Connect wait and the mock's 3 s answers are the model's and the mock's timings, not DESIGN motion tokens | Open | The person |
+| The 15 s Connect wait, the snapshot's 1 s quiet (`kSnapshotQuietMs`) and the mock's 3 s answers are the model's, the rules' and the mock's timings, not DESIGN motion tokens | Open | The person |
+
+---
+
+## 10. The link
+
+**The deck reads the bridge's records off the USB cable and writes the person's answers back, in the agent deck's own protocol, unchanged: one line a record, `@deck <crc32> <json>`.** The bridge on the Mac (`alxvlabs-agent-bridge`) speaks it as it does to the agent deck; the bridge's own design doc, in its sections on the link, is the protocol's home, and `deck_link.h` lists every record. The cable is UART0 through the CH343P at 115200 baud, which the hardware test's console shares (STICKY_HARDWARE_SPECS §2).
+
+```mermaid
+flowchart LR
+  U[uart_line: UART0] -->|"@deck" lines| Q[queue, PSRAM]
+  U -->|"mock"| Q
+  U -->|every other line| C[hw_test console]
+  Q -->|every 20 ms, LVGL's task| K[deck_link: Take]
+  K -->|SetAgent, OpenRequest, Reset, SetStandby…| D[deck_model]
+  D -->|Answer, AnswerQuestion| K
+  K -->|decision, answer, hello, use| U
+```
+
+### 10.1 The line on UART0
+
+- **One reader owns UART0** — `components/uart_line` installs the driver and moves the log onto it. It hands each line to the reader whose prefix it starts with: `@deck ` to the link, `mock` to the mock day, the rest to the hardware test's console. The console runs its commands on its own task, wipes its copy and never echoes a line back.
+- **A line can be 50 KB**, a 16 KB request body escaped. Its buffer is PSRAM and wiped at each line's end, since a line can carry a password.
+- **Lines cross to LVGL's task through a queue** — `agent_deck.cpp` copies each line into PSRAM off the reader's task, and a 20 ms LVGL timer takes them in order into `link::Take`, which runs on LVGL's task like every model call. The queue holds 32 lines; a burst past it is dropped and logged, its record lost until the bridge's next snapshot. A line wrong in its CRC, deeper than two levels of JSON, or of a type the deck does not know is dropped and logged. Every copy is wiped before it is freed.
+
+### 10.2 The hello and the deck's role
+
+- **The hello says who the deck is** — version 5, its id (the Wi-Fi MAC's last two bytes in hex), the board `sticky`, the link `usb` and the 16 KB body it takes. It goes out at boot, when the link is lost, and when the bridge says hello.
+- **The bridge's hello holds the connected cue** — `model::BridgeHello` marks the deck's role pending; a `reset` (the snapshot's first line) makes it the active deck and announces the link (`kLinkAnnounced`, `sound.link-up`), a `standby` keeps it silent on the standby page. With no hello pending, a link that comes up is announced at once.
+- **The snapshot's first second is quiet** — the bridge sends everything again after a `reset`, so an agent starting within `rules::kSnapshotQuietMs`, 1 s, of the link coming up or of any `reset` makes no `sound.agent-start`. With the link down, an agent record makes none either: the bridge's first line after boot or a lost link is its snapshot's `reset`.
+
+### 10.3 Answers, the lost link and Connect
+
+- **Answers go out until acknowledged** — a decision or a question's answer is sent at once and again every `kResendMs`, 1 s, until the bridge's `ack`, ten sends at most; a question's later part takes its earlier part's place. A question the full queue cannot hold is answered 0 at once, left to the terminal, since the bridge holds it for an answer.
+- **The link is lost after `kLostMs`, 8 s, with no good line** — four of the bridge's 2 s pings: the deck forgets what it said (`model::Forget`, standby kept), shows `Connecting…` and says hello again. Only a `reset` takes the deck off standby.
+- **The standby page's Connect sends `use` once** — the bridge answers with its hello and a snapshot, or a `standby` (refused); with no answer in 15 s the page times out.
+
+### 10.4 The mock and the test
+
+- **The mock day plays only from the console** — `mock` starts it, for the bench and for reaching the screens with `key` (§5.3); the deck otherwise shows the real link from boot (§3.3).
+- **The host test** (`tests/host/deck_link_lvgl_test.cpp`) plays the bridge's records into the real model: the framing and CRC, every record, the lines dropped, the role, the resends and acks, the question with no room, the lost link `[HOST]`.
+- **On the board, the link works with the bridge on the Mac** — on a V1.0, the deck shows the live data, the connected cue sounds with no agent-start, answers from the deck reach the terminal, and a lost link returns to `Connecting…` (the person, 2026-11-26).
+- **A bridge has been seen to keep a port that is gone and never open the next one** — on 2026-11-26 it held the unplugged V2.0's port, its `/health` said `"deck": false`, and the V1.0 waited on `Connecting…`. Restarting the bridge brought the link; restarting the deck did not (`tests/bench/boardport.py` notes it with the bench's own traps).

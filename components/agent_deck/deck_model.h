@@ -109,6 +109,7 @@ enum class Event : uint8_t {
     kBattery,
     kWifi,            // the Wi-Fi record changed
     kStandby,         // the standby page's state changed
+    kLinkAnnounced,   // the link is up and this deck the active one: the connected cue's moment (STICKY_AGENT_DECK §10)
 };
 struct Change {
     Event event;
@@ -138,10 +139,17 @@ bool OpenRequest(const Request &request);
 bool OpenQuestion(const Question &question);
 // Answered in the terminal, or timed out: a screen showing it says so; the queue forgets it.
 void CloseRequest(uint32_t id, CloseReason reason);
-// Whether the bridge is there. Down with no agent, the overview says "Connecting...".
+// Whether the bridge is there. Down with no agent, the overview says "Connecting…". Up, it is announced (kLinkAnnounced) at once, unless
+// the bridge's hello said a `reset` or `standby` is coming: then as a `reset` makes the deck the active one, and never on standby.
 void SetLink(bool up);
-// Every agent, request and the usage forgotten — a request on view closes as timed out (the link lost). It is the snapshot's `reset` too,
-// the only call that takes the deck off standby.
+// The bridge's hello: whether this deck is the active one follows, as a `reset` or a `standby`; the connected cue waits for it.
+void BridgeHello();
+// When the link last came up, or the bridge's last `reset` (lv_tick_get()): the snapshot's quiet runs from it
+// (rules::kSnapshotQuietMs).
+uint32_t LinkedMs();
+// Every agent, request and the usage forgotten — a request on view closes as timed out — with standby as it is: the link lost.
+void Forget();
+// Forget(), and the deck off standby: the snapshot's `reset`, the only call that takes the deck off standby.
 void Reset();
 
 // This deck is not the active one (AGENT_DECK 4.13, the bridge's `standby`): the requests queued close silently, the agents and the usage

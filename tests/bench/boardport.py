@@ -12,6 +12,9 @@ asks it to lend the port for a script's run (`POST 127.0.0.1:8737/release {"seco
 (`{"seconds": 0}`); no bridge running is no error. Never stop the bridge: it is the person's, and its plugin starts it
 again. A bridge can answer the release and still hold the port — `lsof` names it, and esptool fails setting the baud
 with termios EINVAL (seen 2026-11-24): the person replugs the board or restarts the bridge.
+A bridge has also kept a port that was gone — the V2.0 unplugged, the V1.0 plugged in — and never opened the new one,
+its /health saying "deck": false (seen 2026-11-26): restarting the bridge brought the link, restarting the board did
+not.
 """
 
 import contextlib

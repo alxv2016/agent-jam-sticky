@@ -52,7 +52,7 @@ struct Battery {
     int full_mah = 0;
     float temperature_c = 0;
     int cycles = 0;
-    bool scaled = false;  // the stock profile reads ten times high, and is divided (STICKY_HARDWARE_SPECS §4.3)
+    bool scaled = false;  // the stock profile reads ten times high, and is divided (STICKY_HARDWARE_SPECS §1, §8)
 };
 esp_err_t ReadBattery(Battery *out);
 

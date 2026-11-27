@@ -1301,12 +1301,12 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
   sound.
 - **A recording opens on `sound.recording-start` and closes on `sound.recording-stop`**, and the start sound is never
   in the recording; a recording that fails closes on `sound.error`.
-- **The agent deck's news sounds as it comes, wherever the glass is** — `sound.attention` when a request or question
-  joins the queue, `sound.link-up` when the bridge to the Mac connects, `sound.usage-limit` when the plan's limit is
-  hit, and `sound.agent-start` when an agent starts working, new or back from idle or done. Each sounds once as its news
-  comes, not again for a record that repeats it or for a question's later part, and none sounds on standby. A request
-  closed and sent again sounds again. They rank
-  attention, then usage limit, then link up, then agent start: a lower one is dropped while a higher one sounds, and
+- **The agent deck's news sounds as it comes, wherever the glass is** — a request or question joining the queue sounds
+  `sound.attention`. The bridge to the Mac connecting sounds `sound.link-up`, once its `reset` makes this deck the
+  active one. The plan's limit hit sounds `sound.usage-limit`. An agent starting work, new or back from idle or done,
+  sounds `sound.agent-start`. An agent the bridge's snapshot sends in its first second is already running: it makes no
+  sound. Each sounds once as its news comes, not again for a record that repeats it or for a question's later part. None
+  sounds on standby. A request closed and sent again sounds again. They rank attention, then usage limit, then link up, then agent start: a lower one is dropped while a higher one sounds, and
   while one sounds the mascot's moments are dropped, not played over it; a press's tick still cuts in.
   They are the deck's own cues moved into the band, the person's ear on the draft (2026-11-26) over the same at the
   deck's pitches.

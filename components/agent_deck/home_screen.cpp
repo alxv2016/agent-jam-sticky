@@ -13,13 +13,11 @@
 
 #include "deck_clock.h"
 #include "deck_flow.h"
-#include "deck_mock.h"
 #include "deck_model.h"
 #include "deck_rules.h"
 #include "deck_stage.h"
 #include "deck_ui.h"
 #include "design_tokens.h"
-#include "esp_log.h"
 #include "in_psram.h"
 #include "lvgl_display.h"
 #include "off_frame.h"
@@ -38,8 +36,6 @@ using model::Agent;
 using model::AgentState;
 using ui::Type;
 using widgets::MascotMove;
-
-constexpr const char *kTag = "deck_home";
 
 // How often the page counts its state's time on and looks at the clock: DESIGN's self-update, the floor for anything that updates by itself;
 // the clock itself changes once a minute (motion.clock-tick).
@@ -248,9 +244,6 @@ void Home::HandOver()
     BuildCarousel();
     lvgl_display::RequestFull();  // the startup screen leaves no ghost of its logo: the carousel is the next full frame
     if (active_) {
-        if (!mock::Start()) {  // the feed starts as home is ready (AGENT_DECK 4.8)
-            ESP_LOGE(kTag, "the mock day did not start: the deck shows what the model holds");
-        }
         Activate();
     }
 }

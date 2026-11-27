@@ -68,6 +68,14 @@ esp_err_t PowerOff();
 }  // namespace board
 
 // The firmware's hardware test, as it is: its screens, its routes and its home's rows (`hw.home`).
+// uart_line drives UART0 on the board; here there is no cable, so the console never starts.
+#include "uart_line/uart_line.h"
+namespace uart_line {
+esp_err_t AddReader(const char *, Reader) { return ESP_OK; }
+void SetDefaultReader(Reader) {}
+esp_err_t Start() { return ESP_ERR_NOT_SUPPORTED; }
+bool WriteLine(const char *, size_t) { return false; }
+}  // namespace uart_line
 #include "../../components/hw_test/hw_test.cpp"
 #include "../../components/app_shell/screen_home.h"
 

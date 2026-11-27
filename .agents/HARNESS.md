@@ -498,9 +498,13 @@ Old debt is the audit's trend, never a review's cap.
 | --- | --- | --- |
 | Doc, code, strings | `HEAD`'s files by `git show`, in milliseconds | A sentence, function or string keyed by its words or name: moved or re-wrapped, carried |
 | Compiler warnings | None: an incremental build prints only the files it recompiled, so no saved log stands for the base's | A warning on a line the change did not touch, or on a changed line whose code `HEAD`'s copy holds (a moved line); a build log older than a changed file measures nothing |
-| Growth | The saved baseline | — |
+| Growth | The saved baseline, `.cache/harness/proxies/baseline/size.json`, written once when it is missing and never moved since: re-save it from `HEAD`'s build after a commit (`code_proxies.py --save-baseline --build-dir <HEAD's build>`), or the commits since cap the change | — |
 | Screen audit | `HEAD`'s screens drawn once per commit in a git worktree under `.cache/harness/worktrees/`, sharing `managed_components/` and the compiled LVGL (about 15 s); the JSON cached in `.cache/harness/proxies/base/<commit>/`, the worktree removed | Dimension, name, view and the words it quotes, a kit page's number dropped (a page added renumbers the rest); each base metric matched once, the same `where` first |
 
+- **Open: the growth base does not follow `HEAD`.** A baseline saved on 2026-11-24 charged the cable link with three
+  later commits' growth — 98 KB of image and 1376 B of DIRAM against it, 11.9 KB and 368 B against `HEAD` built in a
+  worktree — and capped `robustness` until it was re-saved by hand. The fix: build `HEAD` once per commit in the screen
+  audit's worktree and measure its size there, as that proxy takes its own base.
 - **On the screen audit, a second violation at a place the base held once is new.** The trade: one moved to another
   kit page, while the old one goes, is still carried.
 - **A renamed place is carried when the base has an offender of the same metric on the same view left unmatched,

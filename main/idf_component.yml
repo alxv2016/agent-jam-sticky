@@ -9,3 +9,7 @@ dependencies:
   # port has no e-paper path (STICKY_DESIGN_TOKENS §5).
   espressif/esp_lvgl_port: '^2'
   lvgl/lvgl: '^9'
+
+  # cJSON for the agent deck's link: the bridge's records are JSON, and ESP-IDF 6 ships no JSON library of its own
+  # (STICKY_AGENT_DECK §10).
+  espressif/cjson: '^1.7.19'

@@ -100,7 +100,7 @@ bool ProbeGauge()
         return false;
     }
     // The stock profile's DesignCapacity reads 7500 for the 750 mAh cell: current and capacity read ten times high
-    // (STICKY_HARDWARE_SPECS §4.3).
+    // (STICKY_HARDWARE_SPECS §1, §8).
     uint16_t design = 0;
     s_gauge_scaled = bq27220_read_word(s_gauge, 0x3C, design) && design == 7500;
     ESP_LOGI(kTag, "gauge design capacity raw %u%s", design, s_gauge_scaled ? ", divided by 10" : "");

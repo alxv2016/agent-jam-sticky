@@ -30,6 +30,7 @@
 #include "esp_system.h"
 #include "lvgl_display.h"
 #include "router/router.h"
+#include "uart_line/uart_line.h"
 #include "ui.h"
 #include "widgets/widgets.h"
 #include "esp_app_desc.h"
@@ -40,8 +41,8 @@
 #include "esp_mac.h"
 #include "esp_psram.h"
 #include "esp_timer.h"
-#include "driver/uart.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 #include "sdkconfig.h"
 
@@ -2301,23 +2302,41 @@ void OpenHardwareHome();           // `hw`, below the route it opens
 std::atomic<bool> s_pages_stop{false};
 std::atomic<bool> s_pages_running{false};  // one walk at a time
 
+// The console's lines, handed from uart_line's reader to the console's own task: a command runs there, on an internal stack,
+// as it always has — the reader's task keeps to copying (uart_line.h).
+struct ConsoleLine {
+    char text[64];
+};
+QueueHandle_t s_console_lines = nullptr;
+
+// Every line no prefix claims reaches here — a garbled line from the bridge too, which can carry a secret — so a copy is wiped
+// once used and a line is never echoed back (uart_line.h).
+void WipeConsoleLine(ConsoleLine &line)
+{
+    volatile char *wipe = line.text;
+    for (size_t i = 0; i < sizeof(line.text); ++i) {
+        wipe[i] = '\0';
+    }
+}
+
+void OnConsoleLine(char *line, size_t len)
+{
+    ConsoleLine copy{};
+    std::memcpy(copy.text, line, std::min(len, sizeof(copy.text) - 1));
+    if (s_console_lines != nullptr && xQueueSend(s_console_lines, &copy, 0) != pdTRUE) {
+        ESP_LOGW(kTag, "console: busy, a line dropped");
+    }
+    WipeConsoleLine(copy);
+}
+
 void ConsoleTask(void *)
 {
-    char line[32];
-    size_t len = 0;
+    ConsoleLine next{};
     for (;;) {
-        uint8_t c = 0;
-        if (uart_read_bytes(UART_NUM_0, &c, 1, portMAX_DELAY) != 1) {
+        if (xQueueReceive(s_console_lines, &next, portMAX_DELAY) != pdTRUE) {
             continue;
         }
-        if (c != '\n' && c != '\r') {
-            if (len < sizeof(line) - 1) {
-                line[len++] = static_cast<char>(c);
-            }
-            continue;
-        }
-        line[len] = '\0';
-        len = 0;
+        const char *line = next.text;
         if (std::strcmp(line, "bench") == 0) {
             ESP_LOGI(kTag, "console: running the refresh benchmark");
             RunBenchmark();
@@ -2343,20 +2362,25 @@ void ConsoleTask(void *)
         } else if (std::strcmp(line, "sound") == 0 || std::strncmp(line, "sound ", 6) == 0) {
             SoundCommand(line[5] == ' ' ? line + 6 : "");
         } else if (std::strcmp(line, "help") == 0) {
-            std::printf("commands: bench, anim, hw, pages [n], stop, speed [n], key up|down|ok|hold [n], sound [name|band], shot, "
+            std::printf("commands: bench, anim, hw, mock, pages [n], stop, speed [n], key up|down|ok|hold [n], sound [name|band], shot, "
                         "help\n");
         } else if (line[0] != '\0') {
-            ESP_LOGW(kTag, "console: unknown command \"%s\" (try: help)", line);
+            ESP_LOGW(kTag, "console: unknown command (try: help)");
         }
+        WipeConsoleLine(next);
     }
 }
 
+// The console reads UART0 through uart_line, which it shares with the agent deck's link: every line no other reader's prefix
+// claims is the console's (STICKY_HARDWARE_SPECS §2).
 void StartConsole()
 {
-    if (uart_driver_install(UART_NUM_0, 256, 0, 0, nullptr, 0) != ESP_OK) {
-        ESP_LOGW(kTag, "console: UART0 driver did not start; no commands");
+    s_console_lines = xQueueCreate(4, sizeof(ConsoleLine));
+    if (s_console_lines == nullptr || uart_line::Start() != ESP_OK) {
+        ESP_LOGW(kTag, "console: UART0's line did not start; no commands");
         return;
     }
+    uart_line::SetDefaultReader(OnConsoleLine);
     xTaskCreate(ConsoleTask, "hw_test_console", 4096, nullptr, 2, nullptr);
     ESP_LOGI(kTag, "console ready: bench, anim, hw, pages, stop, speed, key, sound, shot, help");
 }

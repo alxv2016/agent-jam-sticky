@@ -33,6 +33,9 @@ bool s_standby = false;
 bool s_connecting = false;
 bool s_connect_failed = false;
 bool s_connect_refused = false;
+bool s_role_pending = false;  // no connected cue yet: the bridge said hello, or `standby`, and a `reset` is awaited
+bool s_linked_due = false;    // a connected cue held back until the deck is told it is the active one
+uint32_t s_linked_ms = 0;
 uint32_t s_connect_ms = 0;
 ConnectFn s_connect_listener = nullptr;
 DecisionFn s_decision = nullptr;
@@ -244,16 +247,41 @@ void CloseRequest(uint32_t id, CloseReason reason)
     Tell(change);
 }
 
+// The connected cue the link held back while the deck waited to be told it is the active one.
+void RaiseHeldLink()
+{
+    if (!s_role_pending && !s_standby && s_linked_due && s_link) {
+        s_linked_due = false;
+        Tell({Event::kLinkAnnounced});
+    }
+}
+
 void SetLink(bool up)
 {
     if (s_link == up) {
         return;
     }
     s_link = up;
+    s_linked_ms = lv_tick_get();
+    s_linked_due = up && !s_standby;  // a link back on standby is announced only as a `reset` makes the deck active
     Tell({Event::kLink});
+    if (up && !s_role_pending) {
+        s_linked_due = false;
+        Tell({Event::kLinkAnnounced});
+    }
 }
 
-void Reset()
+void BridgeHello()
+{
+    s_role_pending = true;
+}
+
+uint32_t LinkedMs()
+{
+    return s_linked_ms;
+}
+
+void Forget()
 {
     // A request on view closes as timed out: the terminal still asks.
     for (const Item &item : std::array<Item, kMaxRequests>(s_queue)) {
@@ -267,15 +295,22 @@ void Reset()
     s_usage = {};
     s_usage_known = false;
     Tell({Event::kUsage});
-    // The snapshot's reset is the one call that takes the deck off standby.
-    if (s_standby || s_connecting || s_connect_failed || s_connect_refused) {
-        s_standby = s_connecting = s_connect_failed = s_connect_refused = false;
-        Tell({Event::kStandby});
-    }
+}
+
+void Reset()
+{
+    // The snapshot's reset is the one call that takes the deck off standby; what the bridge sends next is all of it again.
+    SetStandby(false);
+    Forget();
+    s_linked_ms = lv_tick_get();  // the snapshot that follows is sent again whole: its first second is quiet, active deck or not
 }
 
 void SetStandby(bool on)
 {
+    s_role_pending = on;
+    if (on) {
+        s_linked_due = false;  // `standby` drops the held cue: the deck stays silent until a `reset`
+    }
     if (on && s_standby && s_connecting) {
         // `standby` while Connect waits: the bridge refused the `use` — another deck is on the cable.
         s_connecting = false;
@@ -284,6 +319,11 @@ void SetStandby(bool on)
         return;
     }
     if (on == s_standby) {
+        if (!on && (s_connecting || s_connect_failed || s_connect_refused)) {
+            s_connecting = s_connect_failed = s_connect_refused = false;
+            Tell({Event::kStandby});
+        }
+        RaiseHeldLink();  // a `reset` to a deck already active, after the bridge's hello
         return;
     }
     s_standby = on;
@@ -299,9 +339,14 @@ void SetStandby(bool on)
         }
         s_usage = {};
         s_usage_known = false;
+    } else {
+        // Off standby by the snapshot: quiet as a link coming up is, but for the connected cue, raised once below.
+        s_linked_ms = lv_tick_get();
+        s_linked_due = s_link;
     }
     s_connecting = s_connect_failed = s_connect_refused = false;
     Tell({Event::kStandby});
+    RaiseHeldLink();
 }
 
 void SetListeners(DecisionFn decision, AnswerFn answer)

@@ -6,7 +6,7 @@
 // in place, and its timed leave; each route's factory as its screen's header declares it, the closed page and the clock built by
 // themselves, and a page's mascot voice (STICKY_AGENT_DECK §4, §5). DECK_DUMP=<dir> writes each frame as the glass reads it, for a look.
 // run.sh builds LVGL's sources from managed_components once, into build/host/lvgl, and the sources named below.
-// host-sources: components/ui/ui.cpp components/ui/line_box.cpp components/ui/fonts/bitcount/*.c components/widgets/marks/marks.c components/widgets/src/*.cpp components/widgets/src/internal/*.cpp components/router/router.cpp components/router/overlays.cpp components/router/focus.cpp components/router/touch.cpp components/router/routes.cpp components/router/screen.cpp components/router/status.cpp components/app_hooks/app_hooks.cpp components/app_shell/screen_home.cpp components/mascot_voice/mascot_voice.cpp components/agent_deck/*.cpp components/agent_deck/logo.c
+// host-sources: components/ui/ui.cpp components/ui/line_box.cpp components/ui/fonts/bitcount/*.c components/widgets/marks/marks.c components/widgets/src/*.cpp components/widgets/src/internal/*.cpp components/router/router.cpp components/router/overlays.cpp components/router/focus.cpp components/router/touch.cpp components/router/routes.cpp components/router/screen.cpp components/router/status.cpp components/app_hooks/app_hooks.cpp components/app_shell/screen_home.cpp components/mascot_voice/mascot_voice.cpp components/agent_deck/*.cpp components/agent_deck/logo.c managed_components/espressif__cjson/cJSON/cJSON.c
 // Build and run: bash tests/host/run.sh deck_screens
 
 #include <algorithm>
@@ -24,6 +24,7 @@
 #include "../../components/agent_deck/closed_page.h"
 #include "../../components/agent_deck/deck_clock.h"
 #include "../../components/agent_deck/deck_flow.h"
+#include "../../components/agent_deck/deck_link.h"
 #include "../../components/agent_deck/deck_mock.h"
 #include "../../components/agent_deck/deck_model.h"
 #include "../../components/agent_deck/deck_rules.h"
@@ -36,12 +37,14 @@
 #include "../../components/agent_deck/wifi_screen.h"
 #include "../../components/app_shell/screen_home.h"
 #include "design_tokens.h"
+#include "esp_heap_caps.h"
 #include "devices.h"
 #include "mascot_voice.h"
 #include "power_leave.h"
 #include "lvgl.h"
 #include "lvgl_display.h"
 #include "router/router.h"
+#include "uart_line/uart_line.h"
 #include "ui.h"
 #include "widgets/marquee.h"
 #include "widgets/widgets.h"
@@ -92,6 +95,8 @@ void SetTouchReadHook(void (*)(lv_indev_t *, lv_indev_data_t *)) {}
 void SetPartialCounting(PartialCounting) {}
 void NoteTyping() {}
 void RequestFull() { ++s_full_requests; }
+bool Lock(uint32_t) { return true; }  // one task on the host: the lock is always had
+void Unlock() {}
 void PlayCue(Cue cue)
 {
     ++s_cues;
@@ -113,6 +118,43 @@ void LeaveSoon(How how, Frame frame)
     s_frame = frame;
 }
 }  // namespace power_leave
+
+// uart_line drives UART0 on the board; here the cable is the test: the readers registered are kept by prefix, a line handed in
+// goes to the one whose prefix it starts with, prefix stripped, as the reader task does, and each line written is kept.
+namespace cable {
+struct Reader {
+    const char *prefix;
+    uart_line::Reader reader;
+};
+std::vector<Reader> s_readers;
+std::vector<std::string> s_written;
+bool In(const std::string &line)
+{
+    for (const Reader &r : s_readers) {
+        const size_t n = std::strlen(r.prefix);
+        if (line.compare(0, n, r.prefix) == 0) {
+            std::string rest = line.substr(n);
+            r.reader(rest.data(), rest.size());
+            return true;
+        }
+    }
+    return false;
+}
+}  // namespace cable
+namespace uart_line {
+esp_err_t AddReader(const char *prefix, Reader reader)
+{
+    cable::s_readers.push_back({prefix, reader});
+    return ESP_OK;
+}
+void SetDefaultReader(Reader) {}
+esp_err_t Start() { return ESP_OK; }
+bool WriteLine(const char *text, size_t len)
+{
+    cable::s_written.emplace_back(text, len);
+    return true;
+}
+}  // namespace uart_line
 
 namespace devices {
 esp_err_t ReadClock(std::tm *out)
@@ -3104,16 +3146,20 @@ void TestEventSounds()
     s_words.clear();
     model::SetLink(true);
     Check(s_words == std::vector<Word>{Word::kLinkUp}, "the link come up sounds link up");
-    Advance(400);
+    model::SetAgent(Agent(9, 0, "snapshot", model::AgentState::kWorking, 0, "Bash: ls", 10, 100));
+    Check(s_words.size() == 1, "an agent the snapshot brings within its quiet second is silent");
+    Advance(1100);
     model::SetAgent(Agent(7, 0, "sound-check", model::AgentState::kWorking, 0, "Bash: ls", 10, 100));
     Check(s_words.size() == 2 && s_words[1] == Word::kAgentStart, "a new agent working sounds agent start");
     model::SetAgent(Agent(7, 0, "sound-check", model::AgentState::kWorking, 0, "Bash: ls -l", 10, 100));
     Check(s_words.size() == 2, "a record that keeps it working is silent");
     Advance(400);
     model::SetLink(false);
+    model::BridgeHello();
     model::SetLink(true);
-    model::SetAgent(Agent(8, 0, "sound-check-2", model::AgentState::kWorking, 0, "Bash: ls", 10, 100));
-    Check(s_words.size() == 3 && s_words[2] == Word::kLinkUp, "an agent starting under the link coming up is dropped: link up is heard whole");
+    Check(s_words.size() == 2, "after the bridge's hello the link waits to be told this deck is the active one");
+    model::Reset();
+    Check(s_words.size() == 3 && s_words[2] == Word::kLinkUp, "and the snapshot's reset announces it");
     Advance(400);
     model::Usage limited;
     limited.limit = model::Limit::kFiveHour;
@@ -3128,13 +3174,72 @@ void TestEventSounds()
     Ask(1202, 7, "Bash", "ls");
     Check(s_words.size() == 5, "on standby, another deck the active one, the deck's news is silent");
     model::Reset();
+    Check(s_words.size() == 6 && s_words[5] == Word::kLinkUp, "the reset that ends standby announces the link: this deck is the active one");
     Advance(1000);
     model::SetUsage(limited);
-    Check(s_words.size() == 6 && s_words[5] == Word::kUsageLimit,
+    Check(s_words.size() == 7 && s_words[6] == Word::kUsageLimit,
           "standby's end, a Reset, clears the limit it heard: the next limit hit sounds");
     Settle();
     Home();
     model::Reset();
+    Settle();
+}
+
+// The cable's line into the deck (agent_deck.cpp, STICKY_AGENT_DECK §10): the kReady step's hello, the readers joining the line,
+// a line handed off the reader's task and taken on LVGL's in order, a burst past the 32-line queue dropped, and every copy wiped
+// before it is freed. Last, as it gives the model the link's listeners.
+std::string Framed(const std::string &json)
+{
+    char line[512];
+    const size_t n = agent_deck::link::Encode(line, sizeof(line), json.c_str());
+    return std::string(line, n);
+}
+
+void TestCableLine()
+{
+    std::printf("the cable's line\n");
+    Home();
+    model::Reset();
+    model::SetLink(false);
+    model::SetWifi(model::Wifi{});
+    Settle();
+    cable::s_written.clear();
+    g_host_heap = {};
+    g_host_heap.on = true;
+    app_hooks::RunBoot(app_hooks::Phase::kReady);
+    Check(cable::s_written.size() == 1 && cable::s_written[0].find(R"("type":"hello")") != std::string::npos &&
+              cable::s_written[0].find(R"("id":"0203")") != std::string::npos,
+          "the kReady step says hello on the cable, the deck named by its MAC's last two bytes");
+    Check(cable::s_readers.size() == 2 && std::strcmp(cable::s_readers[0].prefix, agent_deck::link::kPrefix) == 0 &&
+              std::strcmp(cable::s_readers[1].prefix, "mock") == 0,
+          "and the bridge's records and the console's mock join the line");
+    Advance(3000);
+    Check(model::GetWifi().stage != model::WifiStage::kJoined && !model::LinkUp(),
+          "a boot with no word from the console plays no mock day: the deck waits for the bridge");
+    cable::In(Framed(R"({"type":"reset"})"));
+    cable::In(Framed(R"({"type":"agent","id":41,"parent":0,"name":"cable","state":"working"})"));
+    Check(model::FindAgent(41) == nullptr, "a line handed off the reader's task waits for LVGL's");
+    Advance(40);
+    Check(model::FindAgent(41) != nullptr && model::LinkUp(), "and is taken there, in order: the reset, then the agent");
+    for (int i = 0; i < 34; ++i) {
+        cable::In(Framed(std::string(R"({"type":"agent","id":)") + std::to_string(50 + i) +
+                         R"(,"parent":0,"name":"burst","state":"idle","detail":"a line that may carry a secret"})"));
+    }
+    Check(g_host_heap.freed == 4, "a burst past the queue's 32 drops the lines past it");
+    Advance(40);
+    Check(g_host_heap.freed == 36 && model::FindAgent(81) != nullptr && model::FindAgent(82) == nullptr,
+          "and the 32 queued are taken");
+    cable::In(std::string(agent_deck::link::kPrefix) + "0000 {}");
+    Advance(40);
+    Check(g_host_heap.freed == 37 && g_host_heap.unwiped == 0, "every copy, taken, dropped or refused, is wiped before it is freed");
+    cable::In("mock");
+    Advance(40);
+    Check(model::GetWifi().stage == model::WifiStage::kJoined && std::string(model::GetWifi().network.name) == "Studio",
+          "the console's mock starts the made-up day: the deck joined to Studio");
+    mock::Stop();
+    g_host_heap.on = false;
+    model::Reset();
+    model::SetLink(false);
     Settle();
 }
 
@@ -3191,6 +3296,7 @@ int main()
     TestClosedPageAndClock();
     TestVoice();
     TestEventSounds();
+    TestCableLine();
     std::printf("%d checks, %d failed\n", s_checks, s_failures);
     return s_failures == 0 ? 0 : 1;
 }
