@@ -13,12 +13,12 @@
 
 // Bitcount Single at one bit a pixel (fonts/bitcount/make_fonts.sh): C objects, declared outside any namespace.
 extern "C" {
-LV_FONT_DECLARE(bitcount_400_20) LV_FONT_DECLARE(bitcount_400_30)
-LV_FONT_DECLARE(bitcount_600_20) LV_FONT_DECLARE(bitcount_600_30) LV_FONT_DECLARE(bitcount_600_40)
+LV_FONT_DECLARE(bitcount_400_26) LV_FONT_DECLARE(bitcount_400_30)
+LV_FONT_DECLARE(bitcount_600_26) LV_FONT_DECLARE(bitcount_600_30) LV_FONT_DECLARE(bitcount_600_40)
 LV_FONT_DECLARE(bitcount_600_50) LV_FONT_DECLARE(bitcount_600_60) LV_FONT_DECLARE(bitcount_600_70)
 LV_FONT_DECLARE(bitcount_600_80) LV_FONT_DECLARE(bitcount_600_100) LV_FONT_DECLARE(bitcount_600_120)
 LV_FONT_DECLARE(bitcount_600_160)
-LV_FONT_DECLARE(bitcount_700_20) LV_FONT_DECLARE(bitcount_700_30) LV_FONT_DECLARE(bitcount_700_40)
+LV_FONT_DECLARE(bitcount_700_26) LV_FONT_DECLARE(bitcount_700_30) LV_FONT_DECLARE(bitcount_700_40)
 LV_FONT_DECLARE(bitcount_700_50) LV_FONT_DECLARE(bitcount_700_60) LV_FONT_DECLARE(bitcount_700_70)
 LV_FONT_DECLARE(bitcount_700_80) LV_FONT_DECLARE(bitcount_700_100) LV_FONT_DECLARE(bitcount_700_120)
 LV_FONT_DECLARE(bitcount_700_160)
@@ -49,11 +49,11 @@ struct BitcountFont {
     const lv_font_t *font;
 };
 constexpr BitcountFont kBitcount[] = {
-    {20, 400, &bitcount_400_20},   {30, 400, &bitcount_400_30},
-    {20, 600, &bitcount_600_20},   {30, 600, &bitcount_600_30},   {40, 600, &bitcount_600_40},
+    {26, 400, &bitcount_400_26},   {30, 400, &bitcount_400_30},
+    {26, 600, &bitcount_600_26},   {30, 600, &bitcount_600_30},   {40, 600, &bitcount_600_40},
     {50, 600, &bitcount_600_50},   {60, 600, &bitcount_600_60},   {70, 600, &bitcount_600_70},
     {80, 600, &bitcount_600_80},   {100, 600, &bitcount_600_100}, {120, 600, &bitcount_600_120},
-    {160, 600, &bitcount_600_160}, {20, 700, &bitcount_700_20},   {30, 700, &bitcount_700_30},
+    {160, 600, &bitcount_600_160}, {26, 700, &bitcount_700_26},   {30, 700, &bitcount_700_30},
     {40, 700, &bitcount_700_40},   {50, 700, &bitcount_700_50},   {60, 700, &bitcount_700_60},
     {70, 700, &bitcount_700_70},   {80, 700, &bitcount_700_80},   {100, 700, &bitcount_700_100},
     {120, 700, &bitcount_700_120}, {160, 700, &bitcount_700_160},

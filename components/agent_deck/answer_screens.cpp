@@ -93,12 +93,12 @@ protected:
     {
         heading_ = Column(page_, dt::kSpacingContent);
         lv_obj_set_pos(heading_, dt::kSpacingEdge, kHeadingTop);
-        Step(heading_, Type::kTitle, item.tool, widgets::MarqueeKey(kScopeRequest, item.id, 1));
+        lv_obj_t *tool = Step(heading_, Type::kTitle, item.tool, widgets::MarqueeKey(kScopeRequest, item.id, 1));
         lv_obj_t *line = Row(heading_);
         lv_obj_set_style_pad_column(line, dt::kSpacingMd, 0);
-        MarginTop(line, -dt::kSpacingXs);
         const model::Agent *agent = model::FindAgent(item.agent);
         Quiet(line, agent != nullptr ? agent->name : "");
+        TuckUnder(tool, line);
         if (model::QueueCount() > 1) {
             char count[16];
             std::snprintf(count, sizeof count, "%u of %u", static_cast<unsigned>(model::QueuePosition(item.id)),
@@ -241,6 +241,13 @@ private:
     lv_obj_t *allow_ = nullptr;
 };
 
+// A choice card's detail line: the second label in its words column, or nullptr for a card with none.
+lv_obj_t *CardDetail(lv_obj_t *card)
+{
+    lv_obj_t *words = lv_obj_get_child(card, 0);
+    return words != nullptr && lv_obj_get_child_count(words) > 1 ? lv_obj_get_child(words, 1) : nullptr;
+}
+
 // --- A question ----------------------------------------------------------------------------------------------------------------------
 
 class Question final : public Answer {
@@ -250,7 +257,7 @@ public:
 protected:
     // The question in `caption`, then each answer a choice card — a ring for one, a box for several — whose name comes down to `caption-strong`
     // since a question can be long. The question and its cards turn by page together, whole items a page, when they run past the room; the
-    // scroll indicator stands in the right margin. Dismiss and Send in two halves; Send waits for a pick.
+    // scroll indicator stands in the right margin. Dismiss and Send in two halves; Send is always on offer, and with no pick it says so.
     void BuildBody(const model::Item &item) override
     {
         multi_ = item.multi;
@@ -270,6 +277,8 @@ protected:
         lv_obj_set_style_pad_row(items_, dt::kSpacingMd, 0);
         lv_obj_set_style_pad_bottom(items_, band_h_, 0);  // the last page has room to stand at its own top
         list_[count_++] = Words(items_, Type::kCaption, item.question.c_str(), Fit::kWrap);
+        // The question stands `spacing.lg` over its first card, a step above the cards' own `spacing.md` (the person, 2026-11-26).
+        lv_obj_set_style_margin_bottom(list_[0], dt::kSpacingLg - dt::kSpacingMd, 0);
         for (size_t i = 0; i < item.option_count; ++i) {
             // `label: description`, split at the first `: `; an option with none is one plain line.
             const std::string &option = item.options[i];
@@ -277,8 +286,21 @@ protected:
             const std::string label = colon == std::string::npos ? option : option.substr(0, colon);
             const std::string description = colon == std::string::npos ? "" : option.substr(colon + 2);
             lv_obj_t *card = widgets::MakeChoiceCard(items_, label.c_str(), item.multi, description.empty() ? nullptr : description.c_str());
+            // The name comes down to `caption-strong` and its detail to `caption-regular`: bold over regular at one size. The detail is set
+            // first, so the gap the name's margin makes up to `pair-sm` is measured from the detail's own line box.
+            if (lv_obj_t *detail = CardDetail(card); detail != nullptr) {
+                widgets::SetLabelRole(detail, Type::kCaptionRegular);
+            }
             widgets::SetWordsRole(card, Type::kCaptionStrong);
-            lv_obj_add_event_cb(card, OnPick, LV_EVENT_VALUE_CHANGED, this);
+            if (lv_obj_t *detail = CardDetail(card); detail != nullptr) {
+                // The regular's font is shorter in its 32 px box than the bold's, so the two boxes' leading is 10: the detail comes up
+                // the difference, so the pair stands `pair-sm`, 8, as the approved draft has it (DESIGN → Layout → Spacing).
+                const int32_t leading = lv_obj_get_style_pad_bottom(lv_obj_get_child(lv_obj_get_parent(detail), 0), LV_PART_MAIN) +
+                                        lv_obj_get_style_pad_top(detail, LV_PART_MAIN);
+                if (leading > dt::kSpacingPairSm) {
+                    lv_obj_set_style_margin_top(detail, dt::kSpacingPairSm - leading, 0);
+                }
+            }
             cards_[i] = card;
             list_[count_++] = card;
         }
@@ -288,7 +310,6 @@ protected:
         lv_obj_add_event_cb(dismiss_, OnDismiss, LV_EVENT_CLICKED, this);
         send_ = widgets::MakeButton(page_, "Send", widgets::ButtonVariant::kAction, kHalfW);
         lv_obj_set_pos(send_, dt::kSpacingEdge + kHalfW + dt::kSpacingMd, kAnswersTop);
-        lv_obj_add_state(send_, LV_STATE_DISABLED);
         lv_obj_add_event_cb(send_, OnSend, LV_EVENT_CLICKED, this);
         Page();
     }
@@ -388,13 +409,6 @@ private:
         }
     }
 
-    // A pick is not the answer; Send is. Send is on offer once any card is chosen.
-    static void OnPick(lv_event_t *e)
-    {
-        Question *self = static_cast<Question *>(lv_event_get_user_data(e));
-        lv_obj_set_state(self->send_, LV_STATE_DISABLED, self->Chosen() == 0);
-    }
-
     uint8_t Chosen() const
     {
         uint8_t mask = 0;
@@ -405,11 +419,18 @@ private:
     }
 
     static void OnDismiss(lv_event_t *e) { static_cast<Question *>(lv_event_get_user_data(e))->Dismiss(); }
+    // A pick is not the answer; Send is. Send is never disabled (DESIGN → Components → States → Disabled: explain rather than disable): pressed with no
+    // pick, `sound.error` says it did not go and the ring goes to the first answer, its page turned into view (the person, 2026-11-26).
     static void OnSend(lv_event_t *e)
     {
         Question *self = static_cast<Question *>(lv_event_get_user_data(e));
         const uint8_t chosen = self->Chosen();
         if (chosen == 0) {
+            lvgl_display::PlayCue(lvgl_display::Cue::kError);
+            if (self->card_count_ > 0) {
+                router::Ring(self->cards_[0]);
+                self->Show(self->page_of_[1]);  // list_[1] is the first card; a swipe may have turned off its page with the focus on it
+            }
             return;
         }
         model::AnswerQuestion(self->id_, self->part(), chosen);

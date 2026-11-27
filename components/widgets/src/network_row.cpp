@@ -9,8 +9,8 @@ namespace widgets {
 namespace dt = design_tokens;
 
 namespace {
-// The outlined look is the row's own, kept on the row itself so a later SetNetworkRow draws it again.
-constexpr lv_obj_flag_t kOutlinedLook = LV_OBJ_FLAG_USER_3;
+// The card look is the row's own, kept on the row itself so a later SetNetworkRow draws it again.
+constexpr lv_obj_flag_t kCardLook = LV_OBJ_FLAG_USER_3;
 
 constexpr int32_t kSignalGlyphWidth = 40;
 constexpr int32_t kSignalGlyphHeight = 30;
@@ -28,11 +28,11 @@ lv_obj_t *Mark(lv_obj_t *parent, const lv_image_dsc_t *glyph, lv_color_t colour)
     return image;
 }
 
-// A `caption` fact, `text-secondary` at rest, `text-on-fill` on the inverted row and `text-primary` on the outlined one. Its
+// A `caption-regular` fact — bold name over regular facts, as the question's cards (the person, 2026-11-26) — `text-secondary` at rest, `text-on-fill` on the inverted row and `text-primary` on the card. Its
 // colour is its own: the row's states do not reach a label that has one.
-lv_obj_t *Word(lv_obj_t *parent, const char *text, bool inverted, bool outlined)
+lv_obj_t *Word(lv_obj_t *parent, const char *text, bool inverted, bool card)
 {
-    lv_obj_t *word = detail::Line(parent, ui::Type::kCaption, text, !inverted && !outlined);
+    lv_obj_t *word = detail::Line(parent, ui::Type::kCaptionRegular, text, !inverted && !card);
     if (inverted) {
         lv_obj_set_style_text_color(word, ui::Level(dt::kColorTextOnFill), 0);
     }
@@ -41,13 +41,13 @@ lv_obj_t *Word(lv_obj_t *parent, const char *text, bool inverted, bool outlined)
 
 // One fact: an optional glyph, then its word, `spacing.sm` apart. A second fact stands `spacing.lg` after the first one's word
 // (the draft's 8 px gap between facts, with the 8 px either side of it).
-void Fact(lv_obj_t *facts, const lv_image_dsc_t *glyph, const char *text, bool inverted, bool outlined, bool second = false)
+void Fact(lv_obj_t *facts, const lv_image_dsc_t *glyph, const char *text, bool inverted, bool card, bool second = false)
 {
     lv_obj_t *first = nullptr;
     if (glyph != nullptr) {
         first = Mark(facts, glyph, ui::Level(inverted ? dt::kColorTextOnFill : dt::kColorTextPrimary));
     }
-    lv_obj_t *word = Word(facts, text, inverted, outlined);
+    lv_obj_t *word = Word(facts, text, inverted, card);
     if (second) {
         lv_obj_set_style_margin_left(first != nullptr ? first : word, dt::kSpacingMd, 0);
     }
@@ -62,10 +62,10 @@ const lv_image_dsc_t *SignalLit(int signal)
 }
 
 // The signal glyph, alone, at the row's right end whatever the name's length and centred on the row's height: no word under it (DESIGN →
-// Exceptions → The signal glyph without a word). The unlit bars are the strongest glyph in the light dither on the white row, the outlined
-// one's ground too (on the black row the dark dither: as faint, mirrored), the lit bars over them on the same canvas, black (white on
-// black); the count of lit bars and the faint rest are the reading.
-void SignalGlyph(lv_obj_t *row, int signal, bool inverted)
+// Exceptions → The signal glyph without a word). The unlit bars are the strongest glyph in the light dither on the white row, and the
+// dark dither on the card, whose ground is the light one, and on the black row (as faint, mirrored); the lit bars over them on the same
+// canvas, black (white on black); the count of lit bars and the faint rest are the reading.
+void SignalGlyph(lv_obj_t *row, int signal, bool inverted, bool card)
 {
     lv_obj_t *canvas = detail::Bare(row);
     lv_obj_add_flag(canvas, LV_OBJ_FLAG_FLOATING);
@@ -73,7 +73,7 @@ void SignalGlyph(lv_obj_t *row, int signal, bool inverted)
     lv_obj_align(canvas, LV_ALIGN_RIGHT_MID, 0, 0);
     if (signal < 3) {
         lv_obj_t *unlit = Mark(canvas, &widgets_mark_glyph_signal_strong,
-                               inverted ? ui::Fill(dt::kColorScalePrimary1) : ui::Fill(dt::kColorBand));
+                               inverted || card ? ui::Fill(dt::kColorScalePrimary1) : ui::Fill(dt::kColorBand));
         lv_obj_set_pos(unlit, 0, 0);
     }
     if (const lv_image_dsc_t *lit = SignalLit(signal)) {
@@ -82,30 +82,35 @@ void SignalGlyph(lv_obj_t *row, int signal, bool inverted)
     }
 }
 
-// The outlined look: the row stays white and takes a `spacing.stroke.default` black edge, drawn inside the row, so its padding gives up the
-// edge's width and the words stand where they stand at rest. Off, the row has no edge and its own padding.
-void Outline(lv_obj_t *row, bool on)
+// The card look: the row on the light dither under black words, as the question's cards, its words `spacing.md` and `spacing.sm` inside
+// and no edge (the person, 2026-11-26: "light grey background not outline"). Off, the row takes the list row's own white.
+void CardLook(lv_obj_t *row, bool on)
 {
-    const int32_t edge = on ? dt::kSpacingStrokeDefault : 0;
-    lv_obj_set_style_border_width(row, edge, 0);
-    lv_obj_set_style_border_color(row, ui::Level(dt::kColorOutline), 0);
-    lv_obj_set_style_pad_hor(row, dt::kSpacingMd - edge, 0);
-    lv_obj_set_style_pad_ver(row, dt::kSpacingSm - edge, 0);
+    if (on) {
+        lv_obj_set_style_bg_color(row, ui::Fill(dt::kColorBand), 0);
+        lv_obj_set_style_bg_opa(row, LV_OPA_COVER, 0);
+    } else {
+        lv_obj_remove_local_style_prop(row, LV_STYLE_BG_COLOR, 0);
+        lv_obj_remove_local_style_prop(row, LV_STYLE_BG_OPA, 0);
+    }
 }
 
 // Everything under the name: the facts line and the signal glyph, drawn for the state.
 void Fill(lv_obj_t *row, bool locked, int signal, NetworkState state)
 {
     const bool chosen = state != NetworkState::kRest;
-    const bool outlined = chosen && lv_obj_has_flag(row, kOutlinedLook);
-    const bool inverted = chosen && !outlined;
+    const bool card = chosen && lv_obj_has_flag(row, kCardLook);
+    const bool inverted = chosen && !card;
     // The name is the row's first child, kept; the rest is made again.
     while (lv_obj_get_child_count(row) > 1) {
         lv_obj_delete(lv_obj_get_child(row, 1));
     }
     SetListRowChosen(row, inverted);
-    // The outlined look is the white row in an edge of its own and every word black; the inversion and the rest take the row's styles.
-    Outline(row, outlined);
+    // The card look is the row on the light dither with every word black; the inversion and the rest take the row's styles. Only a row with
+    // the card look is drawn by it, so a face a screen gave another row stays.
+    if (lv_obj_has_flag(row, kCardLook)) {
+        CardLook(row, card);
+    }
 
     lv_obj_t *facts = detail::Bare(row);
     lv_obj_set_size(facts, kWords, ui::LineBox(ui::Type::kCaption));
@@ -114,25 +119,28 @@ void Fill(lv_obj_t *row, bool locked, int signal, NetworkState state)
     lv_obj_set_style_pad_column(facts, dt::kSpacingSm, 0);
     switch (state) {
     case NetworkState::kConnected:
-        Fact(facts, &widgets_mark_glyph_fact_check, "Connected", inverted, outlined);
+        Fact(facts, &widgets_mark_glyph_fact_check, "Connected", inverted, card);
         if (locked) {
-            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, outlined, true);
+            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, card, true);
         } else {
-            Fact(facts, nullptr, "Open", inverted, outlined, true);
+            Fact(facts, nullptr, "Open", inverted, card, true);
         }
         break;
     case NetworkState::kConnecting:
-        Fact(facts, nullptr, "Connecting…", inverted, outlined);
+        Fact(facts, nullptr, "Connecting…", inverted, card);
         break;
     case NetworkState::kRest:
         if (locked) {
-            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, outlined);
+            Fact(facts, &widgets_mark_glyph_lock, "Locked", inverted, card);
         } else {
-            Fact(facts, nullptr, "Open", inverted, outlined);
+            Fact(facts, nullptr, "Open", inverted, card);
         }
         break;
     }
-    SignalGlyph(row, signal, inverted);
+    // A row a screen stood on a card's face at rest (the agent deck's list) takes the card's unlit bars too, as the card look does.
+    const bool on_card = lv_obj_get_style_bg_opa(row, LV_PART_MAIN) == LV_OPA_COVER &&
+                         lv_color_eq(lv_obj_get_style_bg_color(row, LV_PART_MAIN), ui::Fill(dt::kColorBand));
+    SignalGlyph(row, signal, inverted, card || (!inverted && on_card));
 }
 }  // namespace
 
@@ -150,8 +158,8 @@ lv_obj_t *MakeNetworkRow(lv_obj_t *parent, const char *name, bool locked, int si
         ui::FitLineBox(title, ui::Type::kCaptionStrong);
     }
     lv_obj_set_width(title, kWords);
-    if (look == NetworkLook::kOutlined) {
-        lv_obj_add_flag(row, kOutlinedLook);
+    if (look == NetworkLook::kCard) {
+        lv_obj_add_flag(row, kCardLook);
     }
     Fill(row, locked, signal, state);
     lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);

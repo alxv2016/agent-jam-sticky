@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Compiles Bitcount Single at one bit a pixel for LVGL: the type scale's ladder at weights 600 and 700, and 30 and 20 px at 400
+# Compiles Bitcount Single at one bit a pixel for LVGL: the type scale's ladder at weights 600 and 700, and 30 and 26 px at 400
 # (STICKY_DESIGN_TOKENS §3). The three TTFs are the upright Regular, SemiBold and Bold instances of Bitcount Single's variable
 # font from petrvanblokland/TYPETR-Bitcount (OFL.txt), Version 1.001 — wght 400, 600 and 700, ELXP 0, ELSH 0, slnt 0,
 # CRSV 0 — cut with fontTools' instancer. Bitcount draws on a 100-unit cell, a tenth of the em, so a size that is a multiple of
-# 10 px puts every cell on whole panel pixels. Run from anywhere: bash components/ui/fonts/bitcount/make_fonts.sh
+# 10 px puts every cell on whole panel pixels; 26 px, the smallest, is the one that does not (STICKY_DESIGN_TOKENS §3). Run from anywhere: bash components/ui/fonts/bitcount/make_fonts.sh
 set -euo pipefail
 cd "$(dirname "$0")"
 
-TEXT_SIZES=(20 30 40 50 60 70 80)   # ASCII and the marks below; Bitcount has no arrows
+TEXT_SIZES=(26 30 40 50 60 70 80)   # ASCII and the marks below; Bitcount has no arrows
 FIGURE_SIZES=(100 120 160)          # figures only: a time or a count
 TEXT_RANGE="0x20-0x7E,0xB0,0xB7,0xD7,0x2013,0x2014,0x2019,0x2022,0x2026"
 FIGURE_RANGE="0x20,0x30-0x3A"
@@ -24,7 +24,7 @@ for weight in 600 700; do
     for size in "${TEXT_SIZES[@]}"; do conv "$weight" "$file" "$size" "$TEXT_RANGE"; done
     for size in "${FIGURE_SIZES[@]}"; do conv "$weight" "$file" "$size" "$FIGURE_RANGE"; done
 done
-# The two regular sizes (DESIGN → Typography → Scale and roles): body, 30 px at weight 400, and caption-regular, 20 px at weight 400,
+# The two regular sizes (DESIGN → Typography → Scale and roles): body, 30 px at weight 400, and caption-regular, 26 px at weight 400,
 # the same glyph range as the other sizes.
 conv 400 BitcountSingle-Regular.ttf 30 "$TEXT_RANGE"
-conv 400 BitcountSingle-Regular.ttf 20 "$TEXT_RANGE"
+conv 400 BitcountSingle-Regular.ttf 26 "$TEXT_RANGE"

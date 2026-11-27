@@ -288,8 +288,8 @@ else.**
   every 4 ms. Noise hops the pitch at random within 40 % of the note's every 1 ms. The coil has no level but the duty,
   which is the voice already, so a note's volume is kept only as on or off. One task, above the input watcher, owns the
   channel, since ESP-IDF's duty calls are not thread-safe. A new sound cuts the one playing, so a press's tick never
-  waits `[D]`. The six sounds it plays by word are DESIGN.md's `sound.*` tokens (STICKY_DESIGN_TOKENS §5); the person
-  heard them on a V1.0 `[FW]`.
+  waits `[D]`. The ten sounds it plays by word are DESIGN.md's `sound.*` tokens (STICKY_DESIGN_TOKENS §5); the person
+  heard the first six on a V1.0 `[FW]`, and chose the deck's four from a draft, not yet heard on the buzzer.
 - **The buzzer stays a note player; it does not play samples** — the agent deck's synth (`components/chiptune`) streamed
   through it gave "some weird hissing or static" on every sound, and the mascot mixed so sounded "no good". The pin ran on
   the sigma-delta modulator with a timer setting each sample's density, at 15 625 Hz on a 1 MHz carrier and again at

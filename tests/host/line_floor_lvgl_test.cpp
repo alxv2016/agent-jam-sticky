@@ -1,7 +1,7 @@
 // Host test of the type scale's line heights against the compiled fonts, on the computer with no board: every primitive's
 // line is on the 4 px grid and never under its font's own height (the line_height lv_font_conv wrote), so ui.cpp's
 // LineSpace never clamps a line box to the font's own height in silence (STICKY_DESIGN_TOKENS §3).
-// host-sources: components/ui/fonts/bitcount/bitcount_400_20.c components/ui/fonts/bitcount/bitcount_400_30.c components/ui/fonts/bitcount/bitcount_600_100.c components/ui/fonts/bitcount/bitcount_600_120.c components/ui/fonts/bitcount/bitcount_600_160.c components/ui/fonts/bitcount/bitcount_600_20.c components/ui/fonts/bitcount/bitcount_600_30.c components/ui/fonts/bitcount/bitcount_600_40.c components/ui/fonts/bitcount/bitcount_600_50.c components/ui/fonts/bitcount/bitcount_600_60.c components/ui/fonts/bitcount/bitcount_600_70.c components/ui/fonts/bitcount/bitcount_600_80.c components/ui/fonts/bitcount/bitcount_700_100.c components/ui/fonts/bitcount/bitcount_700_120.c components/ui/fonts/bitcount/bitcount_700_160.c components/ui/fonts/bitcount/bitcount_700_20.c components/ui/fonts/bitcount/bitcount_700_30.c components/ui/fonts/bitcount/bitcount_700_40.c components/ui/fonts/bitcount/bitcount_700_50.c components/ui/fonts/bitcount/bitcount_700_60.c components/ui/fonts/bitcount/bitcount_700_70.c components/ui/fonts/bitcount/bitcount_700_80.c
+// host-sources: components/ui/fonts/bitcount/bitcount_400_26.c components/ui/fonts/bitcount/bitcount_400_30.c components/ui/fonts/bitcount/bitcount_600_100.c components/ui/fonts/bitcount/bitcount_600_120.c components/ui/fonts/bitcount/bitcount_600_160.c components/ui/fonts/bitcount/bitcount_600_26.c components/ui/fonts/bitcount/bitcount_600_30.c components/ui/fonts/bitcount/bitcount_600_40.c components/ui/fonts/bitcount/bitcount_600_50.c components/ui/fonts/bitcount/bitcount_600_60.c components/ui/fonts/bitcount/bitcount_600_70.c components/ui/fonts/bitcount/bitcount_600_80.c components/ui/fonts/bitcount/bitcount_700_100.c components/ui/fonts/bitcount/bitcount_700_120.c components/ui/fonts/bitcount/bitcount_700_160.c components/ui/fonts/bitcount/bitcount_700_26.c components/ui/fonts/bitcount/bitcount_700_30.c components/ui/fonts/bitcount/bitcount_700_40.c components/ui/fonts/bitcount/bitcount_700_50.c components/ui/fonts/bitcount/bitcount_700_60.c components/ui/fonts/bitcount/bitcount_700_70.c components/ui/fonts/bitcount/bitcount_700_80.c
 // Build and run: bash tests/host/run.sh line_floor
 
 #include <cstdio>
@@ -11,9 +11,9 @@
 #include "lvgl.h"
 
 extern "C" {
-LV_FONT_DECLARE(bitcount_600_20)
-LV_FONT_DECLARE(bitcount_700_20)
-LV_FONT_DECLARE(bitcount_400_20)
+LV_FONT_DECLARE(bitcount_600_26)
+LV_FONT_DECLARE(bitcount_700_26)
+LV_FONT_DECLARE(bitcount_400_26)
 LV_FONT_DECLARE(bitcount_400_30)
 LV_FONT_DECLARE(bitcount_600_30)
 LV_FONT_DECLARE(bitcount_700_30)
@@ -46,9 +46,9 @@ struct Primitive {
 };
 
 const Primitive kScale[] = {
-    {"scale-20-semibold", dt::kTypographyScale20Semibold, &bitcount_600_20},
-    {"scale-20-bold", dt::kTypographyScale20Bold, &bitcount_700_20},
-    {"scale-20-regular", dt::kTypographyScale20Regular, &bitcount_400_20},
+    {"scale-26-semibold", dt::kTypographyScale26Semibold, &bitcount_600_26},
+    {"scale-26-bold", dt::kTypographyScale26Bold, &bitcount_700_26},
+    {"scale-26-regular", dt::kTypographyScale26Regular, &bitcount_400_26},
     {"scale-30-regular", dt::kTypographyScale30Regular, &bitcount_400_30},
     {"scale-30-semibold", dt::kTypographyScale30Semibold, &bitcount_600_30},
     {"scale-30-bold", dt::kTypographyScale30Bold, &bitcount_700_30},

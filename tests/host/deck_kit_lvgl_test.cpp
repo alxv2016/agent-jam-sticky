@@ -2,7 +2,7 @@
 // computer with no board: the three type roles (`title`, `caption-strong`, `caption-regular`), a control's words one size down (SetWordsRole) with its row
 // still centred on its height, the small chip's height, hit area and stop, the stacked status block's centring and gaps, the link
 // indicator's faces and the foot's two icon buttons, a list row's body title over its `caption-regular` line, the network row's name in
-// `caption-strong`, the joined network's row white in a 3 px outline, and a detail row's label in `caption-strong` over its value in `caption` (DESIGN → Components → The kit; STICKY_DESIGN_TOKENS §14).
+// `caption-strong`, the joined network's row a card on the light dither, and a detail row's label in `caption-strong` over its value in `caption` (DESIGN → Components → The kit; STICKY_DESIGN_TOKENS §14).
 // run.sh builds LVGL's sources from managed_components once, into build/host/lvgl, and the sources named below, against stand-ins
 // for the ESP-IDF headers (tests/host/stubs).
 // host-sources: components/ui/ui.cpp components/ui/line_box.cpp components/ui/fonts/bitcount/*.c components/widgets/marks/marks.c components/widgets/src/*.cpp components/widgets/src/internal/*.cpp components/router/router.cpp components/router/overlays.cpp components/router/focus.cpp components/router/touch.cpp components/router/routes.cpp components/router/screen.cpp components/router/status.cpp
@@ -247,19 +247,19 @@ void TestRoles()
     std::printf("roles\n");
     Check(dt::kTypographyTitle.size_px == 30 && dt::kTypographyTitle.weight == 600 && dt::kTypographyTitle.line_px == 36,
           "title is scale-30-semibold on 36");
-    Check(dt::kTypographyCaptionStrong.size_px == 20 && dt::kTypographyCaptionStrong.weight == 700 &&
-              dt::kTypographyCaptionStrong.line_px == 24,
-          "caption-strong is scale-20-bold on 24");
-    Check(dt::kTypographyCaptionRegular.size_px == 20 && dt::kTypographyCaptionRegular.weight == 400 &&
-              dt::kTypographyCaptionRegular.line_px == 24,
-          "caption-regular is scale-20-regular on 24");
-    Check(ui::Font(ui::Type::kCaptionRegular) == ui::Bitcount(20, 400), "caption-regular takes the compiled Bitcount 20 at 400");
-    Check(ui::LineBox(ui::Type::kCaptionRegular) == 24 &&
+    Check(dt::kTypographyCaptionStrong.size_px == 26 && dt::kTypographyCaptionStrong.weight == 700 &&
+              dt::kTypographyCaptionStrong.line_px == 32,
+          "caption-strong is scale-26-bold on 32");
+    Check(dt::kTypographyCaptionRegular.size_px == 26 && dt::kTypographyCaptionRegular.weight == 400 &&
+              dt::kTypographyCaptionRegular.line_px == 32,
+          "caption-regular is scale-26-regular on 32");
+    Check(ui::Font(ui::Type::kCaptionRegular) == ui::Bitcount(26, 400), "caption-regular takes the compiled Bitcount 26 at 400");
+    Check(ui::LineBox(ui::Type::kCaptionRegular) == 32 &&
               lv_font_get_line_height(ui::Font(ui::Type::kCaptionRegular)) <= ui::LineBox(ui::Type::kCaptionRegular),
-          "caption-regular's line box is 24 and its font no taller");
+          "caption-regular's line box is 32 and its font no taller");
     Check(ui::Font(ui::Type::kTitle) == ui::Bitcount(30, 600), "title takes the compiled Bitcount 30 at 600");
-    Check(ui::Font(ui::Type::kCaptionStrong) == ui::Bitcount(20, 700), "caption-strong takes the compiled Bitcount 20 at 700");
-    Check(ui::LineBox(ui::Type::kTitle) == 36 && ui::LineBox(ui::Type::kCaptionStrong) == 24, "the roles' line boxes");
+    Check(ui::Font(ui::Type::kCaptionStrong) == ui::Bitcount(26, 700), "caption-strong takes the compiled Bitcount 26 at 700");
+    Check(ui::LineBox(ui::Type::kTitle) == 36 && ui::LineBox(ui::Type::kCaptionStrong) == 32, "the roles' line boxes");
     Check(lv_font_get_line_height(ui::Font(ui::Type::kTitle)) <= ui::LineBox(ui::Type::kTitle), "title's font is no taller than its line");
     Check(lv_font_get_line_height(ui::Font(ui::Type::kCaptionStrong)) <= ui::LineBox(ui::Type::kCaptionStrong),
           "caption-strong's font is no taller than its line");
@@ -322,7 +322,7 @@ void TestWordsDown()
     Down("toggle row, two lines, at caption", two.root, ui::Type::kCaption, -1);
     widgets::ToggleRow reason = widgets::MakeToggleRow(s_column, "Background", false);
     widgets::SetToggleRowEnabled(reason, false, "Turn Wi-Fi on first");
-    Down("toggle row, disabled, at caption", reason.root, ui::Type::kCaption, 64);
+    Down("toggle row, disabled, at caption", reason.root, ui::Type::kCaption, 96);  // the name, pair-sm, its reason in two lines at 26 px
     Check(FontOf(reason.reason) == ui::Font(ui::Type::kCaption), "the reason stays caption");
     Down("toggle row at caption-strong", widgets::MakeToggleRow(s_column, "Alerts", false).root, ui::Type::kCaptionStrong, 64);
     NewPage();
@@ -347,7 +347,7 @@ void TestWordsDown()
     Down("choice card at caption-strong", card, ui::Type::kCaptionStrong, -1);
     CheckPair("choice card at caption-strong", LabelsOf(card)[0], LabelsOf(card)[1]);
     std::vector<lv_obj_t *> card_words = LabelsOf(card);
-    Check(card_words.size() == 2 && FontOf(card_words[0]) == ui::Bitcount(20, 700), "the card's name is 20 px bold");
+    Check(card_words.size() == 2 && FontOf(card_words[0]) == ui::Bitcount(26, 700), "the card's name is 26 px bold");
     Check(card_words.size() == 2 && FontOf(card_words[1]) == ui::Font(ui::Type::kCaption), "and its detail line stays caption");
     NewPage();
     lv_obj_t *wrapped = widgets::MakeChoiceCard(s_column, "Keep the recording after it is transcribed, and share it", true, "Only on your Wi-Fi");
@@ -376,11 +376,11 @@ void TestListRowTitle()
     Check(FontOf(lv_obj_get_child(body, 0)) == ui::Bitcount(30, 400), "the title in body is 30 px regular");
     Check(FontOf(lv_obj_get_child(body, 1)) == ui::Font(ui::Type::kCaption), "its supporting line stays caption unless a role is asked");
     Check(FontOf(lv_obj_get_child(regular, 0)) == ui::Bitcount(30, 400), "the title over a caption-regular line is still body");
-    Check(FontOf(lv_obj_get_child(regular, 1)) == ui::Bitcount(20, 400), "the supporting line in caption-regular is 20 px regular");
-    Check(OnLineBoxes(lv_obj_get_child(regular, 1), ui::Type::kCaptionRegular), "and stands on caption-regular's 24 px line");
+    Check(FontOf(lv_obj_get_child(regular, 1)) == ui::Bitcount(26, 400), "the supporting line in caption-regular is 26 px regular");
+    Check(OnLineBoxes(lv_obj_get_child(regular, 1), ui::Type::kCaptionRegular), "and stands on caption-regular's 32 px line");
     Check(OnLineBoxes(lv_obj_get_child(body, 0), ui::Type::kBody), "the body title stands on body's 40 px line");
     lv_obj_t *stepped_line = lv_obj_get_child(lv_obj_get_child(lv_obj_get_child(stepped, 1), 0), 0);
-    Check(FontOf(stepped_line) == ui::Bitcount(20, 400), "a stepped supporting line is in caption-regular too");
+    Check(FontOf(stepped_line) == ui::Bitcount(26, 400), "a stepped supporting line is in caption-regular too");
     Measure("list row, a body title and a line", body, 80);
     Measure("list row, a body title and a caption-regular line", regular, 80);
     Measure("list row, a stepped body title and caption-regular line", stepped, 80);
@@ -398,26 +398,28 @@ void TestDetailRow()
     widgets::DetailRow small = widgets::MakeDetailRow(s_column, "Host", "agentdeck.local");
     widgets::SetDetailRowOneSizeDown(small);
     lv_obj_update_layout(s_screen);
-    Check(lv_obj_get_height(plain.root) == 76, "the default detail row is still 76 px high");
+    Check(lv_obj_get_height(plain.root) == 84, "the default detail row is 84 px high: 8 + 32 + 36 + 8");
     Check(FontOf(plain.label) == ui::Font(ui::Type::kCaption) && FontOf(plain.value) == ui::Font(ui::Type::kLabel),
           "its name is caption and its value label");
-    Check(FontOf(small.label) == ui::Bitcount(20, 700), "the smaller one's label is 20 px bold");
-    Check(FontOf(small.value) == ui::Bitcount(20, 600), "and its value is 20 px semibold");
+    Check(FontOf(small.label) == ui::Bitcount(26, 700), "the smaller one's label is 26 px bold");
+    Check(FontOf(small.value) == ui::Bitcount(26, 600), "and its value is 26 px semibold");
     for (const widgets::DetailRow &row : {plain, small}) {
         lv_area_t name, value;
         lv_obj_get_coords(row.label, &name);
         lv_obj_get_coords(row.value, &value);
         const int gap = (value.y1 + lv_obj_get_style_pad_top(row.value, LV_PART_MAIN)) -
                         (name.y2 + 1 - lv_obj_get_style_pad_bottom(row.label, LV_PART_MAIN));
-        Check(gap == dt::kSpacingPairSm, "the name stands pair-sm over its value between their own boxes: " + std::to_string(gap));
+        const int leading = lv_obj_get_style_pad_bottom(row.label, LV_PART_MAIN) + lv_obj_get_style_pad_top(row.value, LV_PART_MAIN);
+        Check(gap == std::max<int>(dt::kSpacingPairSm, leading),
+              "the name stands pair-sm over its value between their own boxes, or their leading where more: " + std::to_string(gap));
     }
     Check(OnLineBoxes(small.label, ui::Type::kCaptionStrong), "the smaller label stands on caption-strong's line");
     Check(OnLineBoxes(small.value, ui::Type::kCaption), "the smaller value stands on caption's line");
     std::printf("  detail row %d px, smaller %d px\n", lv_obj_get_height(plain.root), lv_obj_get_height(small.root));
-    Check(lv_obj_get_height(small.root) == 66, "the smaller row is 66 px: 8 + 24 + 2 + 24 + 8");
+    Check(lv_obj_get_height(small.root) == 80, "the smaller row is 80 px: 8 + 32 + 32 + 8");
     widgets::SetDetailRowOneSizeDown(small);
     lv_obj_update_layout(s_screen);
-    Check(lv_obj_get_height(small.root) == 66, "a second call changes nothing");
+    Check(lv_obj_get_height(small.root) == 80, "a second call changes nothing");
     widgets::DetailRow two = widgets::MakeDetailRow(s_column, "Host", "agentdeck-3f2a.local and its long name wraps to a second line");
     widgets::SetDetailRowOneSizeDown(two);
     lv_obj_update_layout(s_screen);
@@ -425,7 +427,7 @@ void TestDetailRow()
     Measure("detail row, a wrapped smaller value", two.root);
     Measure("detail row, the smaller value", small.root);
     widgets::SetDetailRow(small, "agentdeck.lan");
-    Check(FontOf(small.label) == ui::Bitcount(20, 700) && FontOf(small.value) == ui::Bitcount(20, 600),
+    Check(FontOf(small.label) == ui::Bitcount(26, 700) && FontOf(small.value) == ui::Bitcount(26, 600),
           "a value set again keeps the roles");
 }
 
@@ -601,7 +603,7 @@ void TestFoot()
     Check(std::string(widgets::IconButtonWords(wifi)) == "Open Wi-Fi", "the hint's words are kept");
 }
 
-// --- The network row outlined -------------------------------------------------------------------------------
+// --- The network row as a card --------------------------------------------------------------------------------
 
 void CheckInk(const std::string &what, lv_obj_t *row, lv_color_t words, lv_color_t marks)
 {
@@ -635,54 +637,52 @@ void TestNetworkLookKept(lv_obj_t *light)
     Check(Same(lv_obj_get_style_bg_color(light, LV_PART_MAIN), ui::Level(dt::kColorBackground)) && lv_obj_get_style_border_width(light, LV_PART_MAIN) == 0,
           "at rest its fill is the white page's and it has no edge");
     Check(joined_name.x1 == rest_name.x1 && joined_name.y1 == rest_name.y1 && lv_obj_get_height(light) == dt::kSpacingListRowHeight,
-          "the name stands where it stood at rest: the edge takes its width from the padding");
+          "the name stands where it stood at rest");
     widgets::SetNetworkRow(light, true, 3, widgets::NetworkState::kConnected);
-    Check(Same(lv_obj_get_style_bg_color(light, LV_PART_MAIN), ui::Level(dt::kColorBackground)) && lv_obj_get_style_border_width(light, LV_PART_MAIN) == dt::kSpacingStrokeDefault,
-          "joined again, the outline again on white");
-    CheckInk("outlined again", lv_obj_get_child(light, 1), black, black);
+    Check(Same(lv_obj_get_style_bg_color(light, LV_PART_MAIN), ui::Fill(dt::kColorBand)) && lv_obj_get_style_border_width(light, LV_PART_MAIN) == 0,
+          "joined again, the card again: the light dither, no edge");
+    CheckInk("the card again", lv_obj_get_child(light, 1), black, black);
 }
 
 void TestNetworkLook()
 {
-    std::printf("network row outlined on white\n");
+    std::printf("network row as a card\n");
     NewPage();
     const lv_color_t black = ui::Level(dt::kColorTextPrimary), white = ui::Level(dt::kColorTextOnFill);
     // The default: the chosen inversion, white words.
     lv_obj_t *inverted = widgets::MakeNetworkRow(s_column, "Studio", true, 3, widgets::NetworkState::kConnected);
     Check(lv_obj_has_state(inverted, LV_STATE_CHECKED), "the default connected row is the inversion");
     CheckInk("inverted", lv_obj_get_child(inverted, 1), white, white);
-    // The outlined look: the row stays white in a 3 px black edge, every word and glyph black, the row not chosen.
-    lv_obj_t *light = widgets::MakeNetworkRow(s_column, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kOutlined);
+    // The card look: the row on the light dither with no edge, every word and glyph black, the row not chosen.
+    lv_obj_t *light = widgets::MakeNetworkRow(s_column, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kCard);
     lv_obj_update_layout(s_screen);
-    Check(!lv_obj_has_state(light, LV_STATE_CHECKED), "the outlined row is not the inversion");
+    Check(!lv_obj_has_state(light, LV_STATE_CHECKED), "the card row is not the inversion");
     // The name is caption-strong over facts in caption, on every look and for a dotted or a stepped name.
     lv_obj_t *dotted_name = lv_obj_get_child(light, 0);
-    Check(FontOf(dotted_name) == ui::Bitcount(20, 700), "a dotted network name is 20 px bold");
+    Check(FontOf(dotted_name) == ui::Bitcount(26, 700), "a dotted network name is 26 px bold");
     Check(OnLineBoxes(dotted_name, ui::Type::kCaptionStrong), "and stands on caption-strong's line");
-    Check(FontOf(lv_obj_get_child(inverted, 0)) == ui::Bitcount(20, 700), "the inverted row's name is 20 px bold");
-    lv_obj_t *kept = widgets::MakeNetworkRow(s_column, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kOutlined,
+    Check(FontOf(lv_obj_get_child(inverted, 0)) == ui::Bitcount(26, 700), "the inverted row's name is 26 px bold");
+    lv_obj_t *kept = widgets::MakeNetworkRow(s_column, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kCard,
                                              widgets::NetworkName::kStepped, widgets::MarqueeKey(1, 1, 1));
-    Check(FontOf(lv_obj_get_child(lv_obj_get_child(lv_obj_get_child(kept, 0), 0), 0)) == ui::Bitcount(20, 700), "a stepped network name is 20 px bold");
+    Check(FontOf(lv_obj_get_child(lv_obj_get_child(lv_obj_get_child(kept, 0), 0), 0)) == ui::Bitcount(26, 700), "a stepped network name is 26 px bold");
     lv_obj_update_layout(s_screen);
     Check(lv_obj_get_height(kept) == dt::kSpacingListRowHeight, "and its row is 80 px high");
     lv_obj_t *facts = lv_obj_get_child(light, 1);
     std::vector<lv_obj_t *> fact_words = LabelsOf(facts);
-    Check(!fact_words.empty() && FontOf(fact_words[0]) == ui::Font(ui::Type::kCaption), "the facts stay caption: 20 px semibold");
+    Check(!fact_words.empty() && FontOf(fact_words[0]) == ui::Font(ui::Type::kCaptionRegular), "the facts are caption-regular: 26 px regular under the bold name");
     lv_obj_delete(kept);
-    Check(Same(lv_obj_get_style_bg_color(light, LV_PART_MAIN), ui::Level(dt::kColorBackground)), "its fill is white, the page's");
-    Check(lv_obj_get_style_border_width(light, LV_PART_MAIN) == dt::kSpacingStrokeDefault && Same(lv_obj_get_style_border_color(light, LV_PART_MAIN), black) &&
-              lv_obj_get_style_border_opa(light, LV_PART_MAIN) == LV_OPA_COVER,
-          "in a spacing.stroke.default, 3 px, black edge");
+    Check(Same(lv_obj_get_style_bg_color(light, LV_PART_MAIN), ui::Fill(dt::kColorBand)), "the card's fill is the light dither (the person, 2026-11-26)");
+    Check(lv_obj_get_style_border_width(light, LV_PART_MAIN) == 0, "and it has no edge");
     Check(!Same(lv_obj_get_style_bg_color(light, LV_PART_MAIN), lv_obj_get_style_bg_color(inverted, LV_PART_MAIN)), "which is not the inversion's black fill");
     Check(Same(lv_obj_get_style_text_color(lv_obj_get_child(light, 0), LV_PART_MAIN), black), "its name is black");
     CheckInk("light", lv_obj_get_child(light, 1), black, black);
     Check(lv_obj_get_height(light) == dt::kSpacingListRowHeight && lv_obj_get_height(inverted) == dt::kSpacingListRowHeight, "both rows stay 80 px high");
-    Measure("outlined row", light, 80);
-    // A weaker signal: the unlit bars are the light dither, on the white ground as on a row at rest.
-    lv_obj_t *weak = widgets::MakeNetworkRow(s_column, "Office", true, 1, widgets::NetworkState::kConnecting, widgets::NetworkLook::kOutlined);
+    Measure("card row", light, 80);
+    // A weaker signal: the unlit bars are the dark dither, which shows on the card's light ground.
+    lv_obj_t *weak = widgets::MakeNetworkRow(s_column, "Office", true, 1, widgets::NetworkState::kConnecting, widgets::NetworkLook::kCard);
     lv_obj_t *canvas = lv_obj_get_child(weak, lv_obj_get_child_count(weak) - 1);
     Check(lv_obj_get_child_count(canvas) == 2, "an unlit and a lit glyph on the signal's canvas");
-    Check(Same(lv_obj_get_style_image_recolor(lv_obj_get_child(canvas, 0), LV_PART_MAIN), ui::Fill(dt::kColorBand)), "the unlit bars are the light dither");
+    Check(Same(lv_obj_get_style_image_recolor(lv_obj_get_child(canvas, 0), LV_PART_MAIN), ui::Fill(dt::kColorScalePrimary1)), "the unlit bars are the dark dither");
     Check(Same(lv_obj_get_style_image_recolor(lv_obj_get_child(canvas, 1), LV_PART_MAIN), black), "the lit bar is black");
     TestNetworkLookKept(light);
     widgets::SetNetworkRow(inverted, true, 3, widgets::NetworkState::kRest);

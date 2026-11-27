@@ -1,7 +1,7 @@
 // The deck screens' rules with no LVGL and no board in them, so tests/host checks them on the computer: how long, how many tokens and
 // when a window resets are worded; the carousel's page order; what the overview's count says and when it is a control; which move a
-// state plays; where a request leaves to (AGENT_DECK 4.7); who waits in the needs-you list and how a row says it
-// (STICKY_AGENT_DECK §3, §4).
+// state plays; where a request leaves to (AGENT_DECK 4.7); who waits in the needs-you list and how a row says it; which change
+// makes which of the deck's event sounds (STICKY_AGENT_DECK §3, §4, §6).
 
 #pragma once
 
@@ -326,6 +326,59 @@ inline const char *StandbyWords(model::StandbyPage page)
     case model::StandbyPage::kRefused: return "Another deck is on the cable.";
     default: return "Another deck is active.";
     }
+}
+
+// --- The deck's event sounds (DESIGN → Motion → Sound; STICKY_AGENT_DECK §6) ------------------------------------------------------------
+
+// The four sounds the deck makes with no press, in rank: a higher one is never cut by a lower one while it sounds.
+enum class EventSound : uint8_t { kNone, kAgentStart, kLinkUp, kUsageLimit, kAttention };
+
+// What the deck last heard of the link and the plan's limit, so each sounds as it comes, not on every record that repeats it.
+struct EventHeard {
+    bool link_up = false;
+    bool limited = false;
+    uint32_t request = 0;  // the last request or question that sounded, until it closes: a question's later parts share its id
+};
+
+// The sound a change makes: a request or question queued, `sound.attention`; the link come up, `sound.link-up`; the plan's limit
+// hit, `sound.usage-limit`; an agent working that was new, idle or done, `sound.agent-start`. Anything else is silent, and so is a
+// question's later part; one closed elsewhere or timed out and sent again, as a snapshot after a Reset does, sounds again. `id` is the change's; `now` the agent's state after a kAgent change; `link_up` the model's after a kLink,
+// `limited` whether the usage names a limit after a kUsage.
+constexpr EventSound EventSoundFor(model::Event event, uint32_t id, bool added, model::AgentState was, model::AgentState now,
+                                   bool link_up, bool limited, EventHeard &heard)
+{
+    switch (event) {
+    case model::Event::kRequestOpened: {
+        const bool fresh = id != heard.request;
+        heard.request = id;
+        return fresh ? EventSound::kAttention : EventSound::kNone;
+    }
+    case model::Event::kAgent:
+        return now == model::AgentState::kWorking && (added || was == model::AgentState::kIdle || was == model::AgentState::kDone)
+                   ? EventSound::kAgentStart
+                   : EventSound::kNone;
+    case model::Event::kRequestClosed:
+        heard.request = id == heard.request ? 0 : heard.request;
+        return EventSound::kNone;
+    case model::Event::kLink: {
+        const bool came_up = link_up && !heard.link_up;
+        heard.link_up = link_up;
+        return came_up ? EventSound::kLinkUp : EventSound::kNone;
+    }
+    case model::Event::kUsage: {
+        const bool hit = limited && !heard.limited;
+        heard.limited = limited;
+        return hit ? EventSound::kUsageLimit : EventSound::kNone;
+    }
+    default: return EventSound::kNone;
+    }
+}
+
+// Whether `next` plays over `playing`, which began `elapsed_ms` ago and lasts `playing_ms`: once it has ended, or when `next`
+// ranks at least as high.
+constexpr bool EventSoundCuts(EventSound next, EventSound playing, uint32_t elapsed_ms, uint32_t playing_ms)
+{
+    return next != EventSound::kNone && (playing == EventSound::kNone || elapsed_ms >= playing_ms || next >= playing);
 }
 
 }  // namespace agent_deck::rules

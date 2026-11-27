@@ -29,7 +29,7 @@ DetailRow MakeDetailRow(lv_obj_t *parent, const char *name, const char *value)
 void SetDetailRowOneSizeDown(const DetailRow &row)
 {
     // The name takes `caption-strong` first, so the gap SetWordsRole makes up between the two boxes is measured from its line box as it
-    // will stand; the value then comes down to `caption`. Both are 24 px line boxes, so the row keeps its height.
+    // will stand; the value then comes down to `caption`. Both are 32 px line boxes, whose leading is pair-sm itself.
     SetLabelRole(row.label, ui::Type::kCaptionStrong);
     SetWordsRole(row.root, ui::Type::kCaption);
 }

@@ -17,13 +17,13 @@ esp_err_t Start();
 
 // --- Fonts and styles from DESIGN.md -------------------------------------------------------------------------------
 
-// kTitle (30 px semibold), kCaptionStrong (20 px bold) and kCaptionRegular (20 px regular) are the agent deck's three roles (DESIGN →
+// kTitle (30 px semibold), kCaptionStrong (26 px bold) and kCaptionRegular (26 px regular) are the agent deck's three roles (DESIGN →
 // Typography → Scale and roles).
 enum class Type : uint8_t { kHero, kDisplay, kHeadline, kBody, kLabel, kCaption, kCaptionLoose, kTitle, kCaptionStrong, kCaptionRegular };
 const lv_font_t *Font(Type role);
 int16_t LineBox(Type role);
 
-// Bitcount Single at one bit a pixel, compiled by fonts/bitcount/make_fonts.sh at weights 600 and 700, and 20 and 30 px at 400: 20 to
+// Bitcount Single at one bit a pixel, compiled by fonts/bitcount/make_fonts.sh at weights 600 and 700, and 26 and 30 px at 400: 26, then 30 to
 // 80 px in steps of 10 with ASCII and · ° × – — ’ • …, and 100, 120 and 160 px with figures only; nullptr for any other
 // size or weight. The roles take theirs through Font (STICKY_DESIGN_TOKENS §3).
 const lv_font_t *Bitcount(int16_t size_px, int16_t weight);

@@ -47,10 +47,13 @@ void ShowSettingRowEnabled(const SettingRow &row, bool enabled, const char *reas
     if (!enabled && reason != nullptr) {
         lv_label_set_text(row.reason, reason);
         lv_obj_remove_flag(row.reason, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_pad_row(row.words, dt::kSpacingXs, 0);  // the name and its reason, only while the reason shows
+        // The name over its reason is a pair: `pair-sm` between their own boxes, the two line boxes' leading made up in the name's
+        // margin, as SetWordsRole makes it again when the row's words change role (DESIGN → Layout → Spacing).
+        const int32_t leading = lv_obj_get_style_pad_bottom(row.label, LV_PART_MAIN) + lv_obj_get_style_pad_top(row.reason, LV_PART_MAIN);
+        lv_obj_set_style_margin_bottom(row.label, leading < dt::kSpacingPairSm ? dt::kSpacingPairSm - leading : 0, 0);
     } else {
         lv_obj_add_flag(row.reason, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_pad_row(row.words, 0, 0);
+        lv_obj_set_style_margin_bottom(row.label, 0, 0);
     }
 }
 

@@ -98,12 +98,12 @@ void TestWords()
     Check(Says([](char *o, size_t n) { FormatCount(o, n, 7, 12); }, "7 of 12"), "n of N");
     Check(Says([](char *o, size_t n) { FormatCount(o, n, 170, 171); }, "170 of 171"), "three digits");
     Check(Says([](char *o, size_t n) { FormatCount(o, n, 14, 12); }, "14 of 14"), "a pass running long counts on");
-    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, true, 0, 0); }, "No frames: rest is a still pose"),
+    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, true, 0, 0); }, "Rest: a still pose"),
           "Rest's reason");
-    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, false, 14, 0); }, "About 14 frames · not played yet"),
+    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, false, 14, 0); }, "About 14 frames · unplayed"),
           "a move not played");
-    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, false, 12, 1); }, "12 frames · played 1 time"), "one play");
-    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, false, 171, 12); }, "171 frames · played 12 times"),
+    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, false, 12, 1); }, "12 frames · 1 play"), "one play");
+    Check(Says([](char *o, size_t n) { FormatAtRest(o, n, false, 171, 12); }, "171 frames · 12 plays"),
           "plays, the longest line");
     Check(Says([](char *o, size_t n) { FormatLooping(o, n, 0); }, "Looping…"), "looping, the first pass");
     Check(Says([](char *o, size_t n) { FormatLooping(o, n, 1); }, "Looping · 1 pass done"), "one pass");

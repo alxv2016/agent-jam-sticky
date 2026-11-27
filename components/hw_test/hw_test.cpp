@@ -216,8 +216,8 @@ void FillStats()
         std::snprintf(temp, sizeof(temp), "%d °C", s.temperature_c);
     }
     lv_label_set_text_fmt(s_display_stats,
-                          "Last: %s, %" PRIu32 " ms\nLatch %" PRIu32 " · send %" PRIu32 " · power %" PRIu32
-                          "\nDrive %" PRIu32 " · skipped %" PRIu32 "\nPartials since full: %" PRIu32 " of %d\n"
+                          "Last: %s, %" PRIu32 " ms\nLatch %" PRIu32 " · send %" PRIu32 " · on %" PRIu32
+                          "\nDrive %" PRIu32 " · skipped %" PRIu32 "\nPartials since full: %" PRIu32 "/%d\n"
                           "Waveform temperature: %s\nPartial pressed: %" PRIu32,
                           ModeName(s.last), s.last_ms, s.latch_ms, s.stream_ms, s.power_on_ms, s.drive_ms, s.skipped,
                           s.partials, dt::kRefreshPartialLimit, temp, s_partial_presses);
@@ -282,11 +282,11 @@ void CreateDisplay(lv_obj_t *screen, lv_group_t *, void *)
     ui::LetRingOut(heading);  // not clipped: a glyph's left bearing reaches 2 px past its label, as the column lets it
     ui::NewLabel(heading, Type::kHeadline, s.ssd2677 ? "SSD2677 · V2.0" : "SSD1677 · V1.0");
     ui::NewLabel(heading, Type::kBody,
-                 s.ssd2677 ? "Matte glass. The ID read answered 0x07."
-                           : "Glossy glass. The ID read got no answer.",
+                 s.ssd2677 ? "Matte glass. ID 0x07." : "Glossy glass. No ID.",
                  true);
-    // Six short lines in caption, so the readout, the controls and Back all fit above the footer; the note over them
-    // is two lines of body, which is why the screen has no ghosting box (the Greys page shows the dither).
+    // Six short lines in caption, each one line at 26 px (27 characters), so the readout, the controls and Back all fit above the
+    // footer; the note over them
+    // is one line of body, which is why the screen has no ghosting box (the Greys page shows the dither).
     s_display_stats = ui::NewLabel(content, Type::kCaption, "");
     FillStats();
 
@@ -338,7 +338,7 @@ void CreateGrays(lv_obj_t *screen, lv_group_t *, void *)
     }
     // The note is about the bands over it: `item` under the last band, `group` over the button under it.
     lv_obj_t *note =
-        ui::NewLabel(content, Type::kCaption, "Bands run black to white. Back draws the next frame in full.", true);
+        ui::NewLabel(content, Type::kCaption, "Back redraws in full.", true);  // one line at 26 px; the bands say their order
     lv_obj_set_style_margin_bottom(note, dt::kSpacingGroup - dt::kSpacingItem, 0);
     lv_obj_t *row = ButtonRow(content);
     HalfButton(row, "Display", false, OnBack);
@@ -379,8 +379,8 @@ struct Primitive {
     dt::TypeRole tokens;
 };
 constexpr Primitive kTypeScale[] = {
-    {"scale-20-semibold", dt::kTypographyScale20Semibold},
-    {"scale-20-bold", dt::kTypographyScale20Bold},
+    {"scale-26-semibold", dt::kTypographyScale26Semibold},
+    {"scale-26-bold", dt::kTypographyScale26Bold},
     {"scale-30-semibold", dt::kTypographyScale30Semibold},
     {"scale-30-bold", dt::kTypographyScale30Bold},
     {"scale-40-semibold", dt::kTypographyScale40Semibold},
@@ -993,7 +993,7 @@ void KitInputsAndStatus(lv_obj_t *content)
 }
 
 // What the agent deck's screens needed of the kit, each opt-in beside the controls it changes: the small chip, a control's words one
-// size down, the foot's icon buttons and the link indicator, a list row's body title, the outlined network row, the
+// size down, the foot's icon buttons and the link indicator, a list row's body title, the network row as a card, the
 // stacked status block and the quiet words (DESIGN → Components → The kit; STICKY_DESIGN_TOKENS §14).
 void KitDeck(lv_obj_t *content)
 {
@@ -1038,11 +1038,11 @@ void KitDeck(lv_obj_t *content)
 
     KitHeading(content, "Rows in other words", widgets::HeadingX::kRowWords);
     lv_obj_t *others = KitColumn(content);
-    // The needs-you list's row: names in `body`, 30 px regular, over their line in `caption-regular`, 20 px regular.
+    // The needs-you list's row: names in `body`, 30 px regular, over their line in `caption-regular`, 26 px regular.
     widgets::MakeListRow(others, "Claude", "Needs your review", OnKitChip, nullptr, Type::kBody, widgets::ListRowFit::kDots, 0,
                          Type::kCaptionRegular);
-    widgets::MakeNetworkRow(others, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kOutlined);
-    widgets::MakeNetworkRow(others, "Office", true, 1, widgets::NetworkState::kConnecting, widgets::NetworkLook::kOutlined);
+    widgets::MakeNetworkRow(others, "Studio", true, 3, widgets::NetworkState::kConnected, widgets::NetworkLook::kCard);
+    widgets::MakeNetworkRow(others, "Office", true, 1, widgets::NetworkState::kConnecting, widgets::NetworkLook::kCard);
 
     KitHeading(content, "Stacked status blocks", widgets::HeadingX::kRowWords);
     lv_obj_t *stacked = KitColumn(content);
@@ -1877,7 +1877,7 @@ void OnProbeCard(lv_event_t *)
         router::Say(router::StatusKind::kError, "No card. Insert one to read it.");
     } else if (err != ESP_OK) {
         lv_label_set_text_fmt(s_card_label, "MicroSD: did not mount (%s)", esp_err_to_name(err));
-        router::Say(router::StatusKind::kError, "The card did not mount. Check it is FAT32, then try again.");
+        router::Say(router::StatusKind::kError, "The card did not mount. Use FAT32, then retry.");
     } else {
         lv_label_set_text_fmt(s_card_label, "%s · %llu MiB\n%d entries in the root%s", card.name,
                               static_cast<unsigned long long>(card.capacity_mib), card.entries,
@@ -2416,19 +2416,20 @@ struct Entry {
     const char *supporting;
     const char *route;
 };
+// Each supporting line fits its row at 26 px, 25 characters, so none ends in dots.
 constexpr Entry kEntries[] = {
-    {"Display", "Refresh modes, greys, type", "hw.display"},
-    {"Refresh benchmark", "A bar, timed at each speed", "hw.benchmark"},
+    {"Display", "Refreshes, greys, type", "hw.display"},
+    {"Refresh benchmark", "Timed at each speed", "hw.benchmark"},
     {"Touch", "Where a tap lands", "hw.touch"},
     {"Buttons and buzzer", "UP, DOWN, OK and the tick", "hw.buttons"},
-    {"Sensors", "Temperature, motion, clock", "hw.sensors"},
+    {"Sensors", "Temperature and motion", "hw.sensors"},
     {"Clock", "Read and set the RTC", "hw.clock"},
     {"Welcome", "A first-run carousel", "hw.welcome"},
-    {"Battery and power", "Gauge, charger, sleep, power off", "hw.power"},
+    {"Battery and power", "Gauge, charger, sleep", "hw.power"},
     {"Storage", "Flash, PSRAM and the card", "hw.storage"},
     {"Microphone", "A second of sound level", "hw.microphone"},
-    {"Reminders", "A choice that applies at once", "hw.reminders"},
-    {"Mascot", "Every move, with its sound", "hw.mascot"},
+    {"Reminders", "A choice applied at once", "hw.reminders"},
+    {"Mascot", "Every move and its sound", "hw.mascot"},
     {"About", "Firmware and board", "hw.about"},
 };
 

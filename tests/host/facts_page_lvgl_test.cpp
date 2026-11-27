@@ -250,7 +250,7 @@ void TestFactsPageIsOneStopPerPage()
     Check(widgets::ListViewPage(s_screen.list) == 0, "the first page shows");
     Check(HugsRows(page1, s_screen.rows[0], s_screen.rows[4]), "page 1's stop is the box of its facts, first row's top to last row's bottom");
     lv_area_t box = Coords(page1);
-    Check(Wide(box) == dt::kSpacingContent && High(box) == 480, "page 1's box is 432 x 480");
+    Check(Wide(box) == dt::kSpacingContent && High(box) == 520, "page 1's box is 432 x 520");
     Check(Wide(Coords(page2)) == 0 && High(Coords(page2)) == 0, "page 2's stop has no box while page 1 shows: none of it can be in view");
     Check(lv_obj_get_style_radius(page1, LV_PART_MAIN) == dt::kRoundedLg, "the stop's corners are rounded.lg, as a row's");
 
@@ -284,7 +284,7 @@ void TestFactsWalk()
     Check(widgets::ListViewPage(s_screen.list) == 1, "and turns to page 2");
     Check(s_pages_told == 1, "the turn is reported once");
     Check(HugsRows(page2, s_screen.rows[5], s_screen.rows[8]), "page 2's ring hugs its four facts, not the room left below them");
-    Check(High(Coords(page2)) == 352, "page 2's box is 432 x 352");
+    Check(High(Coords(page2)) == 384, "page 2's box is 432 x 384");
     Check(High(Coords(page1)) == 0, "page 1's stop has no box now");
     Check(lv_obj_has_state(page2, LV_STATE_FOCUSED), "page 2's stop is the focused one");
 
@@ -414,9 +414,9 @@ void TestUpdateWithStopFocused()
     Check(lv_group_get_obj_count(s_group) == 2, "after the stops are made anew there are still two");
     Check(widgets::ListViewPage(s_screen.list) == 0, "the list is back on its first page");
     Check(lv_obj_get_parent(At(0)) == s_screen.list.frame && lv_obj_get_parent(At(1)) == s_screen.list.frame, "both are the new stops");
-    Check(High(Coords(At(0))) == 536 && High(Coords(At(1))) == 0, "the first stop has page 1's box, the second none");
+    Check(High(Coords(At(0))) == 484 && High(Coords(At(1))) == 0, "the first stop has page 1's box, the second none");
     Down();
-    Check(widgets::ListViewPage(s_screen.list) == 1 && High(Coords(At(1))) == 260, "DOWN walks the new stops");
+    Check(widgets::ListViewPage(s_screen.list) == 1 && High(Coords(At(1))) == 384, "DOWN walks the new stops");
 }
 
 void TestPageWords()
@@ -477,8 +477,8 @@ void TestMixedList()
     Down();
     Check(Focused() == stop && widgets::ListViewPage(s_screen.list) == 1, "DOWN from page 1's last row reaches page 2's stop and turns to page 2");
     Check(Words() == "2 of 3", "page 2 says '2 of 3'");
-    Check(HugsRows(stop, s_screen.rows[6], s_screen.rows[10]), "the ring hugs page 2's five facts");
-    Check(High(Coords(stop)) == 5 * 76 + 4 * dt::kSpacingMd, "five facts and the gaps between them: 444");
+    Check(HugsRows(stop, s_screen.rows[6], s_screen.rows[9]), "the ring hugs page 2's four facts: a fact is 84 px at 26 px words");
+    Check(High(Coords(stop)) == 4 * 84 + 3 * dt::kSpacingMd, "four facts and the gaps between them: 384");
     Down();
     Check(Focused() == s_screen.rows[12] && widgets::ListViewPage(s_screen.list) == 2, "DOWN from the stop reaches page 3's first value row, and page 3 shows");
     Check(High(Coords(stop)) == 0, "the stop has no box while page 3 shows");

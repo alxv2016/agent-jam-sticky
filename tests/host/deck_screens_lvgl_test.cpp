@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "app_hooks.h"
+#include "src/misc/lv_text_private.h"  // lv_text_get_width: whether a line of words stands whole in its room
 #include "../../components/agent_deck/answer_screens.h"
 #include "../../components/agent_deck/closed_page.h"
 #include "../../components/agent_deck/deck_clock.h"
@@ -61,9 +62,11 @@ lv_indev_t *s_keys = nullptr;
 int s_full_requests = 0;
 int s_cues = 0;
 int s_at_ends = 0;  // the at-end cues alone
+int s_errors = 0;   // the error cues alone
 int s_moments = 0;
 int s_music_starts = 0;
 int s_music_stops = 0;
+std::vector<devices::sound::Word> s_words;  // the words devices::Play was asked, in order
 void (*s_back)() = nullptr;
 }  // namespace
 
@@ -93,6 +96,7 @@ void PlayCue(Cue cue)
 {
     ++s_cues;
     s_at_ends += cue == Cue::kAtEnd;
+    s_errors += cue == Cue::kError;
 }
 }  // namespace lvgl_display
 
@@ -123,6 +127,7 @@ esp_err_t ReadClock(std::tm *out)
     return ESP_OK;
 }
 void QueueMoment(sound::Moment) { ++s_moments; }
+void Play(sound::Word word) { s_words.push_back(word); }
 void PlayMusic(sound::Music, int64_t) { ++s_music_starts; }
 void StopMusic() { ++s_music_stops; }
 void DropMoments() {}
@@ -256,12 +261,15 @@ std::vector<uint8_t> Glass()
 
 // --- The spacing a frame holds, measured from the objects: margins (kind m) between neighbours, padding (kind p) inside a box ---------------------
 
+// The ruler reads a box's padding alone: a value row (the Time zone field, the Not-joined row) reserves a 3 px edge it never draws and its
+// padding gives that up (spacing.md − 3, spacing.sm − 3), so it prints 13 and 5 there, 16 and 8 to the edge; the screen audit counts it.
 std::string TokenFor(int px)
 {
     switch (px) {
     case 4: return " xs";
     case 8: return " sm";
     case 16: return " md";
+    case 20: return " card-inset";
     case 24: return " lg";
     case 32: return " xl";
     case 48: return " 2xl";
@@ -310,6 +318,12 @@ void Measure(lv_obj_t *o, std::vector<Note> &notes)
         lv_area_t p, q;
         lv_obj_get_coords(kids[i - 1], &p);
         lv_obj_get_coords(kids[i], &q);
+        // Two words stacked are measured between their own line boxes, inside the padding that is their leading (DESIGN → Layout →
+        // Spacing: `pair-sm` is between the boxes, the leading made up in the name's margin).
+        if (lv_obj_check_type(kids[i - 1], &lv_label_class) && lv_obj_check_type(kids[i], &lv_label_class)) {
+            p.y2 -= lv_obj_get_style_pad_bottom(kids[i - 1], LV_PART_MAIN);
+            q.y1 += lv_obj_get_style_pad_top(kids[i], LV_PART_MAIN);
+        }
         const int x1 = std::max(p.x1, q.x1), x2 = std::min(p.x2, q.x2);
         const int gap = q.y1 - p.y2 - 1;
         if (x2 - x1 > 12 && gap >= 2 && gap <= 64) {
@@ -361,6 +375,14 @@ lv_obj_t *FindText(lv_obj_t *root, const std::string &text)
 lv_obj_t *Text(const std::string &text)
 {
     return FindText(lv_screen_active(), text);
+}
+
+lv_obj_t *Line(const std::string &words);
+// Words on the glass whole, or a stepped line holding them: a name too long for its row at 26 px steps.
+lv_obj_t *Shown(const std::string &words)
+{
+    lv_obj_t *whole = Text(words);
+    return whole != nullptr ? whole : Line(words);
 }
 
 lv_area_t Area(lv_obj_t *o)
@@ -819,6 +841,12 @@ void TestSound()
     DeckState();
     home::Probe p = home::Look();
     Check(lv_obj_has_state(p.sound, LV_STATE_CHECKED) && model::SoundOn(), "sound is on at the start, the toggle on");
+    const lv_color_t on_fill = lv_obj_get_style_bg_color(p.sound, LV_PART_MAIN);
+    lv_obj_remove_state(p.sound, LV_STATE_CHECKED);
+    const lv_color_t off_fill = lv_obj_get_style_bg_color(p.sound, LV_PART_MAIN);
+    lv_obj_add_state(p.sound, LV_STATE_CHECKED);
+    Check(lv_color_eq(on_fill, off_fill) && lv_color_eq(on_fill, lv_obj_get_style_bg_color(p.settings, LV_PART_MAIN)),
+          "its tile is the foot's tonal fill on and off: the glyph alone says the state (the person, 2026-11-26)");
     lv_obj_send_event(p.sound, LV_EVENT_VALUE_CHANGED, nullptr);  // the toggle flips on a click; here the state is set first
     lv_obj_remove_state(p.sound, LV_STATE_CHECKED);
     lv_obj_send_event(p.sound, LV_EVENT_VALUE_CHANGED, nullptr);
@@ -829,6 +857,16 @@ void TestSound()
 }
 
 // --- OK on Review, the list, the request -------------------------------------------------------------------------------------------------------
+
+// A line tight under its heading: spacing.xs between the two words' own boxes (layout::TuckUnder).
+void CheckTucked(lv_obj_t *heading, lv_obj_t *line, const std::string &what)
+{
+    Check(heading != nullptr && line != nullptr &&
+              (Y(line) + lv_obj_get_style_pad_top(line, LV_PART_MAIN)) -
+                      (Area(heading).y2 + 1 - lv_obj_get_style_pad_bottom(heading, LV_PART_MAIN)) ==
+                  dt::kSpacingXs,
+          what + " tight under its heading: spacing.xs between their own boxes");
+}
 
 void TestRequestOpen()
 {
@@ -845,6 +883,7 @@ void TestRequestOpen()
           "the tool in title at the margin, a target down");
     lv_obj_t *agent = Text("web-shop");
     Check(lv_obj_get_style_text_color(agent, LV_PART_MAIN).blue == ui::Fill(dt::kColorTextQuiet).blue, "the agent in quiet words");
+    CheckTucked(tool, agent, "the agent");
     Check(Text("1 of 1") == nullptr, "a lone request says no count");
     lv_obj_t *deny = nullptr, *allow = nullptr;
     // Deny and Allow, two halves 16 px apart at 704.
@@ -972,14 +1011,14 @@ void TestWaitingList()
           "Needs you in title");
     lv_obj_t *count = Text("4 sessions");
     Check(count != nullptr, "four sessions (web-shop, docs-site, Plan, Explore), oldest first");
-    Check(Y(count) - (Area(title).y2 + 1) == -dt::kSpacingXs, "tight under the title");
+    CheckTucked(title, count, "the count");
     Check(lv_obj_get_style_text_color(count, LV_PART_MAIN).blue == ui::Fill(dt::kColorTextQuiet).blue, "in quiet words");
-    Check(lv_obj_get_style_text_font(count, LV_PART_MAIN) == ui::Font(ui::Type::kCaptionRegular) && lv_obj_get_style_text_font(count, LV_PART_MAIN) == ui::Bitcount(20, 400),
-          "the count line in caption-regular, 20 px regular, keeping its quiet colour");
-    Check(lv_obj_get_style_text_font(title, LV_PART_MAIN) == ui::Bitcount(30, 600) && lv_obj_get_style_text_font(count, LV_PART_MAIN) != ui::Bitcount(20, 600),
-          "so the heading over it differs in size and weight: 30 px semibold over 20 px regular, never 20 px semibold");
+    Check(lv_obj_get_style_text_font(count, LV_PART_MAIN) == ui::Font(ui::Type::kCaptionRegular) && lv_obj_get_style_text_font(count, LV_PART_MAIN) == ui::Bitcount(26, 400),
+          "the count line in caption-regular, 26 px regular, keeping its quiet colour");
+    Check(lv_obj_get_style_text_font(title, LV_PART_MAIN) == ui::Bitcount(30, 600) && lv_obj_get_style_text_font(count, LV_PART_MAIN) != ui::Bitcount(26, 600),
+          "so the heading over it differs in size and weight: 30 px semibold over 26 px regular, never 26 px semibold");
     Check(lv_obj_get_height(count) == ui::LineBox(ui::Type::kCaptionRegular) && ui::LineBox(ui::Type::kCaptionRegular) == ui::LineBox(ui::Type::kCaption),
-          "on the same 24 px line the caption stood on");
+          "on the same 32 px line the caption stood on");
     lv_obj_t *first = Text("web-shop");
     lv_obj_t *second = Text("docs-site");
     Check(first != nullptr && second != nullptr && Y(first) < Y(second), "the agent with the oldest request first");
@@ -991,7 +1030,7 @@ void TestWaitingList()
     Check(facts != nullptr, "each row says what its agent asks and how long it has waited");
     Check(facts != nullptr && lv_obj_get_style_text_font(facts, LV_PART_MAIN) == ui::Font(ui::Type::kCaptionRegular) &&
               lv_obj_get_style_text_font(first, LV_PART_MAIN) == ui::Font(ui::Type::kBody),
-          "the facts line in caption-regular, 20 px regular, under the names in body");
+          "the facts line in caption-regular, 26 px regular, under the names in body");
     lv_obj_t *dismiss = lv_obj_get_parent(Text("Dismiss"));
     const lv_area_t d = Area(dismiss);
     Check(d.y1 == L::kAnswersTop && std::abs((d.x1 + d.x2) / 2 - kW / 2) <= 1 && lv_area_get_width(&d) == dt::kSpacingButtonWidth, "Dismiss centred at y 704");
@@ -1030,6 +1069,17 @@ void TestWaiting()
 
 // --- A question ----------------------------------------------------------------------------------------------------------------------------
 
+// A question card's name over its description: bold over regular at one size, pair-sm between their own boxes.
+void CheckCardPair(lv_obj_t *name, lv_obj_t *detail)
+{
+    Check(detail != nullptr && lv_obj_get_style_text_font(detail, LV_PART_MAIN) == ui::Font(ui::Type::kCaptionRegular),
+          "its description in caption-regular: bold over regular at one size");
+    Check(detail != nullptr && (Y(detail) + lv_obj_get_style_pad_top(detail, LV_PART_MAIN)) -
+                                       (Area(name).y2 + 1 - lv_obj_get_style_pad_bottom(name, LV_PART_MAIN)) ==
+                                   dt::kSpacingPairSm,
+          "pair-sm between the name's and the description's own boxes");
+}
+
 void TestQuestionOne(model::Question &q)
 {
     std::printf("a question\n");
@@ -1060,11 +1110,21 @@ void TestQuestionOne(model::Question &q)
         }
     }
     Check(card != nullptr && Text("the release branch") != nullptr, "its description under it");
+    CheckCardPair(name, Text("the release branch"));
+    Check(Y(card) - (Area(ask).y2 + 1) == dt::kSpacingLg, "the question stands spacing.lg over its first card");
     lv_obj_t *dismiss = lv_obj_get_parent(Text("Dismiss"));
     lv_obj_t *send = lv_obj_get_parent(Text("Send"));
     Check(Y(dismiss) == L::kAnswersTop && Y(send) == L::kAnswersTop && X(send) - (Area(dismiss).x2 + 1) == dt::kSpacingMd, "Dismiss and Send, two halves 16 px apart");
-    Check(lv_obj_has_state(send, LV_STATE_DISABLED), "Send waits for a pick");
+    Check(!lv_obj_has_state(send, LV_STATE_DISABLED), "Send is never disabled");
+    Dump("question_open");
     Check(!Ringed(Focused()) && Focused() == card, "it opens on the first card with no ring");
+    s_answered = {};
+    s_errors = 0;
+    lv_group_focus_obj(send);
+    lv_obj_send_event(send, LV_EVENT_CLICKED, nullptr);
+    Settle();
+    Check(s_answered.count == 0 && router::Depth() == 2 && s_errors == 1, "Send with no pick sends nothing and sounds sound.error");
+    Check(Focused() == card && Ringed(card), "and rings the first answer");
     lv_obj_send_event(card, LV_EVENT_CLICKED, nullptr);
     Settle();
     Check(!lv_obj_has_state(send, LV_STATE_DISABLED) && widgets::ChoiceChosen(card), "a pick is not the answer: Send is on offer");
@@ -1147,6 +1207,20 @@ void CheckScrollLane()
     Check(lane, "the scroll indicator stands in the right margin while the question runs to a second page");
 }
 
+// The first card focused, its page swiped away: Send with no pick turns it back into view and rings it.
+void CheckSendBringsFirstBack(lv_obj_t *first, int32_t y_first, int at)
+{
+    lv_group_focus_obj(first);
+    Settle();
+    Swipe(240, at + 2 * dt::kTouchSwipeDistance, 240, at);
+    Check(Area(first).y1 != y_first && Focused() == first, "a swipe up turns off the first card's page, the focus left on it");
+    s_answered = {};
+    lv_obj_send_event(lv_obj_get_parent(Text("Send")), LV_EVENT_CLICKED, nullptr);
+    Settle();
+    Check(Area(first).y1 == y_first && Ringed(first) && s_answered.count == 0,
+          "Send with no pick turns the first answer's page back into view and rings it");
+}
+
 // A long question: the question and its cards turn by page together, whole items a page, with the scroll indicator.
 void TestQuestionLong(model::Question &q)
 {
@@ -1196,8 +1270,13 @@ void TestQuestionLong(model::Question &q)
     Dump("question_long_p2");
     {
         const int at = L::kHeadingTop + dt::kSpacingMd;  // on the question's heading, not its band
-        Swipe(240, at, 240, at + 2 * dt::kTouchSwipeDistance);
-        Check(Area(roll).y1 == y_first, "a swipe down begun on the heading turns the cards back to the first page");
+        // A swipe down begun on the heading turns back a page; as many as the walk turned bring the first page back (26 px words page
+        // more: one card a page here).
+        for (int i = 0; i < steps && Area(roll).y1 != y_first; ++i) {
+            Swipe(240, at, 240, at + 2 * dt::kTouchSwipeDistance);
+        }
+        Check(Area(roll).y1 == y_first, "swipes down begun on the heading turn the cards back to the first page");
+        CheckSendBringsFirstBack(roll, y_first, at);
     }
     router::Escape();
     Settle();
@@ -1405,15 +1484,13 @@ void PressOn(lv_obj_t *control)
 
 bool Is(lv_obj_t *label, ui::Type role) { return label != nullptr && lv_obj_get_style_text_font(label, LV_PART_MAIN) == ui::Font(role); }
 
-// The joined network's row: white, in a `spacing.stroke.default` black edge, its name and its facts black, and the row neither the chosen
-// inversion nor a plain row at rest.
+// The joined network's row: a card on the light dither with no edge (the person, 2026-11-26: "light grey background not outline"), its
+// name and its facts black, and the row neither the chosen inversion nor a plain row at rest.
 void CheckJoinedOnWhite(lv_obj_t *net, const std::string &what)
 {
     const lv_color_t black = ui::Level(dt::kColorTextPrimary);
-    Check(net != nullptr && lv_color_eq(lv_obj_get_style_bg_color(net, LV_PART_MAIN), ui::Level(dt::kColorBackground)), what + ": a white fill");
-    Check(net != nullptr && lv_obj_get_style_border_width(net, LV_PART_MAIN) == dt::kSpacingStrokeDefault &&
-              lv_color_eq(lv_obj_get_style_border_color(net, LV_PART_MAIN), ui::Level(dt::kColorOutline)),
-          what + ": in a 3 px black outline");
+    Check(net != nullptr && lv_color_eq(lv_obj_get_style_bg_color(net, LV_PART_MAIN), ui::Fill(dt::kColorBand)), what + ": the card's light dither");
+    Check(net != nullptr && lv_obj_get_style_border_width(net, LV_PART_MAIN) == 0, what + ": no outline");
     Check(net != nullptr && !lv_obj_has_state(net, LV_STATE_CHECKED), what + ": not the chosen inversion");
     Check(net != nullptr && lv_obj_get_height(net) == dt::kSpacingListRowHeight, what + ": still 80 px high");
     bool inked = net != nullptr;
@@ -1424,14 +1501,22 @@ void CheckJoinedOnWhite(lv_obj_t *net, const std::string &what)
     Check(inked, what + ": black words");
 }
 
-// Every row's words on one left edge: `spacing.edge + spacing.md`, where a value, network or list row's words stand inside its box, and
-// the scroll indicator's lane clear of the rows' right edge.
-void CheckOneLeftEdge(std::initializer_list<const char *> words, lv_obj_t *lane, lv_obj_t *box, const std::string &page)
+// The heading's edge holds the words that take no ring and every card's box; a card's words stand `spacing.md` inside it; and the scroll
+// indicator's lane stands clear of the rows' right edge.
+void CheckOneLeftEdge(std::initializer_list<const char *> bare, std::initializer_list<const char *> carded, lv_obj_t *lane, lv_obj_t *box,
+                      const std::string &page)
 {
-    const int edge = dt::kSpacingEdge + dt::kSpacingMd;
-    for (const char *w : words) {
+    // Words that take no ring on the heading's edge; a card on that edge with its words `spacing.md` inside (the person, 2026-11-26).
+    for (const char *w : bare) {
         lv_obj_t *label = Text(w);
-        Check(label != nullptr && X(label) == edge, page + ": " + w + " starts at x " + std::to_string(edge) + (label != nullptr ? ", not " + std::to_string(X(label)) : ""));
+        Check(label != nullptr && X(label) == dt::kSpacingEdge,
+              page + ": " + w + " starts on the heading's edge, x 24" + (label != nullptr ? ", not " + std::to_string(X(label)) : ""));
+    }
+    for (const char *w : carded) {
+        lv_obj_t *label = Text(w);
+        lv_obj_t *card = label != nullptr ? ControlOf(label) : nullptr;
+        Check(card != nullptr && X(card) == dt::kSpacingEdge && X(label) == dt::kSpacingEdge + dt::kSpacingMd,
+              page + ": " + w + "'s card on the heading's edge, its words spacing.md inside" + (label != nullptr ? ", at " + std::to_string(X(label)) : ""));
     }
     Check(lane != nullptr && box != nullptr && Area(box).x2 < Area(lane).x1, page + ": the scroll indicator's lane stands clear of the rows' right edge");
 }
@@ -1460,13 +1545,14 @@ SettingsStops TestSettingsPage()
     Check(heading != nullptr && X(heading) == dt::kSpacingEdge && Y(heading) == L::kHeadingTop && Is(heading, ui::Type::kTitle),
           "Settings in title at the heading's place");
     Check(Text("Fri 7 Nov  2:32 PM") != nullptr && Area(Text("Fri 7 Nov  2:32 PM")).y1 == L::kClockTop, "the clock top-right");
-    for (const char *words : {"Sound", "On", "Auto sleep", "On battery only", "Wi-Fi", "Time zone", "Pacific", "Battery"}) {
+    Check(Text("On battery only") == nullptr, "no On battery only beside Auto sleep");
+    for (const char *words : {"Sound", "On", "Auto sleep", "Wi-Fi", "Time zone", "Pacific", "Battery"}) {
         Check(Is(Text(words), ui::Type::kCaption), std::string("caption, the Sound label's size: ") + words);
     }
     lv_obj_t *charged = Text("Charged \xE2\x80\xA2 84%");
     Check(charged != nullptr && Is(charged, ui::Type::kCaption), "the battery row reads Charged \xE2\x80\xA2 84%, in caption");
     Check(Text("Studio") != nullptr && Text("Connected") != nullptr, "the joined network's row says Studio, Connected");
-    Check(Is(Text("Studio"), ui::Type::kCaptionStrong) && Is(Text("Connected"), ui::Type::kCaption), "the settings' row: the name in caption-strong over its status in caption");
+    Check(Is(Text("Studio"), ui::Type::kCaptionStrong) && Is(Text("Connected"), ui::Type::kCaptionRegular), "the settings' row: the name in caption-strong over its status in caption-regular");
 
     // The rows: the toggle, the slider, the toggle, the network, the dropdown, the reading — one column, each a target or more apart.
     lv_obj_t *sound = lv_group_get_obj_by_index(s_group, 0);  // the toggle, the walk's first stop
@@ -1539,7 +1625,7 @@ void TestSettingsPages(const SettingsStops &st)
         Check(lane != nullptr && !lv_obj_has_flag(lane, LV_OBJ_FLAG_HIDDEN), "the scroll indicator shows there is more");
         lane_1 = lane;
     }
-    CheckOneLeftEdge({"Sound", "Auto sleep", "Wi-Fi", "Studio", "Time zone", "Battery"}, lane_1, st.net, "page 1");
+    CheckOneLeftEdge({"Sound", "Auto sleep", "Wi-Fi", "Battery"}, {"Studio", "Time zone"}, lane_1, st.net, "page 1");
     const int32_t wifi_on_page_1 = Y(wifi_row);
     router::Ring(hardware);
     Settle();
@@ -1547,7 +1633,7 @@ void TestSettingsPages(const SettingsStops &st)
           "the walk to Hardware test turns to page 2: Wi-Fi at its top, Hardware test last");
     Check(Area(hardware).y2 < L::kAnswersTop - dt::kSpacingMd, "Hardware test ends clear of Back's ring");
     Dump("settings_page_2");
-    CheckOneLeftEdge({"Wi-Fi", "Studio", "Time zone", "Battery", "Hardware test"}, lane_1, st.net, "page 2");
+    CheckOneLeftEdge({"Wi-Fi", "Battery"}, {"Studio", "Time zone", "Hardware test"}, lane_1, st.net, "page 2");
     router::Ring(st.walk[1]);
     Settle();
     Check(!lv_obj_is_visible(hardware) && Y(wifi_row) == wifi_on_page_1, "back to the slider is page 1 again");
@@ -1626,6 +1712,20 @@ void TestSettingsSheetAndRows(const SettingsStops &st)
     Settle();
     Check(Text("Charging \xE2\x80\xA2 62%") != nullptr && Text("Charged \xE2\x80\xA2 84%") == nullptr, "on the charger the row reads Charging \xE2\x80\xA2 62%");
     Dump("settings_charging");
+    // The deck's own words under 80 % and 20 %, approved by the ux-content-writer for the person: each stands whole in its row.
+    for (const auto &[percent, words] : {std::pair<uint8_t, const char *>{72, "On battery \xE2\x80\xA2 72%"},
+                                         std::pair<uint8_t, const char *>{15, "Low battery \xE2\x80\xA2 15%"}}) {
+        model::SetBattery({percent, false});
+        Settle();
+        lv_obj_t *value = Text(words);
+        const lv_font_t *font = value != nullptr ? lv_obj_get_style_text_font(value, LV_PART_MAIN) : nullptr;
+        lv_text_attributes_t attributes{};
+        attributes.max_width = LV_COORD_MAX;  // one line, unbroken
+        const int32_t needs = font != nullptr ? lv_text_get_width(words, static_cast<uint32_t>(std::strlen(words)), font, &attributes) : 0;
+        Check(value != nullptr && lv_obj_get_width(value) >= needs && Area(value).x2 <= dt::kSpacingEdge + dt::kSpacingContent,
+              std::string("the battery row reads ") + words + ", whole, inside the content");
+    }
+    Dump("settings_low_battery");
     model::SetBattery({84, false});
     Settle();
 
@@ -1636,14 +1736,21 @@ void TestSettingsSheetAndRows(const SettingsStops &st)
     Settle();
     Check(router::Depth() == 2 && Focused() == ControlOf(Text("Studio")), "Back from it is the settings, on the network row");
 
-    // Hardware test: its home, one deeper — home, settings, the hardware test, and one test screen fit in four.
+    // Hardware test: its home in the settings' place — home, the hardware test, Display and one of Display's pages fit in four.
     PressOn(Button("Hardware test"));
-    Check(router::Depth() == 3 && lv_obj_get_child_count(lv_screen_active()) > 0, "Hardware test opens hw.home over the settings");
-    Check(router::PushRoute(flow::kRouteWaiting) == ESP_OK && router::Depth() == 4, "and a test screen over that is the fourth, the stack's depth");
+    Settle();
+    Check(router::Depth() == 2 && Text("Sound") == nullptr && lv_obj_get_child_count(lv_screen_active()) > 0,
+          "Hardware test opens hw.home in the settings' place");
+    Check(router::PushRoute("hw.display") == ESP_OK && router::PushRoute("hw.display.grays") == ESP_OK && router::Depth() == 4,
+          "and Display's own pages open from it: the fourth screen, the stack's depth");
+    router::Pop();
     router::Pop();
     router::Pop();
     Settle();
-    Check(router::Depth() == 2, "Back from them returns to the settings");
+    Check(router::Depth() == 1, "Back from the hardware test's home is the deck's home");
+    PressOn(home::Look().settings);
+    Settle();
+    Check(router::Depth() == 2 && Text("Sound") != nullptr, "and the settings open again from its foot");
 }
 
 // Not joined: the row says so and still opens the page.
@@ -1696,7 +1803,7 @@ lv_obj_t *TestWifiJoined()
     Check(Text("Forget") == nullptr, "no Forget button on the page");
     lv_obj_t *ip = Text("192.168.1.42");
     Check(ip != nullptr && Is(ip, ui::Type::kCaption) && Is(Text("IP"), ui::Type::kCaptionStrong), "a fact's label in caption-strong over its value in caption, one size down");
-    Check(Is(Text("Studio"), ui::Type::kCaptionStrong) && Is(Text("Connected"), ui::Type::kCaption), "the joined network's name in caption-strong over its status in caption");
+    Check(Is(Text("Studio"), ui::Type::kCaptionStrong) && Is(Text("Connected"), ui::Type::kCaptionRegular), "the joined network's name in caption-strong over its status in caption-regular");
     lv_obj_t *back = Button("Back");
     lv_obj_t *disconnect = Button("Disconnect");
     Check(back != nullptr && disconnect != nullptr && X(back) == dt::kSpacingEdge && Y(back) == L::kAnswersTop && lv_obj_get_width(back) == L::kHalfW &&
@@ -1779,7 +1886,7 @@ void TestWifiChoosing()
     Settle();
     Dump("wifi_choose");
     Check(Text("Networks") != nullptr && Text("Pick the Mac's network") != nullptr, "networks: the heading and its line");
-    Check(Text("Lab-2G-Upstairs-Annex") != nullptr && Text("Studio-Upstairs-Guest-5G") != nullptr, "the Mac's networks, four to a page");
+    Check(Text("Lab-2G-Upstairs-Annex") != nullptr && Shown("Studio-Upstairs-Guest-5G") != nullptr, "the Mac's networks, four to a page");
     Check(Focused() == ControlOf(Text("Lab-2G-Upstairs-Annex")), "the first network has the focus");
     Check(Is(Text("Lab-2G-Upstairs-Annex"), ui::Type::kCaptionStrong) && Is(Text("Studio-Guest"), ui::Type::kCaptionStrong),
           "the networks' names in the list are caption-strong");
@@ -1944,7 +2051,7 @@ void TestWifiMock()
     lv_obj_send_event(Button("Connect"), LV_EVENT_CLICKED, nullptr);
     Advance(300);
     Check(Text("Networks") != nullptr, "Connect brings the Mac's networks");
-    lv_obj_send_event(ControlOf(Text("Studio-Upstairs-Guest-5G")), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(ControlOf(Shown("Studio-Upstairs-Guest-5G")), LV_EVENT_CLICKED, nullptr);
     Advance(300);
     Check(Text("Step 2 of 3") != nullptr, "a network picked is joined: step 2 of 3");
     Advance(3200);
@@ -1956,10 +2063,10 @@ void TestWifiMock()
     Check(Text("Bridge paired") != nullptr, "and the retry pairs");
     lv_obj_send_event(Button("Done"), LV_EVENT_CLICKED, nullptr);
     Advance(300);
-    Check(model::GetWifi().stage == model::WifiStage::kJoined && Text("Studio-Upstairs-Guest-5G") != nullptr && Text("Disconnect") != nullptr,
+    Check(model::GetWifi().stage == model::WifiStage::kJoined && Shown("Studio-Upstairs-Guest-5G") != nullptr && Text("Disconnect") != nullptr,
           "Done shows the joined network and its facts");
     // Forgetting it, from the dialog.
-    PressOn(ControlOf(Text("Studio-Upstairs-Guest-5G")));
+    PressOn(ControlOf(Shown("Studio-Upstairs-Guest-5G")));
     router::Focus(Button("Forget"));
     Press(LV_KEY_ENTER);
     Advance(300);
@@ -2985,6 +3092,52 @@ void TestVoice()
     lv_obj_delete(parent);
 }
 
+// The deck's event sounds, from the model wherever the glass is (STICKY_AGENT_DECK §6): the link up, an agent starting, the plan's limit,
+// a request queued — and a lower one never cutting a higher one still sounding.
+void TestEventSounds()
+{
+    using devices::sound::Word;
+    Home();
+    model::Reset();
+    model::SetLink(false);
+    Advance(1000);
+    s_words.clear();
+    model::SetLink(true);
+    Check(s_words == std::vector<Word>{Word::kLinkUp}, "the link come up sounds link up");
+    Advance(400);
+    model::SetAgent(Agent(7, 0, "sound-check", model::AgentState::kWorking, 0, "Bash: ls", 10, 100));
+    Check(s_words.size() == 2 && s_words[1] == Word::kAgentStart, "a new agent working sounds agent start");
+    model::SetAgent(Agent(7, 0, "sound-check", model::AgentState::kWorking, 0, "Bash: ls -l", 10, 100));
+    Check(s_words.size() == 2, "a record that keeps it working is silent");
+    Advance(400);
+    model::SetLink(false);
+    model::SetLink(true);
+    model::SetAgent(Agent(8, 0, "sound-check-2", model::AgentState::kWorking, 0, "Bash: ls", 10, 100));
+    Check(s_words.size() == 3 && s_words[2] == Word::kLinkUp, "an agent starting under the link coming up is dropped: link up is heard whole");
+    Advance(400);
+    model::Usage limited;
+    limited.limit = model::Limit::kFiveHour;
+    model::SetUsage(limited);
+    Check(s_words.size() == 4 && s_words[3] == Word::kUsageLimit, "the plan's limit hit sounds usage limit");
+    Ask(1201, 7, "Bash", "ls -la");
+    Check(s_words.size() == 5 && s_words[4] == Word::kAttention, "a request queued sounds attention, over the limit's");
+    Advance(1000);
+    model::SetStandby(true);
+    model::SetLink(false);
+    model::SetLink(true);
+    Ask(1202, 7, "Bash", "ls");
+    Check(s_words.size() == 5, "on standby, another deck the active one, the deck's news is silent");
+    model::Reset();
+    Advance(1000);
+    model::SetUsage(limited);
+    Check(s_words.size() == 6 && s_words[5] == Word::kUsageLimit,
+          "standby's end, a Reset, clears the limit it heard: the next limit hit sounds");
+    Settle();
+    Home();
+    model::Reset();
+    Settle();
+}
+
 }  // namespace
 
 int main()
@@ -3004,8 +3157,11 @@ int main()
         std::printf("home did not build\n");
         return 1;
     }
-    constexpr router::Route kHardware[] = {{"hw.home", router::NoParam<HardwareStub>}};
-    router::AddRoutes({kHardware, 1});
+    // The hardware test's home and Display's routes, stood in for: the deck reaches them by id alone.
+    constexpr router::Route kHardware[] = {{"hw.home", router::NoParam<HardwareStub>},
+                                           {"hw.display", router::NoParam<HardwareStub>},
+                                           {"hw.display.grays", router::NoParam<HardwareStub>}};
+    router::AddRoutes({kHardware, sizeof(kHardware) / sizeof(kHardware[0])});
     Settle();
     TestSplash();
     TestOverview();
@@ -3034,6 +3190,7 @@ int main()
     TestFactories();
     TestClosedPageAndClock();
     TestVoice();
+    TestEventSounds();
     std::printf("%d checks, %d failed\n", s_checks, s_failures);
     return s_failures == 0 ? 0 : 1;
 }

@@ -110,16 +110,15 @@ inline void FormatCount(char *out, size_t size, uint32_t frame, uint32_t frames)
     std::snprintf(out, size, "%" PRIu32 " of %" PRIu32, frame, frames > frame ? frames : frame);
 }
 
-// The readout's first line at rest: Rest's reason, a move not yet played, or one played.
+// The readout's first line at rest: Rest's reason, a move not yet played, or one played — each one 26 px line, 27 characters at most.
 inline void FormatAtRest(char *out, size_t size, bool rest, uint32_t frames, uint32_t times)
 {
     if (rest) {
-        std::snprintf(out, size, "No frames: rest is a still pose");
+        std::snprintf(out, size, "Rest: a still pose");
     } else if (times == 0) {
-        std::snprintf(out, size, "About %" PRIu32 " frames · not played yet", frames);
+        std::snprintf(out, size, "About %" PRIu32 " frames · unplayed", frames);
     } else {
-        std::snprintf(out, size, "%" PRIu32 " frames · played %" PRIu32 " %s", frames, times,
-                      times == 1 ? "time" : "times");
+        std::snprintf(out, size, "%" PRIu32 " frames · %" PRIu32 " %s", frames, times, times == 1 ? "play" : "plays");
     }
 }
 

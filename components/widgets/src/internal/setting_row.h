@@ -19,8 +19,8 @@ struct SettingRow {
 // Builds the row up to the control: the caller adds its control as `root`'s next child, and the row's tap handler.
 SettingRow MakeSettingRow(lv_obj_t *parent, const char *name, bool with_state);
 // The row's words for a disabled or an enabled row: the name and the state word `text-disabled-page` while disabled (on the
-// white page), `text-primary` and `text-secondary` otherwise; the reason, solid `text-secondary` in `caption`, `spacing.xs`
-// under the name only while it shows, so the row stays 64 px and the name alone stays centred. The control's own disabled
+// white page), `text-primary` and `text-secondary` otherwise; the reason, solid `text-secondary` in `caption`, `pair-sm` under the
+// name between their own boxes only while it shows: the row grows to hold the two and stays centred, and is 64 px without it. The control's own disabled
 // state is the caller's.
 void ShowSettingRowEnabled(const SettingRow &row, bool enabled, const char *reason);
 

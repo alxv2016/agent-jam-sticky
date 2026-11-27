@@ -51,24 +51,24 @@ colors:
   mascot-faded-shade: "{colors.scale.primary.1}"  # its shade
   mascot-faded-tint: "{colors.scale.sparse.eighth}"  # its tint
 typography:
-  # The primitives: Bitcount Single at one bit a pixel, each size a multiple of 10 px. Its line is 1.2 em to 40 px, then tapers,
+  # The primitives: Bitcount Single at one bit a pixel, each size a multiple of 10 px but the smallest, 26. Its line is 1.2 em to 40 px, then tapers,
   # each step on the 4 px grid and never under the font's own height: 56 at 50, 64 at 60, 72 at 70, 80 at 80; the figures,
   # 100 px and up, take the height of their digits.
-  scale-20-semibold:
+  scale-26-semibold:
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 600
-    lineHeight: 24px
-  scale-20-bold:
+    lineHeight: 32px
+  scale-26-bold:
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 700
-    lineHeight: 24px
-  scale-20-regular:  # the second regular weight: caption-regular
+    lineHeight: 32px
+  scale-26-regular:  # the second regular weight: caption-regular
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 400
-    lineHeight: 24px
+    lineHeight: 32px
   scale-30-regular:  # the first regular weight: body
     fontFamily: Bitcount Single
     fontSize: 30px
@@ -190,31 +190,31 @@ typography:
     fontSize: 30px
     fontWeight: 700
     lineHeight: 36px
-  caption:  # = typography.scale-20-semibold
+  caption:  # = typography.scale-26-semibold
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 600
-    lineHeight: 24px
-  caption-loose:  # = typography.scale-20-semibold on a 1.5 em line: a text view's lines
+    lineHeight: 32px
+  caption-loose:  # = typography.scale-26-semibold on a 1.5 em line, rounded to the grid: a text view's lines
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 600
-    lineHeight: 30px
+    lineHeight: 40px
   title:  # = typography.scale-30-semibold: the deck's screens' names and headings, a chip's words
     fontFamily: Bitcount Single
     fontSize: 30px
     fontWeight: 600
     lineHeight: 36px
-  caption-strong:  # = typography.scale-20-bold: a choice card's name, a detail row's label and a network row's name at caption's size, one size under `label`
+  caption-strong:  # = typography.scale-26-bold: a choice card's name, a detail row's label and a network row's name at caption's size, one size under `label`
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 700
-    lineHeight: 24px
-  caption-regular:  # = typography.scale-20-regular: the needs-you list's facts line and its heading's count line, `caption`'s size at body's weight
+    lineHeight: 32px
+  caption-regular:  # = typography.scale-26-regular: the needs-you list's facts line and its heading's count line, a question card's detail, `caption`'s size at body's weight
     fontFamily: Bitcount Single
-    fontSize: 20px
+    fontSize: 26px
     fontWeight: 400
-    lineHeight: 24px
+    lineHeight: 32px
 rounded:
   none: 0px
   sm: 4px
@@ -382,6 +382,27 @@ sound:  # the buzzer's words, each in the agent deck's note format: wave, a star
     - {wave: pulse-25, hz: 5274, hzEnd: 0, ms: 70, volume: 255}
     - {wave: pulse-25, hz: 0, hzEnd: 0, ms: 45, volume: 0}
     - {wave: pulse-25, hz: 3520, hzEnd: 0, ms: 120, volume: 255}
+  attention:  # the deck's: a request or question joins the queue — "dee-doo, dee-doo"
+    - {wave: pulse-50, hz: 3136, hzEnd: 0, ms: 85, volume: 220}
+    - {wave: pulse-50, hz: 2638, hzEnd: 0, ms: 130, volume: 230}
+    - {wave: pulse-50, hz: 0, hzEnd: 0, ms: 90, volume: 0}
+    - {wave: pulse-50, hz: 3136, hzEnd: 0, ms: 85, volume: 220}
+    - {wave: pulse-50, hz: 2638, hzEnd: 0, ms: 200, volume: 230}
+  link-up:  # the deck's: the bridge to the Mac connects — a coin's blip
+    - {wave: pulse-50, hz: 3136, hzEnd: 0, ms: 70, volume: 220}
+    - {wave: pulse-50, hz: 4460, hzEnd: 4700, ms: 260, volume: 240}
+  usage-limit:  # the deck's: the plan's limit is hit — the sad trombone
+    - {wave: pulse-50, hz: 2352, hzEnd: 2288, ms: 110, volume: 225}
+    - {wave: pulse-50, hz: 0, hzEnd: 0, ms: 25, volume: 0}
+    - {wave: pulse-50, hz: 2216, hzEnd: 2160, ms: 110, volume: 225}
+    - {wave: pulse-50, hz: 0, hzEnd: 0, ms: 25, volume: 0}
+    - {wave: pulse-50, hz: 2096, hzEnd: 2040, ms: 110, volume: 225}
+    - {wave: pulse-50, hz: 0, hzEnd: 0, ms: 25, volume: 0}
+    - {wave: pulse-50, hz: 2040, hzEnd: 2000, ms: 70, volume: 235}
+    - {wave: pulse-50, hz: 2000, hzEnd: 2050, ms: 70, volume: 220}
+    - {wave: pulse-50, hz: 2050, hzEnd: 2040, ms: 55, volume: 200}
+  agent-start:  # the deck's: an agent starts working — a round "boop"
+    - {wave: pulse-50, hz: 2800, hzEnd: 2200, ms: 120, volume: 255}
   mascot-blink:  # the deck's kFxBlink, as the deck has it
     - {wave: pulse-12, hz: 2093, hzEnd: 0, ms: 18, volume: 110}
   mascot-happy:  # the deck's kFxHappy, as the deck has it
@@ -632,7 +653,7 @@ components:
     backgroundColor: "{colors.thumb-on}"
     rounded: "{rounded.full}"
     size: "{spacing.check-dot}"
-  icon-button:  # a square of `spacing.target`; the four button variants, and the toggle icon button black when on
+  icon-button:  # a square of `spacing.target`; the four button variants, and the toggle icon button, tonal on and off
     backgroundColor: "{colors.band}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.lg}"
@@ -789,8 +810,8 @@ components:
   network-row-chosen:  # the network in use or being joined: the inversion
     backgroundColor: "{colors.surface-chosen}"
     textColor: "{colors.text-on-fill}"
-  network-row-joined:  # the same network, where its screen asks for the outlined look: white inside a `spacing.stroke.default` outline, every word and glyph black
-    backgroundColor: "{colors.background}"
+  network-row-joined:  # the same network, where its screen asks for the card look: a card on the light dither, no edge, every word and glyph black
+    backgroundColor: "{colors.band}"
     textColor: "{colors.text-primary}"
   text-input:  # the frame of a text or password input; its words `label`, its placeholder `caption`
     backgroundColor: "{colors.background}"
@@ -1016,11 +1037,13 @@ When two pull against each other, the earlier wins — between options that both
 - **Bitcount Single, compiled into the firmware** — a pixel font, each letter built from square cells, under the SIL
   Open Font License; at one bit a pixel its strokes are the glass's own pixels.
 - **Weights 600 and 700, and a 400 at two sizes.** A lighter weight breaks up at one bit a pixel, so the regular weight is cut at
-  two sizes only: `body`, 30 px, whose 3 px strokes keep its gaps open at 40 px of line, and `caption-regular`, 20 px, for a supporting
-  line under `body` or `title` words. Its strokes are 1 and 2 px, where the 600's and the 700's are 3 at the same size, so it is the thinnest
+  two sizes only: `body`, 30 px, whose 3 px strokes keep its gaps open at 40 px of line, and `caption-regular`, 26 px, for a supporting
+  line under `body` or `title` words. Its strokes are thinner than the 600's and the 700's at the same size, so it is the thinnest
   text on the glass, held to a supporting line and judged on the glass (Open items → Whether `caption-regular` reads). Hierarchy comes from size and weight,
-  never from grey alone. Below 50 px the 600 and 700 look alike. So size carries the hierarchy there. `body`'s 400 against `label`'s 700 is the one pair at 30 px that differs by weight. At 20 px `caption-strong`'s 700 over `caption`'s 600 is the one pair that differs by weight. The eye finds that step by the heavier strokes, not by size. `caption-regular` under `body` makes a pair of two regulars that differ by size. `title` is the 600 at 30 px, which looks like `label`'s 700 at one bit a pixel. So a screen sets it over words of another size — the deck's headings over their `caption` or `caption-regular` lines — and never leans on it to tell two 30 px texts apart. The needs-you heading's count line is `caption-regular` under `title`, so the pair differs in size and in weight.
-- **Every size is a multiple of 10 px** — the font's cell is a tenth of the em, so each cell is whole pixels.
+  never from grey alone. Below 50 px the 600 and 700 look alike. So size carries the hierarchy there. `body`'s 400 against `label`'s 700 is the one pair at 30 px that differs by weight. At 26 px `caption-strong`'s 700 over `caption`'s 600 is the one pair that differs by weight. The eye finds that step by the heavier strokes, not by size. `caption-regular` under `body` makes a pair of two regulars that differ by size. `title` is the 600 at 30 px, which looks like `label`'s 700 at one bit a pixel. So a screen sets it over words of another size — the deck's headings over their `caption` or `caption-regular` lines — and never leans on it to tell two 30 px texts apart. The needs-you heading's count line is `caption-regular` under `title`, so the pair differs in size and in weight.
+- **Every size is a multiple of 10 px, but the smallest, 26** — the font's cell is a tenth of the em, so each cell is whole
+  pixels. At 26 px a cell is 2.6 px, so its cells fall 2 and 3 px wide, unevenly: the person chose it over 20 px, which
+  read too small on the glass (2026-11-26, after both on a V1.0). There is no size between 26 and 30.
 - **Glyphs are drawn at one bit a pixel** on every refresh, so a stroke is solid black, never a grey edge that
   thresholds into a ragged one. A disabled control's words are the one text in a dither (`text-disabled`), and
   still one bit a pixel: every stroke pixel is the pattern, with no grey edge.
@@ -1029,12 +1052,12 @@ When two pull against each other, the earlier wins — between options that both
 
 At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 
-- **The scale is the primitives** — 20 to 80 px in steps of 10, and 100, 120 and 160 px for figures, each at 600 and
+- **The scale is the primitives** — 26 px, then 30 to 80 px in steps of 10, and 100, 120 and 160 px for figures, each at 600 and
   700 (`typography.scale-30-semibold` and its siblings). Lines are 1.2 em apart up to 40 px and closer as the size
   grows: 56 px at 50, 64 at 60, 72 at 70 and 80 at 80, each on the 4 px grid and never under the font's own height.
   Figures sit on the height of their digits: 68 px at 100, 80 at 120 and 108 at 160. Thirty px also comes at 400,
-  `typography.scale-30-regular`, and `body` sets it on a 40 px line. Twenty px comes at 400 too, `typography.scale-20-regular`,
-  which `caption-regular` takes on its 24 px line. A screen takes a role, never a primitive. Only the
+  `typography.scale-30-regular`, and `body` sets it on a 40 px line. Twenty-six px comes at 400 too, `typography.scale-26-regular`,
+  which `caption-regular` takes on its 32 px line. A screen takes a role, never a primitive. Only the
   hardware test's type scale page shows the primitives themselves (DESIGN → Exceptions).
 - **A role is one primitive:**
 
@@ -1045,11 +1068,11 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 | `headline` | `scale-40-bold` | 40 px, 12.3 pt | A screen's title |
 | `body` | `scale-30-regular` on a 40 px line | 30 px, 9.2 pt | Everything people read: a transcript, a summary, a note; a row's state and value words; a dropdown's options; a status block's description |
 | `label` | `scale-30-bold` | 30 px, 9.2 pt | The status bar's title, buttons, hints, tags, a row's title, a choice card's name, the chosen dropdown option, a field's typed text — `body`'s size, in bold |
-| `caption` | `scale-20-semibold` | 20 px, 6.1 pt | Timestamps, a field's placeholder, a Wi-Fi network's facts, a detail row's value one size down, the name on the kit's default detail row (the hardware test's About page and Serial number), the status band's news — the smallest words on the glass, 12 px a character |
-| `caption-loose` | `scale-20-semibold` on a 30 px line | 20 px, 6.1 pt | A text view's lines: `caption` on a line 1.5 em apart, easy to follow back |
+| `caption` | `scale-26-semibold` | 26 px, 8 pt | Timestamps, a field's placeholder, a detail row's value one size down, the name on the kit's default detail row (the hardware test's About page and Serial number), the status band's news — the smallest words on the glass, 12 px a character |
+| `caption-loose` | `scale-26-semibold` on a 40 px line | 26 px, 8 pt | A text view's lines: `caption` on a line 1.5 em apart, easy to follow back |
 | `title` | `scale-30-semibold` | 30 px, 9.2 pt | The agent deck's screens' names and headings — "Needs you", "Usage 42%", an agent's name, "Settings" — and a small chip's words: `label`'s size one weight lighter, so a heading reads between `body` and `label` |
-| `caption-strong` | `scale-20-bold` | 20 px, 6.1 pt | A Wi-Fi network's name over its facts; a choice card's name and a detail row's label one size down, where a screen sets its words one size under `label` (Components → The kit → Words one size down); `caption`'s size, bold |
-| `caption-regular` | `scale-20-regular` | 20 px, 6.1 pt | The needs-you list's facts line under its `body` names, its heading's count line under `title`, and any supporting line a screen sets under `body` words (Components → The kit → List row); `caption`'s size at `body`'s weight, so the line is lighter than the words over it |
+| `caption-strong` | `scale-26-bold` | 26 px, 8 pt | A Wi-Fi network's name over its facts; a choice card's name and a detail row's label one size down, where a screen sets its words one size under `label` (Components → The kit → Words one size down); `caption`'s size, bold |
+| `caption-regular` | `scale-26-regular` | 26 px, 8 pt | The needs-you list's facts line under its `body` names, its heading's count line under `title`, a question's choice card's detail and a Wi-Fi network's facts under their `caption-strong` names, and any supporting line a screen sets under `body` words (Components → The kit → List row); `caption`'s size at `body`'s weight, so the line is lighter than the words over it |
 
 ### Reading
 
@@ -1099,10 +1122,13 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
   page keeps `lg` under the page's top padding. The screen's side margins are `edge`, 24.
 - **A section heading's words start at `edge`** over boxes and controls, and over the setting rows whose words stand there. They
   start `md` in over rows whose words stand 16 in: value rows, detail rows, list rows, network rows, dropdowns and status blocks.
-- **The deck's settings put every row's words on one left edge, `spacing.edge` plus `spacing.md`, 40 px.** The value, network and list rows
-  stand their words there inside their boxes. The toggle rows and the name over the slider carry the same `spacing.md` at their left, and their
-  controls, the slider's track and the rows' boxes stay on the content's edges at 24 and 456. Words at 24 would put the rows' boxes and
-  their rings in the margin, off the scale. The scroll indicator's lane in the right margin stays clear of both pages.
+- **On the deck's screens the title, words that take no ring and every card's box stand on the content's edges, `spacing.edge`, 24 and
+  456, and a ring is drawn round a box, never round bare words.** A row whose ring goes round it whole is a card on the light dither,
+  `rounded.lg`, as the question's answers are, its words `spacing.md` inside and its ring in the margin. The deck's cards are the
+  settings' Time zone, network and Hardware test, the Wi-Fi page's network and its page of facts, the networks to pick and the needs-you rows. Words whose
+  ring goes round their control alone stand on the edge with the title: the toggle rows' names, the name over the slider, and a reading
+  such as Battery. The scroll indicator's lane in the right margin stays clear (the person, 2026-11-26: "title and cards should all
+  align at the edges. left and right padding would allow for focus ring").
 - **Every touch target is `spacing.target`, 64 px — 6.9 mm.** A control may draw smaller and pad its hit area — a
   toggle draws `spacing.toggle-height`, 44 px, a checkbox or radio `spacing.check-size`, 44 px, and each takes touches
   across 64.
@@ -1258,9 +1284,10 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
 
 ### Sound
 
-- **Six words, in the 8-bit style of a game's pulse voices, and nothing else sounds** — `sound.tick`, `sound.at-end`,
-  `sound.error`, `sound.success`, `sound.recording-start` and `sound.recording-stop`. A new event takes one of them
-  before it gets a sound of its own.
+- **Ten words, in the 8-bit style of a game's pulse voices, and nothing else sounds** — six for what a press does,
+  `sound.tick`, `sound.at-end`, `sound.error`, `sound.success`, `sound.recording-start` and `sound.recording-stop`, and
+  the agent deck's four for news no press made: `sound.attention`, `sound.link-up`, `sound.usage-limit` and
+  `sound.agent-start` (below). A new event takes one of them before it gets a sound of its own.
 - **Every sound is short and in the buzzer's band** — a tick at most `sound.tick-max`, any other at most `sound.max`,
   every pitch from `sound.band-low` to `sound.band-high`; Claude's mascot's sounds alone are the deck's, at its pitches,
   and its music longer (below).
@@ -1274,7 +1301,16 @@ At 235 ppi a pixel is 0.108 mm and a point is 3.26 px.
   sound.
 - **A recording opens on `sound.recording-start` and closes on `sound.recording-stop`**, and the start sound is never
   in the recording; a recording that fails closes on `sound.error`.
-- **Claude's mascot is heard by its moments and its music, outside the six words, at the agent deck's own pitches.**
+- **The agent deck's news sounds as it comes, wherever the glass is** — `sound.attention` when a request or question
+  joins the queue, `sound.link-up` when the bridge to the Mac connects, `sound.usage-limit` when the plan's limit is
+  hit, and `sound.agent-start` when an agent starts working, new or back from idle or done. Each sounds once as its news
+  comes, not again for a record that repeats it or for a question's later part, and none sounds on standby. A request
+  closed and sent again sounds again. They rank
+  attention, then usage limit, then link up, then agent start: a lower one is dropped while a higher one sounds, and
+  while one sounds the mascot's moments are dropped, not played over it; a press's tick still cuts in.
+  They are the deck's own cues moved into the band, the person's ear on the draft (2026-11-26) over the same at the
+  deck's pitches.
+- **Claude's mascot is heard by its moments and its music, outside the ten words, at the agent deck's own pitches.**
   This is the person's ear, 2026-11-24, over the same sounds moved into the band; out of the band and below it they are
   quieter. `sound.mascot-*` gives one sound for each movement of a move (the mascot-animation skill, MASCOT §4–§6), the
   deck's effects as the deck has them. They sound only where a page shows the mascot, and only for what it does on the
@@ -1346,14 +1382,14 @@ serves, reached and used by the keys and by touch.
   characters beside one (a glyph of 28 px, 16, and 7 × 18 = 170 px) and a full-width button 19. A footer third holds
   none, so it takes the word alone or an icon button. The glyphs beside words are Record (the microphone), Play, Back (the arrow), Save (the check) and Retry (the refresh). One glyph means one thing everywhere. The icon button is a
   square of `spacing.target` with a glyph and no words, in the button's four variants. The toggle icon button is a
-  tonal tile that goes black when on, its glyph the current state. Both are in the closed set of DESIGN → Exceptions. A
+  tonal tile, the same on and off, its glyph alone the current state (the person, 2026-11-26). Both are in the closed set of DESIGN → Exceptions. A
   toggle icon row says the state in words beside the tile, as a toggle row does. No button has a pressed state
   (Motion → Press).
 - **Toggle** — a pill track `spacing.toggle-width` by `spacing.toggle-height` with a pill thumb
   `spacing.toggle-thumb-width` wide inset `spacing.xs`: off is the light dither with a black thumb left, on a black
   track with a white thumb right. Its state also in words beside it. A toggle row is its name, the state in `body` words and
   the toggle at the content's right edge, and the whole row toggles. A disabled row shows its reason in words under the name,
-  `spacing.xs` below it, and stays `spacing.target` high.
+  `pair-sm` between their own boxes; the row is `spacing.target` high without it and grows to hold the two, centred.
 - **Checkbox row, radio button row** — the toggle's look as a square or a disc, `spacing.check-size` across (the toggle's
   height, so a column of toggles and boxes shares one right edge and one height): a checkbox `rounded.md`, a radio
   `rounded.full`. Off is the light dither inside a `spacing.stroke.default` outline — the one place it parts from the
@@ -1380,13 +1416,13 @@ serves, reached and used by the keys and by touch.
   row, a choice card, a dropdown field and a select sheet's option all keep their words and controls on the row's
   vertical axis. A row that grows with its words grows about its centre. A host test holds it (STICKY_DESIGN_TOKENS §9).
 - **Words one size down** — a screen that holds many controls on one page may set a control's words smaller than the
-  kit's default, to a role of the type scale. A toggle row, a value row, a dropdown, a radio row, a list row or a choice card takes `caption` or `caption-strong` for its name, its state word and its value. A detail row's label takes `caption-strong` and its value `caption`, so the row reads as the name in bold over its fact, as a network row's does. The words keep their line box. Each is refitted to the role's line height and centred on it, so the row stays centred on its height. Only words larger than the role come down to it: a `caption` supporting line stays as it is (a detail row's label is set to its role outright, since it has `caption`'s size already). It is one call and one choice for a whole row, never a size for a single word beside its neighbour. It is a role from the scale, never a size of its own (STICKY_DESIGN_TOKENS §14).
+  kit's default, to a role of the type scale. A toggle row, a value row, a dropdown, a radio row, a list row or a choice card takes `caption` or `caption-strong` for its name, its state word and its value. A detail row's label takes `caption-strong` and its value `caption`, so the row reads as the name in bold over its fact, as a network row's does. The words keep their line box. Each is refitted to the role's line height and centred on it, so the row stays centred on its height. Only words larger than the role come down to it: a `caption` supporting line stays as it is (a detail row's label is set to its role outright, since it has `caption`'s size already). The one exception is the agent deck's question: its cards' names come down to `caption-strong` and their detail lines go to `caption-regular`, so name and detail differ in weight at one size (the person, 2026-11-26, after seeing it on the glass). It is one call and one choice for a whole row, never a size for a single word beside its neighbour. It is a role from the scale, never a size of its own (STICKY_DESIGN_TOKENS §14).
 - **List row** — a title and a supporting line in `spacing.list-row-height`, 80 px, `rounded.lg`. It has `spacing.sm`
   above and below, `spacing.md` either side, `spacing.md` from the next row and no rule between. A one-line row is
   `spacing.target`, 64 px. The ring and the gap separate rows. Its title is `label`; a screen whose names are the page's
   own words — the agent deck's needs-you list — sets them in `body`, 30 px regular, so the names are not heavier than the
   page's title over them. A line too long for the row ends in LVGL's dots by default; a row may ask for the stepped line
-  instead — the needs-you list does, for its names and facts (Exceptions → Stepped lines on the deck's screens). A row's supporting line is `caption` by default and `text-secondary`. A screen whose names are in `body` sets it in `caption-regular`, 20 px regular, as the needs-you list's facts. That makes a regular line under a regular name, the name the larger and the line the lighter in size and colour; a semibold line under a regular name would be the heavier. The kit's other list rows keep `caption`. The two are 24 px lines, so the row stays 80 px and centred.
+  instead — the needs-you list does, for its names and facts (Exceptions → Stepped lines on the deck's screens). A row's supporting line is `caption` by default and `text-secondary`. A screen whose names are in `body` sets it in `caption-regular`, 26 px regular, as the needs-you list's facts. That makes a regular line under a regular name, the name the larger and the line the lighter in size and colour; a semibold line under a regular name would be the heavier. The kit's other list rows keep `caption`. The two are 24 px lines, so the row stays 80 px and centred.
 - **Timeline** — date chips, then the chosen date's recordings as list rows.
 - **Chip, segment** — a chip is a rounded box `rounded.lg` as wide as its words, on the light dither, chosen with a
   black edge of `spacing.stroke.strong` and the fill unchanged — the deck's chip, never a pill. A segment is up to four
@@ -1415,13 +1451,13 @@ serves, reached and used by the keys and by touch.
   `spacing.item` apart. Its offset, `spacing.overlay-offset` down and to the right in `shadow-3`, stands inside the page's margin
   (Elevation & Depth). A touch outside it is eaten (Focus and input).
 - **Network row** — a Wi-Fi network in `spacing.list-row-height`, 80 px, `rounded.lg`, `spacing.md` either side and `spacing.sm`
-  above and below. Its name is `caption-strong`, 20 px bold, over its facts line in `caption`, 20 px semibold: the same size and line, so the row's layout is the one it had, and the name reads first by its weight. The name runs up to 28 characters and then LVGL's dots, or, where a screen asks, a stepped line (the agent deck's Wi-Fi page and settings; Exceptions → Stepped lines on the deck's screens). An open
+  above and below. Its name is `caption-strong`, 26 px bold, over its facts line in `caption-regular`, 26 px regular: the same size and line, so the row's layout is the one it had, and the name reads first by its weight, bold over regular as on the question's cards (the person, 2026-11-26). The name runs up to 28 characters and then LVGL's dots, or, where a screen asks, a stepped line (the agent deck's Wi-Fi page and settings; Exceptions → Stepped lines on the deck's screens). An open
   network says "Open" and a secured one carries a padlock before "Locked". The connected one carries a check before "Connected"
   and then its padlock or "Open", and the one being joined says "Connecting…". At the right end stands its signal, a glyph alone
   with no word, centred on the row's height. The lit bars are black and the unlit bars the light dither, drawn under them on the
   same canvas (DESIGN → Exceptions). The connected network and the one being joined are the chosen inversion, with their words,
   glyphs and lit bars white and the unlit bars the dark dither. They differ by the check and the words. A failed join is no row
-  state: the row goes back to rest and a dialog says why. Where its screen asks for the outlined look — the deck's settings and Wi-Fi page, the person's choice — the connected row is white inside a `spacing.stroke.default` black outline instead (`network-row-joined`). Every word and glyph is black, its check and its lit bars too, and the unlit bars are the light dither, as on a row at rest. The outline is drawn inside the row and the padding gives up its width, so the words stand where they stand at rest. It differs from a plain row by its outline and from the chosen inversion by its white fill. The rest of the row, its facts and its ring, is unchanged. Rows are `spacing.md` apart in a list view, no box.
+  state: the row goes back to rest and a dialog says why. Where its screen asks for the card look — the deck's settings and Wi-Fi page, the person's choice — the connected row is a card on the light dither instead, with no edge (`network-row-joined`; the person, 2026-11-26: "light grey background not outline"). Every word and glyph is black, its check and its lit bars too, and the unlit bars are the dark dither, which shows on the light ground. The words stand where they stand at rest. It differs from a plain row by its fill and from the chosen inversion by its light one. A screen may stand rows at rest on the card's face too, as the deck's list of networks does; their unlit bars are the dark dither likewise. The rest of the row, its facts and its ring, is unchanged. Rows are `spacing.md` apart in a list view, no box.
 - **Keyboard** — a full-glass overlay with Cancel and one action named for what it does ("Join", "Done"). It has six keys a row, each
   `spacing.target` square, `spacing.key-gap` apart. Letters come in the order of the alphabet, then digits with common
   punctuation (123), then the rest of the punctuation (#+=): four pages of six rows, each key `rounded.md`. A character key
@@ -1497,7 +1533,7 @@ serves, reached and used by the keys and by touch.
 - **Radio row, choice card** — a card on the light dither, `rounded.lg`, its words `spacing.card-inset` in, with a
   `spacing.mark` ring (one choice) or box (many) at the right. A radio row is at least `spacing.list-row-height` high, its `label`
   name wrapping to 18 characters a line and never cut, `spacing.xs` above and below so one line and two both stand 80, three
-  116 and four 152, with no detail line. A choice card at least the mark and two `spacing.md` high with a `label` name over its detail in `caption`.
+  116 and four 152, with no detail line. A choice card at least the mark and two `spacing.md` high with a `label` name over its detail in `caption` (on the agent deck's question, `caption-strong` over `caption-regular`: Components → The kit → Words one size down).
   Chosen is the mark alone: the ring's `spacing.mark-dot` dot, the box's check — the card does not change.
   A group is the rows and one-choice cards that share a parent, as a radio button row's. Choosing one — OK on it, or a tap
   on the lift — clears the rest of its group and sends `LV_EVENT_VALUE_CHANGED` on it, after they are cleared. A chosen
@@ -1581,7 +1617,7 @@ serves, reached and used by the keys and by touch.
   on its white disc are `text-disabled-page`, one in eight. A disabled control looks inert, not faded. It is exempt from
   contrast, is never reached by the buttons and never has a ring. A disabled tonal button differs from an enabled one by
   its words alone, so the reason says why, in words, solid `caption` in `text-secondary` under the control,
-  `spacing.xs` below a row's name. Where the words cannot stand under it, a line the screen already shows says why and is linked to the
+  `pair-sm` under a row's name between their own boxes. Where the words cannot stand under it, a line the screen already shows says why and is linked to the
   control (the keyboard's count line, for its action). Prefer explaining over disabling.
 - **Busy** — the label says what it is doing.
 - **Done** — in words ("Done"), never a grey.
@@ -1712,10 +1748,10 @@ support, Not applicable, with a reason on every row. A closed device is rated by
 | 4.1.2 Name, role, value | Not applicable | Closed software with no assistive technology (EN 301 549 11.4.1.2.2); state is drawn |
 | 4.1.3 Status messages | Not applicable | EN 301 549 11.4.1.3.2; the status line and its sounds are good design, not a claim |
 | WCAG 2.2.2 Pause, stop, hide: stepped lines | Supports | A stepped line (Exceptions → Stepped lines on the deck's screens) stops itself: after its three passes, about 51 s for a 62-character line, it stands at its start ending in dots, a line in a control and a reading alike, and moves again only when its words change, its page is turned to or shown again, or its control is focused or pressed. Nothing on a page stepped keeps moving for ever (the person's decision, 2026-11-26) |
-| WCAG 2.2.2 Pause, stop, hide: Claude's mascot | Partially supports | Claude's mascot loops its move for as long as its screen is up (Exceptions → Claude's mascot on the deck's screens), and the person cannot pause it (Open items → How long the mascot loops) |
+| WCAG 2.2.2 Pause, stop, hide: Claude's mascot | Partially supports | Claude's mascot loops its move for as long as its screen is up and rests when the device sleeps (Exceptions → Claude's mascot on the deck's screens); the person cannot pause it otherwise |
 | EN 301 549 5.1.3.1 Non-visual access | Does not support | No speech or tactile output; the buzzer sounds event tones only, with no labels. 5.1.3.2 to 5.1.3.16 follow: not applicable |
-| EN 301 549 5.1.4 Closed functionality: text size | Partially supports | The smallest role is `caption`, 20 px; the visual angle at a stated viewing distance is not computed (Open items → The viewing distance) |
-| EN 301 549 5.1.5 Visual identification of audio | Partially supports | Every outcome sound has words on the glass. A press's tick and the end-of-list double tick have nothing on it (Open items → A press answered without sound) |
+| EN 301 549 5.1.4 Closed functionality: text size | Partially supports | The smallest role is `caption`, 26 px; the visual angle at a stated viewing distance is not computed (Open items → The viewing distance) |
+| EN 301 549 5.1.5 Visual identification of audio | Partially supports | Every outcome sound has words on the glass, but two. A press's tick and the end-of-list double tick have nothing on it (Open items → A press answered without sound). A question's Send pressed with no pick sounds `sound.error` with the ring on the first answer and no words (the person, 2026-11-26). The deck's four news sounds have their words on the screen that shows the news, and sound under any screen but standby |
 | EN 301 549 5.5.2 Identification of controls | Partially supports | The three keys are found by touch; the touch screen and the AI button's role are not |
 | EN 301 549 5.7 Key repeat | Does not support | A held UP or DOWN repeats after `motion.key-repeat-delay`, 600 ms, then every `motion.key-repeat-period`, 500 ms, and neither can be adjusted or turned off (Open items → A setting for the keys' repeat) |
 | Section 508 402.2 Speech output | Does not support | A display screen with no speech output; not a status-indicator-only screen |
@@ -1734,7 +1770,7 @@ A value off these tokens is argued here — what, where and why — before a scr
   - A test's absolute grey levels: the words on each grey band.
   - Its timers and lengths: the stats shown after a refresh, the benchmark's frames, a second of recording, leaving a
     screen, the page walk's 3 s on each page, the RTC's 60 s before it turns the board on.
-  - The buzzer's sounds beyond the six: the Buttons screen's one-second tone, at Seeed's 4 kHz, the console's
+  - The buzzer's sounds beyond the ten: the Buttons screen's one-second tone, at Seeed's 4 kHz, the console's
     `sound band`, held pitches across the band, and its `sound ab`, the agent deck's sounds two ways on the buzzer.
   - The refresh benchmark's bar, which animates as fast as the glass allows.
   - The page walk, which changes screen by itself from the console.
@@ -1756,7 +1792,7 @@ A value off these tokens is argued here — what, where and why — before a scr
     product shows one.
 
   So Nothing animates, Nothing leaves on a timer, Nothing updates on its own faster than every 5 s, A screen takes a role,
-  Content turns by page and Six words cannot hold there.
+  Content turns by page and Ten words cannot hold there.
 - **Where it stops:** a size that matches a token uses the token; text, colours by role, focus and hit areas follow
   this file; nothing outside `components/hw_test` uses the exception. The mascot's moves are the widget's (`components/widgets/src/mascot.cpp`), and only this page plays them, until the agent deck's screens do under their own exception (Claude's mascot on the deck's screens, below). The type scale page's sample frames and the Touch
   screen's tap layer are the only controls built outside the kit.
@@ -1832,7 +1868,8 @@ The mascot loops its state's move on the agent deck's screens, over everything.
 - **Where it stops:** the widget's own moves (`components/widgets/src/mascot.cpp`), the same flipbook the hardware test's mascot
   page plays, on the pages named above, one mascot to a page. The needs-you list's avatars are the one place a page holds several. Its cycle plays only the idle's lean and look-around, never a walk or a skip out of the avatar's place, and in front of nothing: an avatar leans within its row's room and over no word. No other element of a screen animates. The mascot carries no fact the page does not say in words (Colors → The mascot's greys), so a frame that is late or dropped loses nothing. Its moments
   sound with its frames as Motion → Sound sets. A covered screen's loop waits (Motion → Waits and things that update on their own). Every frame is a partial refresh that counts toward the twenty. A list's avatars are heard as the home view's mascot is, by their moments, and a blink two of them share is heard once. A list covered by a request stops its cycle, and one entered begins it again from 3 s.
-  How long a loop runs before the glass rests is open (Open items → How long the mascot loops).
+  A loop runs for as long as its screen is up and rests when the device sleeps, and so does the needs-you list's cycle (the person,
+  2026-11-26: "it will rest during when the device sleeps").
 
 ### Stepped lines on the deck's screens
 
@@ -1878,7 +1915,7 @@ Three of the agent deck's screens leave by themselves.
 
 The agent deck's small supporting lines are words in the dark dither, 3.5 : 1 on the white glass.
 
-- **What:** `colors.text-quiet`, the dark dither (`scale.primary.1` as a fill) drawn as words on every refresh, in `caption` (`ui::QuietWords`), or in `caption-regular` for the count line under a heading. It is the reset lines under the usage bars, a session's or a sub-agent's tokens, a request's or a question's agent name, and "4 sessions" under the needs-you title, in `caption-regular`. It is also "No plan data" where the usage is unknown, "On battery only" beside Auto sleep, and the Wi-Fi page's supporting lines ("Pick the Mac's network", "This takes a few seconds."). A word in the dark dither averages 3.50 : 1 against the white in linear light (STICKY_DESIGN_TOKENS §2.3). That is under the 4.5 : 1 floor for text (Colors → Contrast floors), where `text-secondary` is 7.46 : 1 on a full refresh and black on a partial one.
+- **What:** `colors.text-quiet`, the dark dither (`scale.primary.1` as a fill) drawn as words on every refresh, in `caption` (`ui::QuietWords`), or in `caption-regular` for the count line under a heading. It is the reset lines under the usage bars, a session's or a sub-agent's tokens, a request's or a question's agent name, and "4 sessions" under the needs-you title, in `caption-regular`. It is also "No plan data" where the usage is unknown, and the Wi-Fi page's supporting lines ("Pick the Mac's network", "This takes a few seconds."). A word in the dark dither averages 3.50 : 1 against the white in linear light (STICKY_DESIGN_TOKENS §2.3). That is under the 4.5 : 1 floor for text (Colors → Contrast floors), where `text-secondary` is 7.46 : 1 on a full refresh and black on a partial one.
   It is against principle 1 (Accessible by default) and "Text and lines are never dithered".
 - **Why:** the person's decision, 2026-11-25, over `text-secondary` and a larger size, on the mocks: the grey words stay, the look the agent deck has, where a small line of supporting detail steps back from the facts it serves (the figure, the name, the tool). On a partial refresh `text-secondary` is black, as loud as the heading it sits under. The dither stays grey on every refresh.
 - **Where it stops:** a supporting line only, never the one thing a screen says, never the only sign of a state and never a control's name or a button's words. Each says nothing the screen does not say in a heading, a figure or a name beside it ("Usage 42%" over its reset, "Needs you" over "4 sessions", the tool over its agent). So a reader who cannot make it out loses a detail, not a fact. It is `caption`, or `caption-regular` for the needs-you heading's count line, and the deck's screens' alone. The count line is regular so the heading over it, 30 px semibold, differs in size and weight; its colour is the same quiet dither. Nothing else on the glass takes `text-quiet`, and every other word keeps the floor.
@@ -1904,7 +1941,7 @@ A masked field shows the last character typed in the clear for a moment, and the
 
 A Wi-Fi network's signal shows every bar of the glyph, the lit ones black and the unlit ones in the light dither.
 
-- **What:** the unlit bars of the signal glyph are dithered strokes: the light dither on the white page and on the outlined row, the dark dither on the inverted row (Components → Network row). This is against Colors → The four
+- **What:** the unlit bars of the signal glyph are dithered strokes: the light dither on the white page, the dark dither on a card and on the inverted row (Components → Network row). This is against Colors → The four
   levels' "Text and lines are never dithered".
 - **Why:** the count of lit bars carries the signal, so the unlit bars are decorative and meet no contrast floor. They say
   how much is missing by being faint, as the deck's `wifi_indicator` shows a quiet tint under the lit part, and at one bit the
@@ -1951,9 +1988,6 @@ The chosen option of a select sheet is marked by the check, without its word.
 
 ## Open items
 
-- **How long the mascot loops** — the deck's mascot loops its move for as long as its screen is up (Exceptions → Claude's mascot on
-  the deck's screens), and every frame is a partial refresh that costs battery and brings the next full refresh nearer. Whether the loop rests after a time, or at sleep, is open. The needs-you list's avatars cycle for as long as it is up, one begun every 3 s and each lasting 5 s or more. So the list is never at rest: about 6 to 11 frames a cycle, a full refresh every twenty.
-
 - **A setting for the keys' repeat** — holding UP or DOWN repeats after `motion.key-repeat-delay` every
   `motion.key-repeat-period`, with no setting to slow or stop it; EN 301 549 5.7 asks for one where a key repeats, so the
   conformance table rates it Does not support. Add the setting once a Settings screen exists.
@@ -1982,9 +2016,9 @@ The chosen option of a select sheet is marked by the check, without its word.
 - **A status line left up** — it stays until the next change of screen or its caller retracts it, so on a device that sits on
   one screen for days it can read as current when it is not; whether that is acceptable, or a caller's `Clear` is enough.
 - **The glass's real contrast** — its white and black measured against the nominal 21 : 1.
-- **Whether `caption-regular` reads** — the needs-you list's facts line is 20 px at weight 400, whose strokes are 1 and 2 px, thinner than any other text on the glass (Typography → Face), and the person chose it over `caption` for the hierarchy of the name over its line. The needs-you heading's count line takes the same weight in `text-quiet`, the dark dither, which cuts those strokes further. Whether it holds at one bit a pixel on a V1.0 and a V2.0 board, in `text-secondary`, in `text-quiet`, and on a row that is the chosen inversion, white on black, is the person's look; if it breaks up, the line returns to `caption`.
-- **Whether a 2 px hairline and `caption` at 20 px read from a metre away** — on a V1.0 and a V2.0 board.
+- **Whether `caption-regular` reads** — the needs-you list's facts line is 26 px at weight 400, whose strokes are thinner than any other text on the glass (Typography → Face), and the person chose it over `caption` for the hierarchy of the name over its line. The question's choice cards set their detail in it on the light dither, `band`, the person's choice on a V2.0's glass (2026-11-26), and the Wi-Fi network rows' facts and the needs-you rows' facts stand in it on their cards too. The needs-you heading's count line takes the same weight in `text-quiet`, the dark dither, which cuts those strokes further. Whether it holds at one bit a pixel on a V1.0 and a V2.0 board, in `text-secondary`, in `text-quiet`, on the card's dither and on a row that is the chosen inversion, white on black, is the person's look; if it breaks up, the line returns to `caption`.
+- **Whether a 2 px hairline and `caption` at 26 px read from a metre away** — on a V1.0 and a V2.0 board.
 - **How many times a full refresh flashes**, against WCAG's three a second.
 - **Press-to-start and press-to-stop recording** beside the hold.
 - **A larger text setting**, and the glyph ranges every string needs.
-- **A wait's sound, and an ignored press's** — whether either gets one of the six words, or stays the tick alone.
+- **A wait's sound, and an ignored press's** — whether either gets one of the ten words, or stays the tick alone.

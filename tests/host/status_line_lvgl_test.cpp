@@ -145,7 +145,7 @@ int32_t BelowY(const Page &page)
 }
 
 const char *kOneLine = "Card read.";
-const char *kTwoLines = "The card did not mount. Check it is FAT32, then try again.";  // 58 characters
+const char *kTwoLines = "The card did not mount. Use FAT32, then retry.";  // 46 characters: two lines at 26 px
 // Past the copy cap and past two lines: LVGL ends the second in dots.
 const char *kTooLong =
     "The card did not mount, and nothing on it could be read, so check that it is formatted as FAT32, then try again later.";

@@ -403,11 +403,32 @@ esp_err_t SetRtcWake(uint8_t seconds)
     return WriteReg(s_rtc, kRtcTimerControl, kRtcTimerOn1Hz);
 }
 
-void Play(const sound::Sound &sound)
+// Until when a leading word sounds (esp_timer_get_time's clock), under s_sound_lock as the music's start is: the frames' moments
+// are dropped till then (sounds.h Leads). Any other sound cuts the word, and mute silences it, so both end the lead.
+namespace {
+
+int64_t s_word_leads_until_us = 0;
+
+void SetLead(int64_t until_us)
+{
+    taskENTER_CRITICAL(&s_sound_lock);
+    s_word_leads_until_us = until_us;
+    taskEXIT_CRITICAL(&s_sound_lock);
+}
+
+void PlaySound(const sound::Sound &sound)
 {
     SoundRequest request;
     request.sound = sound;
     Ask(request);
+}
+
+}  // namespace
+
+void Play(const sound::Sound &sound)
+{
+    SetLead(0);
+    PlaySound(sound);
 }
 
 void AskMusic(const MusicRequest &music)
@@ -433,6 +454,7 @@ void StopMusic()
 
 void Silence()
 {
+    SetLead(0);
     Ask(SoundRequest{});
 }
 
@@ -442,12 +464,15 @@ void Tone(uint32_t ms)
     request.tone = {sound::Wave::kPulse50, static_cast<uint16_t>(bc::kBuzzerHz), 0,
                     static_cast<uint16_t>(std::min<uint32_t>(ms, UINT16_MAX)), 255};
     request.is_tone = true;
+    SetLead(0);
     Ask(request);
 }
 
 void Play(sound::Word word)
 {
-    Play(sound::SoundOf(word));
+    const bool leads = sound::Leads(word) && !s_muted.load();
+    SetLead(leads ? esp_timer_get_time() + int64_t{sound::LengthMs(sound::SoundOf(word))} * 1000 : 0);
+    PlaySound(sound::SoundOf(word));
 }
 
 void Tick()
@@ -497,7 +522,13 @@ void PlayMoments()
         into_us < int64_t{sound::LengthMs(sound::SoundOf(music.music))} * 1000) {
         return;  // a leading music sounds: heard whole, the frame's moments dropped
     }
-    Play(sound::Sound{notes, count});
+    taskENTER_CRITICAL(&s_sound_lock);
+    const int64_t leads_until_us = s_word_leads_until_us;
+    taskEXIT_CRITICAL(&s_sound_lock);
+    if (esp_timer_get_time() < leads_until_us) {
+        return;  // a deck event sound sounds: heard whole, likewise
+    }
+    PlaySound(sound::Sound{notes, count});  // the moments play over the music and leave no lead of their own
     s_moment_buffer ^= 1;
 }
 
@@ -505,6 +536,7 @@ void SetMuted(bool muted)
 {
     s_muted.store(muted);
     if (muted) {
+        SetLead(0);
         DropMoments();
         StopMusic();
         Silence();

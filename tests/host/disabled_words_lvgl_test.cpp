@@ -3,7 +3,7 @@
 // no grey edge between it and its ground, and the one-bit packing then draws exactly the pattern (DESIGN → Components →
 // States → Disabled; STICKY_DESIGN_TOKENS §4). A one-bit Bitcount stroke is the font's solid pixels, so a glyph pixel is the
 // text colour's code itself; an A1 mark recoloured is the same.
-// host-sources: components/ui/fonts/bitcount/bitcount_700_30.c components/ui/fonts/bitcount/bitcount_600_20.c components/widgets/marks/marks.c
+// host-sources: components/ui/fonts/bitcount/bitcount_700_30.c components/ui/fonts/bitcount/bitcount_600_26.c components/widgets/marks/marks.c
 // Build and run: bash tests/host/run.sh
 
 #include <cstdint>
@@ -18,7 +18,7 @@
 
 extern "C" {
 LV_FONT_DECLARE(bitcount_700_30)
-LV_FONT_DECLARE(bitcount_600_20)
+LV_FONT_DECLARE(bitcount_600_26)
 extern const lv_image_dsc_t widgets_mark_glyph_check;
 extern const lv_image_dsc_t widgets_mark_glyph_speaker_off;
 }
@@ -204,9 +204,9 @@ int main()
           "text-disabled is the sixteenth dither and text-disabled-page the eighth");
     // Words on a disabled control's face: the sixteenth on the light dither; a row's name on the page: the eighth on white.
     TestWords("label on the face", &bitcount_700_30, dt::kColorTextDisabled, dt::kColorBand, 16);
-    TestWords("caption on the face", &bitcount_600_20, dt::kColorTextDisabled, dt::kColorBand, 16);
+    TestWords("caption on the face", &bitcount_600_26, dt::kColorTextDisabled, dt::kColorBand, 16);
     TestWords("label on the page", &bitcount_700_30, dt::kColorTextDisabledPage, dt::kColorWhite, 8);
-    TestWords("caption on the page", &bitcount_600_20, dt::kColorTextDisabledPage, dt::kColorWhite, 8);
+    TestWords("caption on the page", &bitcount_600_26, dt::kColorTextDisabledPage, dt::kColorWhite, 8);
     TestMark("check on the face", widgets_mark_glyph_check, dt::kColorTextDisabled);
     TestMark("speaker off on the face", widgets_mark_glyph_speaker_off, dt::kColorTextDisabled);
 

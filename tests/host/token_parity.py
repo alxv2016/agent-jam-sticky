@@ -534,9 +534,9 @@ def self_test() -> int:
         (promoted(), "a header-only entry a front-matter token now names fails"),
         (fails(design.replace("\nsound:", "\nrefresh:\n  partial-limit: 20\nsound:", 1), header, "refresh",
                "does not know"), "an unknown token group fails"),
-        (fails(swap(design, "  scale-20-bold:\n    fontFamily: Bitcount Single",
-                    "  scale-20-bold:\n    letterSpacing: 1px\n    fontFamily: Bitcount Single"), header,
-               "typography.scale-20-bold", "letterSpacing"), "a type token with a key the struct lacks fails"),
+        (fails(swap(design, "  scale-26-bold:\n    fontFamily: Bitcount Single",
+                    "  scale-26-bold:\n    letterSpacing: 1px\n    fontFamily: Bitcount Single"), header,
+               "typography.scale-26-bold", "letterSpacing"), "a type token with a key the struct lacks fails"),
         (fails(design, swap(header, "inline constexpr uint8_t kNoShadow = 0xFF;\n", ""), "kNoShadow", "not declared"),
          "a deleted kNoShadow fails as a mismatch, not a crash"),
     ]

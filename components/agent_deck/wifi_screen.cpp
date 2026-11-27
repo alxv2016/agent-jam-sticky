@@ -92,9 +92,9 @@ private:
     {
         lv_obj_t *col = Column(body_, dt::kSpacingContent);
         lv_obj_set_pos(col, dt::kSpacingEdge, kHeadingTop);
-        Words(col, Type::kTitle, title);
+        lv_obj_t *heading = Words(col, Type::kTitle, title);
         if (line != nullptr) {
-            MarginTop(Quiet(col, line), -dt::kSpacingXs);  // tight under the heading
+            TuckUnder(heading, Quiet(col, line));
         }
         return col;
     }
@@ -242,7 +242,7 @@ private:
         const model::Wifi &w = model::GetWifi();
         lv_obj_t *col = Heading("Wi-Fi", nullptr);
         lv_obj_t *net = widgets::MakeNetworkRow(col, w.network.name, w.network.locked, w.network.signal, widgets::NetworkState::kConnected,
-                                                widgets::NetworkLook::kOutlined, widgets::NetworkName::kStepped,
+                                                widgets::NetworkLook::kCard, widgets::NetworkName::kStepped,
                                                 widgets::MarqueeKey(kScopeWifi, 0, 2));
         MarginTop(net, dt::kSpacingLg);
         lv_obj_add_event_cb(net, OnNetwork, LV_EVENT_CLICKED, this);
@@ -253,6 +253,15 @@ private:
             widgets::SetDetailRowOneSizeDown(row);  // the labels in `caption-strong`, the values in `caption`
         }
         widgets::UpdateListView(list);  // before the buttons: a page of facts is a stop in the walk, added at the end
+        // The facts on one card: each page's stop is the box round its facts, on the network card's edges, so it takes the card's face,
+        // behind the words, and its ring stands where the network card's does (the person, 2026-11-26).
+        for (uint32_t i = 0; i < lv_obj_get_child_count(list.frame); ++i) {
+            lv_obj_t *stop = lv_obj_get_child(list.frame, static_cast<int32_t>(i));
+            if (stop != list.root && lv_obj_get_group(stop) != nullptr) {
+                CardFace(stop);
+            }
+        }
+        lv_obj_move_to_index(list.root, -1);  // the facts over their cards
         lv_obj_t *l = nullptr, *r = nullptr;
         Halves("Back", ButtonVariant::kOutline, OnBack, "Disconnect", ButtonVariant::kOutline, OnDisconnect, &l, &r);
         primary_ = net;
@@ -272,6 +281,8 @@ private:
             lv_obj_t *row = widgets::MakeNetworkRow(list.root, n.name, n.locked, n.signal, widgets::NetworkState::kRest,
                                                     widgets::NetworkLook::kInverted, widgets::NetworkName::kStepped,
                                                     widgets::MarqueeKey(kScopeWifi, static_cast<uint32_t>(i) + 1, 2));
+            CardFace(row);  // a card at rest; the one being joined takes the chosen inversion over it
+            widgets::SetNetworkRow(row, n.locked, n.signal, widgets::NetworkState::kRest);  // drawn again on the card: its unlit bars dark
             lv_obj_add_event_cb(row, OnPick, LV_EVENT_CLICKED, this);
             first = first != nullptr ? first : row;
         }

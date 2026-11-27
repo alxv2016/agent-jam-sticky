@@ -71,12 +71,13 @@ struct TypeRole {
 };
 
 // The primitives: the scale, each size a multiple of 10 px so the font's cells — a tenth of the em — fall on whole
-// pixels. Its line is 1.2 em to 40 px, then tapers, each step on the 4 px grid and never under the font's own height:
+// pixels, but the smallest, 26 px, whose 2.6 px cells fall unevenly: the person's look on the glass, 2026-11-26, chose it over
+// 20 px, too small to read. Its line is 1.2 em to 40 px, then tapers, each step on the 4 px grid and never under the font's own height:
 // 56 at 50, 64 at 60, 72 at 70, 80 at 80. 100 px and up hold figures only, on the height of their digits
 // (STICKY_DESIGN_TOKENS §3; tests/host/line_floor_lvgl_test.cpp holds the floor).
-inline constexpr TypeRole kTypographyScale20Semibold = {20, 24, 600};
-inline constexpr TypeRole kTypographyScale20Bold = {20, 24, 700};
-inline constexpr TypeRole kTypographyScale20Regular = {20, 24, 400};  // the second regular weight
+inline constexpr TypeRole kTypographyScale26Semibold = {26, 32, 600};
+inline constexpr TypeRole kTypographyScale26Bold = {26, 32, 700};
+inline constexpr TypeRole kTypographyScale26Regular = {26, 32, 400};  // the second regular weight
 inline constexpr TypeRole kTypographyScale30Regular = {30, 36, 400};  // the first regular weight
 inline constexpr TypeRole kTypographyScale30Semibold = {30, 36, 600};
 inline constexpr TypeRole kTypographyScale30Bold = {30, 36, 700};
@@ -103,15 +104,15 @@ inline constexpr TypeRole kTypographyDisplay = kTypographyScale50Bold;
 inline constexpr TypeRole kTypographyHeadline = kTypographyScale40Bold;
 inline constexpr TypeRole kTypographyBody = {kTypographyScale30Regular.size_px, 40, kTypographyScale30Regular.weight};  // scale-30-regular on 40
 inline constexpr TypeRole kTypographyLabel = kTypographyScale30Bold;
-inline constexpr TypeRole kTypographyCaption = kTypographyScale20Semibold;
-// Caption on a loose line, 1.5 em: a text view's lines, the deck's airy 24 on 16 (DESIGN → Typography → Scale and roles).
-inline constexpr TypeRole kTypographyCaptionLoose = {20, 30, 600};
-// The agent deck's three: `title`, 30 px semibold, its screens' names and headings and a small chip's words; `caption-strong`, 20 px
-// bold, a choice card's name, a detail row's label and a network row's name one size under `label`; `caption-regular`, 20 px regular,
+inline constexpr TypeRole kTypographyCaption = kTypographyScale26Semibold;
+// Caption on a loose line, about 1.5 em: a text view's lines, the deck's airy reading line (DESIGN → Typography → Scale and roles).
+inline constexpr TypeRole kTypographyCaptionLoose = {26, 40, 600};
+// The agent deck's three: `title`, 30 px semibold, its screens' names and headings and a small chip's words; `caption-strong`, 26 px
+// bold, a choice card's name, a detail row's label and a network row's name one size under `label`; `caption-regular`, 26 px regular,
 // the needs-you list's facts line (DESIGN → Typography → Scale and roles).
 inline constexpr TypeRole kTypographyTitle = kTypographyScale30Semibold;
-inline constexpr TypeRole kTypographyCaptionStrong = kTypographyScale20Bold;
-inline constexpr TypeRole kTypographyCaptionRegular = kTypographyScale20Regular;
+inline constexpr TypeRole kTypographyCaptionStrong = kTypographyScale26Bold;
+inline constexpr TypeRole kTypographyCaptionRegular = kTypographyScale26Regular;
 
 // --- Radius -------------------------------------------------------------------------------------------------------
 
@@ -280,6 +281,24 @@ inline constexpr SoundNote kSoundRecordingStart[] = {
 inline constexpr SoundNote kSoundRecordingStop[] = {
     {SoundWave::kPulse25, 5274, 0, 70, 255}, {SoundWave::kPulse25, 0, 0, 45, 0}, {SoundWave::kPulse25, 3520, 0, 120, 255}};
 
+// The agent deck's four event sounds, which no press makes: the deck's own cues moved into the band, each within sound.max — the
+// person's ear, 2026-11-26, over the same at the deck's pitches (DESIGN → Motion → Sound; STICKY_AGENT_DECK §6).
+// sound.attention: a request or question joins the queue — "dee-doo, dee-doo", G7 and E7, twice.
+inline constexpr SoundNote kSoundAttention[] = {
+    {SoundWave::kPulse50, 3136, 0, 85, 220}, {SoundWave::kPulse50, 2638, 0, 130, 230}, {SoundWave::kPulse50, 0, 0, 90, 0},
+    {SoundWave::kPulse50, 3136, 0, 85, 220}, {SoundWave::kPulse50, 2638, 0, 200, 230}};
+// sound.link-up: the bridge to the Mac connects — a coin's blip, G7 then a slide up to D8.
+inline constexpr SoundNote kSoundLinkUp[] = {{SoundWave::kPulse50, 3136, 0, 70, 220}, {SoundWave::kPulse50, 4460, 4700, 260, 240}};
+// sound.usage-limit: the plan's limit is hit — the sad trombone, three falling slides and a wobble at the band's foot.
+inline constexpr SoundNote kSoundUsageLimit[] = {
+    {SoundWave::kPulse50, 2352, 2288, 110, 225}, {SoundWave::kPulse50, 0, 0, 25, 0},
+    {SoundWave::kPulse50, 2216, 2160, 110, 225}, {SoundWave::kPulse50, 0, 0, 25, 0},
+    {SoundWave::kPulse50, 2096, 2040, 110, 225}, {SoundWave::kPulse50, 0, 0, 25, 0},
+    {SoundWave::kPulse50, 2040, 2000, 70, 235},  {SoundWave::kPulse50, 2000, 2050, 70, 220},
+    {SoundWave::kPulse50, 2050, 2040, 55, 200}};
+// sound.agent-start: an agent starts working — a round "boop", 2.8 sliding to 2.2 kHz.
+inline constexpr SoundNote kSoundAgentStart[] = {{SoundWave::kPulse50, 2800, 2200, 120, 255}};
+
 // The mascot's moments (widgets::MascotSfx, in its order): the agent deck's kFx* sounds at the deck's own pitches — the
 // person's ear, 2026-11-24, over the octaves moved into the band — on the note player, which takes any volume but 0 as on
 // (DESIGN → Motion → Sound; STICKY_DESIGN_TOKENS §5).
@@ -329,7 +348,7 @@ static_assert(kTouchFlickMovement <= kTouchFlickDistance, "a flick's last moveme
 namespace detail {
 // Every primitive above, kept by hand: a new one joins this list, or the grid check below does not see it.
 inline constexpr TypeRole kScale[] = {
-    kTypographyScale20Semibold,  kTypographyScale20Bold,     kTypographyScale20Regular, kTypographyScale30Regular,
+    kTypographyScale26Semibold,  kTypographyScale26Bold,     kTypographyScale26Regular, kTypographyScale30Regular,
     kTypographyScale30Semibold,
     kTypographyScale30Bold,      kTypographyScale40Semibold, kTypographyScale40Bold,    kTypographyScale50Semibold,
     kTypographyScale50Bold,      kTypographyScale60Semibold, kTypographyScale60Bold,    kTypographyScale70Semibold,
@@ -340,8 +359,9 @@ inline constexpr TypeRole kScale[] = {
 constexpr bool ScaleOnGrid()
 {
     for (const TypeRole &r : kScale) {
-        // Lines sit on the 4 px grid up to 80 px; figures (100 px and up) sit on their digits' height instead.
-        if (r.size_px % 10 != 0 || (r.size_px <= 80 && r.line_px % 4 != 0)) {
+        // Lines sit on the 4 px grid up to 80 px; figures (100 px and up) sit on their digits' height instead. 26 px is the one size
+        // off the tens (STICKY_DESIGN_TOKENS §3).
+        if ((r.size_px % 10 != 0 && r.size_px != 26) || (r.size_px <= 80 && r.line_px % 4 != 0)) {
             return false;
         }
     }
@@ -372,11 +392,13 @@ template <size_t N> constexpr bool InBand(const SoundNote (&notes)[N], uint32_t 
 }
 }  // namespace detail
 
-static_assert(detail::ScaleOnGrid(), "every type size is a multiple of 10 px and every line to 80 px a multiple of 4");
+static_assert(detail::ScaleOnGrid(), "every type size is a multiple of 10 px but 26, and every line to 80 px a multiple of 4");
 static_assert(detail::InBand(kSoundTick, kSoundTickMaxMs), "the tick is in the buzzer's band and at most tick-max");
 static_assert(detail::InBand(kSoundAtEnd, kSoundMaxMs) && detail::InBand(kSoundError, kSoundMaxMs) &&
                   detail::InBand(kSoundSuccess, kSoundMaxMs) && detail::InBand(kSoundRecordingStart, kSoundMaxMs) &&
-                  detail::InBand(kSoundRecordingStop, kSoundMaxMs),
+                  detail::InBand(kSoundRecordingStop, kSoundMaxMs) && detail::InBand(kSoundAttention, kSoundMaxMs) &&
+                  detail::InBand(kSoundLinkUp, kSoundMaxMs) && detail::InBand(kSoundUsageLimit, kSoundMaxMs) &&
+                  detail::InBand(kSoundAgentStart, kSoundMaxMs),
               "every sound is in the buzzer's band and at most sound.max long");
 static_assert(detail::LastsAtMost(kSoundMascotBlink, kSoundMaxMs) &&
                   detail::LastsAtMost(kSoundMascotHappy, kSoundMaxMs) &&

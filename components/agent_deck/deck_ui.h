@@ -136,6 +136,41 @@ inline void MarginTop(lv_obj_t *o, int32_t px)
     lv_obj_set_style_margin_top(o, px, 0);
 }
 
+// A card's face for a row whose ring goes round it whole: the question cards' light dither, `rounded.lg`, so the box stands on the title's
+// edge with its words `spacing.md` inside, and its ring stands in the margin, never on bare words (the person, 2026-11-26; DESIGN → Layout →
+// Spacing). A chosen row's fill, a state's own style, still outranks it.
+inline void CardFace(lv_obj_t *row)
+{
+    lv_obj_set_style_bg_color(row, ui::Fill(dt::kColorBand), 0);
+    lv_obj_set_style_bg_opa(row, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(row, dt::kRoundedLg, 0);
+}
+
+// The first words in `o`, itself when it is a label: the label a stepped line or a row of words holds.
+inline lv_obj_t *WordsIn(lv_obj_t *o)
+{
+    if (o == nullptr || lv_obj_check_type(o, &lv_label_class)) {
+        return o;
+    }
+    for (uint32_t i = 0; i < lv_obj_get_child_count(o); ++i) {
+        if (lv_obj_t *found = WordsIn(lv_obj_get_child(o, static_cast<int32_t>(i)))) {
+            return found;
+        }
+    }
+    return nullptr;
+}
+
+// A line tight under its heading: `spacing.xs` between the two words' own boxes, the line boxes' leading taken back in the line's margin,
+// so the tuck holds at any role's size (DESIGN → Layout → Spacing). Either may be a box round its words: a stepped line, a row.
+inline void TuckUnder(lv_obj_t *heading, lv_obj_t *line)
+{
+    lv_obj_t *over = WordsIn(heading);
+    lv_obj_t *under = WordsIn(line);
+    const int32_t leading = (over != nullptr ? lv_obj_get_style_pad_bottom(over, LV_PART_MAIN) : 0) +
+                            (under != nullptr ? lv_obj_get_style_pad_top(under, LV_PART_MAIN) : 0);
+    MarginTop(line, dt::kSpacingXs - leading);
+}
+
 // The state chip, centred across the glass at `kChipTop`: a row the glass's width holds it, so its words changing keeps it centred. Home's
 // every page and the frame the glass keeps while the deck is off stand it in this one place.
 inline lv_obj_t *StateChip(lv_obj_t *parent, const char *text, bool control)

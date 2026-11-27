@@ -22,12 +22,13 @@ namespace {
 using namespace layout;
 using ui::Type;
 
-// A row with no box of its own — a toggle, the name over the slider — stands its words `spacing.md` in from the content's edge, where the
-// value, network and list rows' words stand inside their boxes: every row's words on one left edge, `spacing.edge + spacing.md`, and the
-// boxes (the rows, the slider's track, the toggle) on the content's own edges (DESIGN → Layout → Spacing).
-void InsetWords(lv_obj_t *row)
+// Words that never take a ring stand on the content's edges, x 24 and 456, with the heading: Sound's and Wi-Fi's names (their ring goes
+// round the toggle), Auto sleep's, Battery's. A row whose ring goes round it whole is a card (CardFace), its words `spacing.md` inside
+// (the person, 2026-11-26: DESIGN → Layout → Spacing). A value row reserves an edge it never draws: Battery's gives it up.
+void FlushWords(lv_obj_t *row)
 {
-    lv_obj_set_style_pad_left(row, dt::kSpacingMd, 0);
+    lv_obj_set_style_border_width(row, 0, 0);
+    lv_obj_set_style_pad_hor(row, 0, 0);
 }
 
 class Settings final : public router::Screen {
@@ -114,18 +115,13 @@ private:
         // Sound: the buzzer on or off, the setting the home foot's toggle shares. Every control's words are the Sound label's size: caption.
         const widgets::ToggleRow sound = widgets::MakeToggleRow(rows, "Sound", model::SoundOn());
         widgets::SetWordsRole(sound.root, Type::kCaption);
-        InsetWords(sound.root);
         lv_obj_add_event_cb(sound.toggle, OnSound, LV_EVENT_VALUE_CHANGED, this);
         stops_.push_back(sound.toggle);
         first_stops_[0] = sound.toggle;
 
-        // Auto sleep: its name and, while the bridge is on the cable, `On battery only`, over the slider.
+        // Auto sleep: its name over the slider (the person, 2026-11-26: no `On battery only` beside it).
         lv_obj_t *name = Row(rows);
-        lv_obj_set_style_pad_column(name, dt::kSpacingMd, 0);
-        InsetWords(name);
         Words(name, Type::kCaption, "Auto sleep");
-        note_ = Quiet(name, "On battery only");
-        lv_obj_set_hidden(note_, !model::LinkUp());
         const widgets::RangeSlider sleep = widgets::MakeRangeSlider(rows, model::kAutoSleepMin, model::kAutoSleepMax, model::kAutoSleepStep,
                                                                     model::AutoSleepMinutes(), " min");
         MarginTop(sleep.root, dt::kSpacingSm - dt::kSpacingMd);
@@ -143,7 +139,6 @@ private:
 
         const widgets::ToggleRow wifi = widgets::MakeToggleRow(rows, "Wi-Fi", model::WifiOn());
         widgets::SetWordsRole(wifi.root, Type::kCaption);
-        InsetWords(wifi.root);
         MarginTop(wifi.root, dt::kSpacingSm);
         wifi_row_ = wifi.root;
         lv_obj_add_event_cb(wifi.toggle, OnWifiSwitch, LV_EVENT_VALUE_CHANGED, this);
@@ -153,21 +148,24 @@ private:
 
         // Time zone: the kit's dropdown, whose select sheet lists the fifteen zones; the page has no Time zone page of its own.
         zone_ = widgets::MakeDropdown(rows, "Time zone", rules::kTimeZones, model::kTimeZones, model::TimeZone());
+        CardFace(zone_->field);
         widgets::SetWordsRole(zone_->frame, Type::kCaption);
         lv_obj_add_event_cb(zone_->field, OnZone, LV_EVENT_VALUE_CHANGED, this);
         stops_.push_back(zone_->field);
 
         // Battery: the percent and the word, a reading on its row — no page, no details; out of the walk.
         const widgets::ValueRow battery = widgets::MakeValueRow(rows, "Battery", "");
+        FlushWords(battery.root);
         widgets::SetWordsRole(battery.root, Type::kCaption);
         lv_group_remove_obj(battery.root);
         battery_ = battery;
         UpdateBattery();
 
-        // Hardware test: the rows' last, the kit's list row, its words caption; it opens the hardware test's own home.
+        // Hardware test: the rows' last, the kit's list row, its words caption; it opens the hardware test's own home in the settings' place.
         hardware_ = nullptr;
         if (router::FindRoute(flow::kRouteHardware) != nullptr) {
             hardware_ = widgets::MakeListRow(rows, "Hardware test", nullptr, OnHardware, nullptr, Type::kCaption);
+            CardFace(hardware_);
             stops_.push_back(hardware_);
         }
 
@@ -264,11 +262,12 @@ private:
             row = widgets::MakeNetworkRow(rows, w.network.name, w.network.locked, w.network.signal,
                                           w.stage == model::WifiStage::kJoined ? widgets::NetworkState::kConnected
                                                                                : widgets::NetworkState::kConnecting,
-                                          widgets::NetworkLook::kOutlined, widgets::NetworkName::kStepped,
+                                          widgets::NetworkLook::kCard, widgets::NetworkName::kStepped,
                                           widgets::MarqueeKey(kScopeSettings, 0, 1));
         } else {
             const widgets::ValueRow none = widgets::MakeValueRow(rows, "Network", on ? "Not joined" : "Wi-Fi off");
             widgets::SetWordsRole(none.root, Type::kCaption);
+            CardFace(none.root);  // it opens the Wi-Fi page: its ring goes round it whole
             row = none.root;
             if (!on) {
                 lv_obj_add_state(row, LV_STATE_DISABLED);  // out of reach while the switch is off, never hidden
@@ -334,11 +333,6 @@ private:
         case model::Event::kBattery:
             self->UpdateBattery();
             break;
-        case model::Event::kLink:
-            if (self->note_ != nullptr) {
-                lv_obj_set_hidden(self->note_, !model::LinkUp());
-            }
-            break;
         case model::Event::kWifi:
         case model::Event::kSettings:
             // On the next pass: the switch that changed the row is the object a rebuild deletes, and its own handler is still running.
@@ -395,7 +389,9 @@ private:
         }
     }
     static void OnBack(lv_event_t *) { router::Pop(); }
-    static void OnHardware(lv_event_t *) { router::PushRoute(flow::kRouteHardware); }
+    // The hardware test replaces the settings, not stacked on them: its Display screen's own pages are the fourth screen up, at
+    // router::kMaxDepth, so Back from the test's home goes to the deck's home (the person, 2026-11-26).
+    static void OnHardware(lv_event_t *) { router::GoToRoute(flow::kRouteHardware); }
 
     lv_group_t *group_ = nullptr;
     lv_obj_t *page_ = nullptr;
@@ -412,7 +408,6 @@ private:
     int32_t content_h_ = 0;
     int page_index_ = 0;
     bool rebuilding_ = false;
-    lv_obj_t *note_ = nullptr;
     widgets::Dropdown *zone_ = nullptr;
     widgets::ValueRow battery_ = {};
     std::vector<lv_obj_t *> stops_;

@@ -797,8 +797,8 @@ void TestNetworkRow()
     using widgets::NetworkLook;
     using widgets::NetworkName;
     using widgets::NetworkState;
-    lv_obj_t *dotted = widgets::MakeNetworkRow(column, "Studio-Guest", true, 2, NetworkState::kConnected, NetworkLook::kOutlined);
-    lv_obj_t *stepped = widgets::MakeNetworkRow(column, "Studio-Guest", true, 2, NetworkState::kConnected, NetworkLook::kOutlined,
+    lv_obj_t *dotted = widgets::MakeNetworkRow(column, "Studio-Guest", true, 2, NetworkState::kConnected, NetworkLook::kCard);
+    lv_obj_t *stepped = widgets::MakeNetworkRow(column, "Studio-Guest", true, 2, NetworkState::kConnected, NetworkLook::kCard,
                                                 NetworkName::kStepped, MarqueeKey(4, 1, 2));
     lv_obj_t *long_row = widgets::MakeNetworkRow(column, "Studio-Upstairs-Guest-5G-Annex-2", true, 3, NetworkState::kRest, NetworkLook::kInverted,
                                                  NetworkName::kStepped, MarqueeKey(4, 2, 2));

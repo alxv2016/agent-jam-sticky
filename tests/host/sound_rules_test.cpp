@@ -3,7 +3,7 @@
 // the triangle and noise the full square; a note's pitch is the LEDC timer's frequency, clamped to what the timer can
 // divide to; a slide steps every kSlideStepMs from its start to its end; noise hops at random within 40 % of its centre,
 // the same way every time; a rest and the end are silent; the tick is the 30 ms at 4 kHz it has been since bring-up; and
-// each of the six words has its token, in the buzzer's band, a tick at most 40 ms and any other sound at most 600
+// each of the ten words has its token, in the buzzer's band, a tick at most 40 ms and any other sound at most 600
 // (STICKY_HARDWARE_SPECS §4.2; STICKY_DESIGN_TOKENS §5).
 // Build and run: bash tests/host/run.sh
 
@@ -127,10 +127,12 @@ void TestWords()
 {
     Check(kBandLowHz == 2000 && kBandHighHz == 6000, "the band is sound.band-low to sound.band-high, 2 to 6 kHz");
     Check(kTickMaxMs == 40 && kSoundMaxMs == 600, "sound.tick-max is 40 ms and sound.max 600 ms");
-    Check(kSoundCount == 6, "six words: tick, at end, error, success, recording start and stop");
-    const design_tokens::SoundNote *tokens[] = {design_tokens::kSoundTick,    design_tokens::kSoundAtEnd,
-                                                design_tokens::kSoundError,   design_tokens::kSoundSuccess,
-                                                design_tokens::kSoundRecordingStart, design_tokens::kSoundRecordingStop};
+    Check(kSoundCount == 10, "ten words: tick, at end, error, success, recording start and stop, and the deck's four event sounds");
+    const design_tokens::SoundNote *tokens[] = {design_tokens::kSoundTick,           design_tokens::kSoundAtEnd,
+                                                design_tokens::kSoundError,          design_tokens::kSoundSuccess,
+                                                design_tokens::kSoundRecordingStart, design_tokens::kSoundRecordingStop,
+                                                design_tokens::kSoundAttention,      design_tokens::kSoundLinkUp,
+                                                design_tokens::kSoundUsageLimit,     design_tokens::kSoundAgentStart};
     char what[96];
     for (size_t i = 0; i < kSoundCount; ++i) {
         const NamedSound &n = kSounds[i];
@@ -169,6 +171,26 @@ void TestWords()
     Check(SoundOf(Word::kRecordingStart).notes[0].hz == SoundOf(Word::kRecordingStop).notes[2].hz &&
               SoundOf(Word::kRecordingStart).notes[2].hz == SoundOf(Word::kRecordingStop).notes[0].hz,
           "and the stop is the start's pair turned round");
+}
+
+// The deck's four event sounds, the person's ear on the draft (DESIGN → Motion → Sound).
+void TestDeckWords()
+{
+    // The deck's four, the person's ear on the draft, 2026-11-26: B, the deck's cues moved into the band.
+    Check(SoundOf(Word::kAttention).count == 5 && SoundOf(Word::kAttention).notes[0].hz == SoundOf(Word::kAttention).notes[3].hz &&
+              SoundOf(Word::kAttention).notes[1].hz < SoundOf(Word::kAttention).notes[0].hz && LengthMs(SoundOf(Word::kAttention)) == 590,
+          "attention is dee-doo twice, 590 ms");
+    Check(SoundOf(Word::kLinkUp).notes[1].hz_end > SoundOf(Word::kLinkUp).notes[1].hz &&
+              SoundOf(Word::kLinkUp).notes[1].hz > SoundOf(Word::kLinkUp).notes[0].hz && LengthMs(SoundOf(Word::kLinkUp)) == 330,
+          "link up is a blip and a higher slide up, 330 ms");
+    Check(SoundOf(Word::kUsageLimit).notes[0].hz > SoundOf(Word::kUsageLimit).notes[2].hz &&
+              SoundOf(Word::kUsageLimit).notes[2].hz > SoundOf(Word::kUsageLimit).notes[4].hz && LengthMs(SoundOf(Word::kUsageLimit)) == 600,
+          "usage limit is the sad trombone, falling, within sound.max");
+    Check(SoundOf(Word::kAgentStart).count == 1 && SoundOf(Word::kAgentStart).notes[0].hz_end < SoundOf(Word::kAgentStart).notes[0].hz,
+          "agent start is one boop, sliding down");
+    Check(Leads(Word::kAttention) && Leads(Word::kLinkUp) && Leads(Word::kUsageLimit) && Leads(Word::kAgentStart) &&
+              !Leads(Word::kTick) && !Leads(Word::kError) && !Leads(Word::kSuccess),
+          "the deck's four lead, the mascot's moments dropped under them; the six do not");
 }
 
 }  // namespace
@@ -250,6 +272,7 @@ int main()
     TestNoise();
     TestTick();
     TestWords();
+    TestDeckWords();
     TestMusic();
     TestMoments();
     std::printf("sound rules: %d checks, %d failed\n", s_checks, s_failures);

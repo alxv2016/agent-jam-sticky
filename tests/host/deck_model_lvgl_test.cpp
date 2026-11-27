@@ -1,6 +1,7 @@
 // Host test of the agent deck's rules, its model and its mock day (components/agent_deck: deck_rules.h, deck_model.cpp, deck_mock.cpp), on the
 // computer with no board: the words (a span, tokens, a reset, the clock, a state), the carousel's page order and wrap, the overview's count
-// and when it is a control, the move each state plays, where a request leaves to, who waits and how a row says it; the model's records —
+// and when it is a control, the move each state plays, where a request leaves to, who waits and how a row says it, which change makes which
+// event sound; the model's records —
 // agents in arrival order, the room made past twelve, the queue refused at a fifth, an answer sent to the link — and its observers; and the day
 // the mock plays on LVGL's timer, step by step, loop after loop; the settings, the battery's words, the Wi-Fi record and its asks, and the
 // standby page's states (STICKY_AGENT_DECK §3, §4.7–§4.9); and lvgl_display::InPsram (in_psram.h), which keeps the tables in PSRAM on the
@@ -177,11 +178,66 @@ void TestRulesMoves()
     Check(waiting(nullptr, true, "Question", 60) == "previous chat \xE2\x80\xA2 Question \xE2\x80\xA2 1m", "a previous chat's agent says so");
 }
 
+// The deck's event sounds (STICKY_AGENT_DECK §6): which change makes which, each once as it comes, and the rank that keeps a lower one
+// from cutting a higher one still sounding.
+void TestRulesSounds()
+{
+    using rules::EventSound;
+    using model::AgentState;
+    using model::Event;
+    rules::EventHeard heard;
+    uint32_t id = 0;
+    const auto For = [&heard, &id](Event event, bool added, AgentState was, AgentState now, bool link, bool limited) {
+        return rules::EventSoundFor(event, id, added, was, now, link, limited, heard);
+    };
+    id = 3001;
+    Check(For(Event::kRequestOpened, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kAttention,
+          "a request or question queued sounds attention");
+    Check(For(Event::kRequestOpened, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kNone,
+          "a question's next part, the same id, is silent");
+    id = 3002;
+    Check(For(Event::kRequestOpened, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kAttention,
+          "and the next request sounds again");
+    Check(For(Event::kRequestClosed, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kNone &&
+              For(Event::kRequestOpened, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kAttention,
+          "one closed and sent again, as a snapshot after a Reset does, sounds again");
+    id = 0;
+    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kLinkUp, "the link come up sounds link up");
+    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone, "once: a link already up is silent");
+    Check(For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, false, false) == EventSound::kNone &&
+              For(Event::kLink, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kLinkUp,
+          "the link lost is silent, and up again sounds again");
+    Check(For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, true) == EventSound::kUsageLimit &&
+              For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, true) == EventSound::kNone,
+          "the plan's limit hit sounds usage limit, once while it holds");
+    Check(For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone &&
+              For(Event::kUsage, false, AgentState::kIdle, AgentState::kIdle, true, true) == EventSound::kUsageLimit,
+          "a limit lifted is silent, and hit again sounds again");
+    Check(For(Event::kAgent, true, AgentState::kIdle, AgentState::kWorking, true, false) == EventSound::kAgentStart, "a new agent working sounds agent start");
+    Check(For(Event::kAgent, false, AgentState::kIdle, AgentState::kWorking, true, false) == EventSound::kAgentStart &&
+              For(Event::kAgent, false, AgentState::kDone, AgentState::kWorking, true, false) == EventSound::kAgentStart,
+          "and one back to work from idle or done");
+    Check(For(Event::kAgent, false, AgentState::kWorking, AgentState::kWorking, true, false) == EventSound::kNone &&
+              For(Event::kAgent, false, AgentState::kNeedsYou, AgentState::kWorking, true, false) == EventSound::kNone &&
+              For(Event::kAgent, true, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone,
+          "still working, back from a request, or new and idle: silent");
+    Check(For(Event::kRequestClosed, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone &&
+              For(Event::kBattery, false, AgentState::kIdle, AgentState::kIdle, true, false) == EventSound::kNone,
+          "every other change is silent");
+    Check(rules::EventSoundCuts(EventSound::kAttention, EventSound::kAgentStart, 10, 120) &&
+              !rules::EventSoundCuts(EventSound::kAgentStart, EventSound::kLinkUp, 10, 330) &&
+              rules::EventSoundCuts(EventSound::kAgentStart, EventSound::kLinkUp, 330, 330) &&
+              rules::EventSoundCuts(EventSound::kAgentStart, EventSound::kAgentStart, 10, 120) &&
+              !rules::EventSoundCuts(EventSound::kNone, EventSound::kNone, 0, 0),
+          "a higher sound cuts a lower one, a lower one is dropped while it sounds, and nothing is never played");
+}
+
 void TestRules()
 {
-    std::printf("carousel, count, moves, leaving, the list\n");
+    std::printf("carousel, count, moves, leaving, the list, the event sounds\n");
     TestRulesPages();
     TestRulesMoves();
+    TestRulesSounds();
 }
 
 // --- The model ---------------------------------------------------------------------------------------------------------------

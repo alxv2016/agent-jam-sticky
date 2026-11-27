@@ -16,8 +16,8 @@ namespace widgets {
 // the shell of a composite, which joins the group itself. `on_click` runs on LV_EVENT_CLICKED with `user_data`.
 // `title` is the title's role: `label` by default, `body` — 30 px regular — where a screen's names are the page's own words, as
 // the agent deck's needs-you list (DESIGN → Components → The kit → List row). `supporting_role` is the supporting line's: `caption` by
-// default, `caption-regular` — 20 px regular — under that list's `body` names, so the line is lighter than the name over it and the pair
-// is no weight inversion. The row's height and its centring do not change, the two roles being 24 px lines.
+// default, `caption-regular` — 26 px regular — under that list's `body` names, so the line is lighter than the name over it and the pair
+// is no weight inversion. The row's height and its centring do not change, the two roles sharing the 32 px line.
 //
 // `fit` is what a line too long for the row does: end in LVGL's three full stops (`kDots`, the default, which every other user keeps), or
 // step as a marquee (`kStepped`; `kSteppedCounting` when the supporting line counts a time, so new words under the same key carry the pass on)

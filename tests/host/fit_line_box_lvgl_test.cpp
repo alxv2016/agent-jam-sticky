@@ -1,9 +1,9 @@
 // Host test of ui::FitLineBox (components/ui/line_box.cpp) on LVGL's real label code, on the computer with no board: the
 // spare pixels between a font's own height and its role's line box are split above and below (the odd pixel above); a dotted
-// label is one line box tall; a wrapped label is n line boxes tall for n lines — for `label` (36), `caption` (24) and
-// `caption-loose` (30) in their real Bitcount fonts (STICKY_DESIGN_TOKENS §3 gives a role's line; STICKY_DESIGN_TOKENS §9 is the line-box rule).
+// label is one line box tall; a wrapped label is n line boxes tall for n lines — for `label` (36), `caption` (32) and
+// `caption-loose` (40) in their real Bitcount fonts (STICKY_DESIGN_TOKENS §3 gives a role's line; STICKY_DESIGN_TOKENS §9 is the line-box rule).
 // run.sh builds LVGL's sources from managed_components once, into build/host/lvgl, and the sources named below.
-// host-sources: components/ui/line_box.cpp components/ui/fonts/bitcount/bitcount_700_30.c components/ui/fonts/bitcount/bitcount_600_20.c
+// host-sources: components/ui/line_box.cpp components/ui/fonts/bitcount/bitcount_700_30.c components/ui/fonts/bitcount/bitcount_600_26.c
 // Build and run: bash tests/host/run.sh
 
 #include <cstdio>
@@ -16,7 +16,7 @@
 
 extern "C" {
 LV_FONT_DECLARE(bitcount_700_30)
-LV_FONT_DECLARE(bitcount_600_20)
+LV_FONT_DECLARE(bitcount_600_26)
 }
 
 namespace dt = design_tokens;
@@ -164,15 +164,15 @@ int main()
 
     // The roles' fonts and line boxes are the token header's: a change there changes what is tested, and says so.
     Check(dt::kTypographyLabel.size_px == 30 && dt::kTypographyLabel.weight == 700, "label is Bitcount 30 at 700");
-    Check(dt::kTypographyCaption.size_px == 20 && dt::kTypographyCaption.weight == 600, "caption is Bitcount 20 at 600");
-    Check(dt::kTypographyCaptionLoose.size_px == 20 && dt::kTypographyCaptionLoose.weight == 600,
-          "caption-loose is Bitcount 20 at 600");
+    Check(dt::kTypographyCaption.size_px == 26 && dt::kTypographyCaption.weight == 600, "caption is Bitcount 26 at 600");
+    Check(dt::kTypographyCaptionLoose.size_px == 26 && dt::kTypographyCaptionLoose.weight == 600,
+          "caption-loose is Bitcount 26 at 600");
     const Case cases[] = {
         {"label", &bitcount_700_30, dt::kTypographyLabel.line_px},
-        {"caption", &bitcount_600_20, dt::kTypographyCaption.line_px},
-        {"caption-loose", &bitcount_600_20, dt::kTypographyCaptionLoose.line_px},
+        {"caption", &bitcount_600_26, dt::kTypographyCaption.line_px},
+        {"caption-loose", &bitcount_600_26, dt::kTypographyCaptionLoose.line_px},
     };
-    Check(cases[0].line_px == 36 && cases[1].line_px == 24 && cases[2].line_px == 30, "the line boxes are 36, 24 and 30");
+    Check(cases[0].line_px == 36 && cases[1].line_px == 32 && cases[2].line_px == 40, "the line boxes are 36, 32 and 40");
 
     for (const Case &c : cases) {
         TestPadding(c);

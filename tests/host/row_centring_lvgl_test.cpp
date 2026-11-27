@@ -181,14 +181,14 @@ void TestSettingRows()
     Measure("toggle row, two lines", widgets::MakeToggleRow(s_column, kLong, true).root);
     widgets::ToggleRow off = widgets::MakeToggleRow(s_column, "Background", false);
     widgets::SetToggleRowEnabled(off, false, "Turn Wi-Fi on first");
-    Measure("toggle row, disabled with its reason", off.root, 64);
+    Measure("toggle row, disabled with its reason", off.root, 100);  // the name, pair-sm, its reason in two lines at 26 px
     Measure("toggle icon row, one line", widgets::MakeToggleIconRow(s_column, "Sound", true).root, 64);
     Measure("toggle icon row, two lines", widgets::MakeToggleIconRow(s_column, kLong, false).root);
     Measure("checkbox row, one line", widgets::MakeCheckboxRow(s_column, "Keep recordings", true).root, 64);
     Measure("checkbox row, two lines", widgets::MakeCheckboxRow(s_column, kLong, false).root);
     widgets::CheckboxRow no_box = widgets::MakeCheckboxRow(s_column, "Share with the team", false);
     widgets::SetCheckboxRowEnabled(no_box, false, "Sign in first");
-    Measure("checkbox row, disabled with its reason", no_box.root, 64);
+    Measure("checkbox row, disabled with its reason", no_box.root, 68);  // the name, pair-sm between their own boxes, its reason
     Measure("radio button row, one line", widgets::MakeRadioButtonRow(s_column, "Every day", true).root, 64);
     Measure("radio button row, two lines", widgets::MakeRadioButtonRow(s_column, kLong, false).root);
 }
@@ -274,15 +274,15 @@ void TestWrappingRows()
 
     NewPage();
     const widgets::DetailRow one = widgets::MakeDetailRow(s_column, "Serial number", "FU-0001-2026");
-    Measure("detail row, one line each", one.root, 76);  // 8 + 24 + 36 + 8, as it always was
+    Measure("detail row, one line each", one.root, 84);  // 8 + 32 + 36 + 8: caption's 32 over label's 36
     const widgets::DetailRow value = widgets::MakeDetailRow(s_column, "Firmware", "agent_jam_sticky 0.1.0-23-g4ae91c2-dirty");
-    Measure("detail row, a two-line value", value.root, 76 + 36);
+    Measure("detail row, a two-line value", value.root, 84 + 36);
     Check(LinesOf(value.value, ui::Type::kLabel) == 2 && lv_label_get_long_mode(value.value) == LV_LABEL_LONG_MODE_WRAP, "detail row: a 31-character value takes two lines, whole");
     const widgets::DetailRow name = widgets::MakeDetailRow(s_column, "Wi-Fi network joined on the last boot", "Home");
-    Measure("detail row, a two-line name", name.root, 76 + 24);
+    Measure("detail row, a two-line name", name.root, 84 + 32);
     Check(LinesOf(name.label, ui::Type::kCaption) == 2, "detail row: a 37-character name takes two lines, whole");
     const widgets::DetailRow both = widgets::MakeDetailRow(s_column, "Wi-Fi network joined on the last boot", "On the first Monday of next month, in the morning");
-    Measure("detail row, a two-line name over a three-line value", both.root, 76 + 24 + 2 * 36);
+    Measure("detail row, a two-line name over a three-line value", both.root, 84 + 32 + 2 * 36);
 }
 
 // A list view shows only its own page's rows: its band is cut to the page's last row and the ring's reach under it, so the first row of

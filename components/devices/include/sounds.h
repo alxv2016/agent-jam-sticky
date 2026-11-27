@@ -1,7 +1,7 @@
-// Agent Jam Sticky's sound words — tick, at end, error, success, recording start and recording stop — each one of DESIGN.md's
-// sound tokens (design_tokens.h `kSound*`), chosen by the person by ear on the board from the candidates in the agent
-// deck's 8-bit style. devices::Play(Word) plays one; the hardware test's audition and its `sound <name>` list them
-// (DESIGN → Motion → Sound; STICKY_DESIGN_TOKENS §5).
+// Agent Jam Sticky's sound words — tick, at end, error, success, recording start and recording stop, then the agent deck's
+// four event sounds: attention, link up, usage limit and agent start — each one of DESIGN.md's sound tokens (design_tokens.h
+// `kSound*`), chosen by the person by ear from candidates in the agent deck's 8-bit style. devices::Play(Word) plays one; the
+// hardware test's audition and its `sound <name>` list them (DESIGN → Motion → Sound; STICKY_DESIGN_TOKENS §5).
 
 #pragma once
 
@@ -13,7 +13,7 @@
 
 namespace devices::sound {
 
-enum class Word : uint8_t { kTick, kAtEnd, kError, kSuccess, kRecordingStart, kRecordingStop };
+enum class Word : uint8_t { kTick, kAtEnd, kError, kSuccess, kRecordingStart, kRecordingStop, kAttention, kLinkUp, kUsageLimit, kAgentStart };
 
 struct NamedSound {
     Word word;
@@ -31,6 +31,10 @@ inline constexpr NamedSound kSounds[] = {
     {Word::kSuccess, "success", "Success", "Rise", Of(design_tokens::kSoundSuccess)},
     {Word::kRecordingStart, "recording-start", "Recording start", "Nudge up", Of(design_tokens::kSoundRecordingStart)},
     {Word::kRecordingStop, "recording-stop", "Recording stop", "Nudge down", Of(design_tokens::kSoundRecordingStop)},
+    {Word::kAttention, "attention", "Attention", "Dee-doo", Of(design_tokens::kSoundAttention)},
+    {Word::kLinkUp, "link-up", "Link up", "Coin", Of(design_tokens::kSoundLinkUp)},
+    {Word::kUsageLimit, "usage-limit", "Usage limit", "Sad trombone", Of(design_tokens::kSoundUsageLimit)},
+    {Word::kAgentStart, "agent-start", "Agent start", "Boop", Of(design_tokens::kSoundAgentStart)},
 };
 inline constexpr size_t kSoundCount = sizeof(kSounds) / sizeof(kSounds[0]);
 
@@ -38,8 +42,16 @@ constexpr const Sound &SoundOf(Word word)
 {
     return kSounds[static_cast<size_t>(word)].sound;
 }
+static_assert(kSoundCount == static_cast<size_t>(Word::kAgentStart) + 1, "a sound for every word");
 
-// Claude's mascot's moments, outside the six words: one a movement of a move, in widgets::MascotSfx's order — a page that
+// The deck's event sounds lead, as a leading music does: while one sounds, a frame's mascot moments are dropped, not played over
+// it; a press's tick still cuts in (DESIGN → Motion → Sound).
+constexpr bool Leads(Word word)
+{
+    return word == Word::kAttention || word == Word::kLinkUp || word == Word::kUsageLimit || word == Word::kAgentStart;
+}
+
+// Claude's mascot's moments, outside the ten words: one a movement of a move, in widgets::MascotSfx's order — a page that
 // shows the mascot mirrors its MascotSfx here and asserts the two agree — each DESIGN.md's `sound.mascot-*`
 // (DESIGN → Motion → Sound; MASCOT §4 rule 10). devices::QueueMoment holds one until the next refresh starts.
 enum class Moment : uint8_t { kBlink, kHappy, kChevron, kWink, kLook, kHop, kLand, kSway, kStretch, kHand, kWipe, kLaptopDown, kLidOpen, kLidShut, kFlag, kBurst, kPuff, kBead, kPop, kStep, kTurn, kHandDown, kCrouch, kTopple, kFlop };

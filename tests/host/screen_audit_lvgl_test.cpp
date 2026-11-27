@@ -389,7 +389,7 @@ std::map<const lv_font_t *, Face> s_faces;
 
 void MapFaces()
 {
-    for (int size : {20, 30, 40, 50, 60, 70, 80, 100, 120, 160}) {
+    for (int size : {26, 30, 40, 50, 60, 70, 80, 100, 120, 160}) {
         for (int weight : {400, 600, 700}) {
             if (const lv_font_t *f = ui::Bitcount(static_cast<int16_t>(size), static_cast<int16_t>(weight))) {
                 s_faces[f] = {size, weight};

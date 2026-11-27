@@ -342,8 +342,8 @@ private:
     // The readout's last two lines: the partials since the last full refresh and the fulls since the page opened.
     void ShowGlass(const lvgl_display::Stats &st)
     {
-        Line(1, "Partials since full: %" PRIu32 " of %d", st.partials, dt::kRefreshPartialLimit);
-        Line(2, "Full refreshes since opening: %" PRIu32, st.full_count - full_base_);
+        Line(1, "Partials since full: %" PRIu32 "/%d", st.partials, dt::kRefreshPartialLimit);
+        Line(2, "Fulls since opening: %" PRIu32, st.full_count - full_base_);
         Say();
     }
 

@@ -112,11 +112,11 @@ private:
 
         body_ = Column(page_, dt::kSpacingContent);
         lv_obj_set_pos(body_, dt::kSpacingEdge, kHeadingTop);
-        Words(body_, Type::kTitle, "Needs you");
+        lv_obj_t *heading = Words(body_, Type::kTitle, "Needs you");
         char sessions[24];
         std::snprintf(sessions, sizeof sessions, count_ == 1 ? "%u session" : "%u sessions", static_cast<unsigned>(count_));
-        // Tight under the heading, in `caption-regular`: the heading 30 px semibold over 20 px regular differs in size and weight.
-        MarginTop(Quiet(body_, sessions, Fit::kWords, Type::kCaptionRegular), -dt::kSpacingXs);
+        // Tight under the heading, in `caption-regular`: the heading 30 px semibold over 26 px regular differs in size and weight.
+        TuckUnder(heading, Quiet(body_, sessions, Fit::kWords, Type::kCaptionRegular));
 
         const widgets::ListView list = widgets::MakeListView(body_, kRowsPerPage, dt::kSpacingListRowHeight);
         list_ = list;
@@ -135,13 +135,14 @@ private:
             const char *kind = agent != nullptr && agent->parent != 0 ? (agent->kind[0] != '\0' ? agent->kind : "Sub-agent") : nullptr;
             rules::FormatWaiting(facts, sizeof facts, kind, agent != nullptr && agent->background, item->is_question ? "Question" : item->tool,
                                  waited);
-            // The name in `body`, the page's own words: the list row's title role, and the facts under it in `caption-regular`, 20 px regular.
+            // The name in `body`, the page's own words: the list row's title role, and the facts under it in `caption-regular`, 26 px regular.
             // Names and facts too long for the row step instead of ending in dots, resting at their start after their passes: a row is a control. The
             // facts count the wait, so their words change every rebuild and the pass goes on through it (widgets/marquee.h).
             lv_obj_t *row = widgets::MakeListRow(list.root, agent != nullptr ? agent->name : "", facts, OnRow, this, Type::kBody,
                                                  widgets::ListRowFit::kSteppedCounting, widgets::MarqueeKey(kScopeList, waiting[i], 1),
                                                  Type::kCaptionRegular);
             lv_obj_set_style_pad_left(row, dt::kSpacingMd + kAvatarW + dt::kSpacingMd, 0);  // the avatar's room, the words after it
+            CardFace(row);  // its ring goes round it whole: a card, the avatar and words inside
             rows_[i] = {row, waiting[i]};
             backgrounds[i] = agent != nullptr && agent->background;
         }
